@@ -1,0 +1,180 @@
+/* === pageparts === */
+
+.post-type-pageparts .updated.notice
+{
+	display: none;
+}
+
+/* === form - label of checkboxes and radio === */
+
+label.label_fb
+{
+	display: inline-block;
+	white-space:nowrap;
+	padding: 3px 3px 3px 2px;
+	margin-right: 5px;
+}
+
+label.label_fb:hover,
+label.label_fb.on
+{
+	background-color: #e8e8e8;
+}
+
+label.disabled
+{
+	opacity: 0.5;
+}
+
+label.disabled:hover
+{
+	background-color: transparent !important;
+}
+
+/* .dashi_custom_fields_in_fields */
+
+.dashi_custom_fields_in_fields + .dashi_custom_fields_in_fields
+{
+	margin-top: 20px;
+}
+
+.dashi_custom_fields_in_fields label.dashi_custom_fields_label,
+.dashi_custom_fields_in_fields h3.dashi_custom_fields_label
+{
+	font-size: 100%;
+	margin: 0;
+	padding: 0 0 5px;
+	font-weight: bold;
+	display: block;
+}
+
+.dashi_err_msg
+{
+	color: #f00;
+	background-color: #fff;
+	font-weight: bold;
+}
+
+/* date picker */
+
+div#ui-datepicker-div.dashi_datepicker {
+	background: #fefefe;
+	padding: 5px 10px;
+	border-radius: 3px;
+	box-shadow: 0 0 3px rgba(0,0,0,.3);
+}
+.dashi_datepicker .ui-datepicker-header {
+	position: relative;
+}
+.dashi_datepicker .ui-datepicker-next {
+	position: absolute;
+	right: 0;
+}
+.dashi_datepicker .ui-datepicker-title {
+	text-align: center;
+}
+.dashi_datepicker .ui-datepicker-calendar td {
+	padding: 3px;
+	text-align: center;
+}
+
+/* description */
+
+.dashi_fields_description
+{
+	display: block;
+	padding-bottom: 15px;
+}
+
+/* dashi_duped_ctrl_fields */
+
+.dashi_duped_ctrl_fields
+{
+	background-color: #f6f6f6;
+	border-top: 1px #eee solid;
+	margin: 15px -12px -12px;
+	padding: 5px 12px 5px;
+	text-align: right;
+}
+
+/* role-administrator only */
+
+body:not(.role-administrator) .dashi_error
+{
+	display: none;
+}
+
+/* .dashi_tbl */
+
+table.dashi_tbl
+{
+	margin: 5px 0 10px !important;
+	width: 98%;
+/*	border-collapse: collapse;*/
+	border-spacing: 0px;
+	border-top: 1px #bbb solid;
+	border-left: 1px #bbb solid;
+}
+*>table.dashi_tbl
+{
+	width: 100%;
+}
+table.dashi_tbl th,
+table.dashi_tbl td
+{
+	text-align: left;
+	padding: 4px 5px;
+	border-bottom: 1px #bbb solid;
+	border-right: 1px #bbb solid;
+}
+*>table.dashi_tbl th,
+*>table.dashi_tbl td
+{
+	padding: 2px 5px;
+}
+table.dashi_tbl th
+{
+	text-align: left;
+	background-color: #f8f8f8;
+	font-weight: bold;
+	color: #111;
+}
+table.dashi_tbl thead th
+{
+	background-color: #eee;
+	color: #111;
+}
+table.dashi_tbl *
+{
+	margin-top: 0;
+	margin-bottom: 0;
+}
+table.dashi_tbl ul,
+table.dashi_tbl ol
+{
+	padding: 0;
+	margin-left: 25px;
+	margin-right: 0;
+}
+table.dashi_tbl th.nowrap,
+table.dashi_tbl td.nowrap
+{
+	white-space: nowrap;
+}
+
+/* dashi_uploaded_thumbnail */
+
+.dashi_uploaded_thumbnail
+{
+	padding: 5px 0;
+}
+
+.dashi_uploaded_thumbnail a img
+{
+	border: 1px #fff solid;
+}
+
+.dashi_uploaded_thumbnail a:hover img
+{
+	border: 1px #369 dashed;
+}

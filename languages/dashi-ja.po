@@ -1,0 +1,666 @@
+# ja
+msgid ""
+msgstr ""
+"Project-Id-Version: dashi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# msgfmt -o ./dashi-ja.mo ./dashi-ja.po
+
+msgid "Useful classes for creating a custom post type. When you install it, a custom post type called Page Part is created. There is no GUI, it is for engineers who create theme."
+msgstr "カスタムポストタイプを作成する際に有用なクラスをまとめたプラグインです。インストールすると「ページ部品」というカスタムポストタイプが作成されます。GUIはなく、themeを作成するエンジニア向けです。"
+
+msgid "Jidaikobo Inc."
+msgstr "時代工房"
+
+#:=== strings ===
+
+msgid "Dashi Framework"
+msgstr "出汁"
+
+msgid "Redirect To"
+msgstr "リダイレクト先"
+
+msgid "Enter root relative path. empty, move to the top page."
+msgstr "ルート相対パスを入力してください。空にするとトップページに移動します。"
+
+msgid "add %s"
+msgstr "%sを追加"
+
+msgid "new %s"
+msgstr "新しい%s"
+
+msgid "edit %s"
+msgstr "%sを編集"
+
+msgid "view %s"
+msgstr "%sを表示"
+
+msgid "upload"
+msgstr "アップロード"
+
+msgid "Required"
+msgstr "必須"
+
+msgid "Page Part"
+msgstr "ページ部品"
+
+msgid "Page Part can not be displayed by itself.<br />If you describe <code>[get_pagepart slug=slug_name]</code>, page part is called to that place.<br />you can not change the slug created from the shortcode."
+msgstr "「ページ部品」は、単体では表示されません。<br />「ページ部品」は<code>[get_pagepart slug=スラッグ名]</code>を、本文欄等に記述すると、その場所に、ページ部品を呼び出します。<br />また、ショートコードから作成したスラッグ名は変更できません。"
+
+msgid "Stick this to the front page"
+msgstr "この記事を先頭に固定表示する"
+
+msgid "Found %s pages."
+msgstr "%s件の記事が見つかりました"
+
+msgid "Help is not exist yet."
+msgstr "このヘルプは存在しません"
+
+msgid "Edit this Help"
+msgstr "このヘルプを編集する"
+
+msgid "Add Help of this post_type"
+msgstr "共通ヘルプを新規作成する"
+
+msgid "Add Help of this page"
+msgstr "個別ヘルプを新規作成する"
+
+msgid "Common Help"
+msgstr "共通ヘルプ"
+
+msgid "Individual Help"
+msgstr "個別ヘルプ"
+
+msgid "Activate page part"
+msgstr "ページ部品を有効にする"
+
+msgid "Enrich search result page"
+msgstr "検索結果ページを強化する"
+
+msgid "Keep taxonomies' order at edit page"
+msgstr "編集ページでタクソノミの順序が変動しないようにする"
+
+msgid "Attempt to use root relative path when upload files"
+msgstr "ファイルアップロード時にルート相対パスを用いる"
+
+msgid "Disactivate author page to guest users."
+msgstr "?author=Nをゲストに表示しない（推奨）"
+
+msgid "Show error messages for developers"
+msgstr "開発者向けにエラーを表示する"
+
+msgid "Avoid to use field cache (slow query but for development)"
+msgstr "<span title=\"slow queryが発生しますが、開発時にはキャッシュを使わないほうが安全です\">カスタムフィールドのキャッシュを使わない</span>（運用サイトではオフ推奨）"
+
+msgid "set depth of page od [dashi_sitemap] (0 to ignore page)"
+msgstr "[dashi_sitemap]における固定ページの深さ（0で固定ページを無視します）"
+
+msgid "Send a mail when public form used."
+msgstr "Public Formから投稿があったらメール通知する"
+
+msgid "Send a mail when Another content updated."
+msgstr "コンテンツの差し換えが起こったらメール通知する"
+
+msgid "Get API-key from <a href=\"https://console.developers.google.com/apis/library\">Google API library</a>.<br />1. Choose Project<br />2. Click +<br />3. Input name to create Project<br />4. Click Auth in sidebar and click create<br />5. Input name<br />6. create auth information and choose API-key<br />7. Go Library and choose \"Google Maps JavaScript API\", \"Google Maps Embed API\" and \"Google Maps Geocoding API\" and activate it."
+msgstr "カスタムフィールドでGoogle Mapを用いる場合は、<a href=\"https://console.developers.google.com/apis/library\">Google API library</a>からAPIキーを取得してください。Googleにログインした状態で、<br />1. 「プロジェクトを選択」します。<br />2. プラスマークをクリックしてプロジェクトを作成します。<br />3. プロジェクト名称を入力し、作成します。<br />4. サイドバーの「認証情報」をクリックして、「認証情報を作成」します。<br />5. 名称を入力します。<br />6. 「認証情報の作成」で「APIキー」を取得します。<br />7. 左のメニューの「ライブラリ」から「Google Maps JavaScript API」「Google Maps Embed API」「Google Maps Geocoding API」を「有効化」します。"
+
+msgid "Use dashboard environmental check."
+msgstr "ダッシュボードにおいて環境チェックを行う"
+
+msgid "eliminate utf separation when saving post."
+msgstr "投稿の保存時にUTF-8の濁音・半濁音の泣き別れを修正する"
+
+msgid "avoid heavy dashboard check (turn on at production)."
+msgstr "負荷の大きなダッシュボードでの環境チェックを行わない（運用サイトではオン推奨）"
+
+msgid "eliminate control codes when saving post."
+msgstr "投稿の保存時にコントロールコードを削除する"
+
+msgid "avoid wp redirect admin location."
+msgstr "WordPressが/adminなどのリクエストを/wp-admin/にリダイレクトすることを禁止する"
+
+msgid "Comments allowed site."
+msgstr "コメントを受け付けるサイトであれば、チェックしてください"
+
+msgid "At Dashi Sitemap, turn page appears."
+msgstr "サイトマップショートコードで固定ページの表示を逆にする"
+
+msgid "At Dashi Sitemap, use this strings as a label."
+msgstr "サイトマップショートコードで固定ページをまとめる文言を指定する"
+
+msgid "Use xmlrpc.php"
+msgstr "xmlrpc.phpを使う"
+
+msgid "After check html, check this."
+msgstr "生成されているHTML（head内など）を目視確認したら、チェックしてください"
+
+msgid "After check utility pages, check this."
+msgstr "サイトマップ、サイトポリシー等のページを目視確認したら、チェックしてください"
+
+msgid "When backup is available, check this."
+msgstr "バックアップ体制を整えたら、チェックしてください"
+
+msgid "When Server Access Log is available, check this."
+msgstr "サーバサイドのアクセスログを有効にしたら、チェックしてください"
+
+msgid "Show always WordPress version at admin-bar."
+msgstr "WordPressのバージョンを常に管理バーに表示する"
+
+msgid "No need to check Google Analytics (error suppress)"
+msgstr "Google Analyticsの存在チェックは不要（ダッシュボードのエラー表示が消えます）"
+
+msgid "No need to check Security Plugin (error suppress)"
+msgstr "セキュリティ系プラグインの存在チェックは不要（ダッシュボードのエラー表示が消えます）"
+
+msgid "No need to check sitemap.xml Plugin (error suppress)"
+msgstr "sitemap.xmlプラグインの存在チェックは不要（ダッシュボードのエラー表示が消えます）"
+
+msgid "No need to check development Plugin (error suppress)"
+msgstr "開発支援プラグインの存在チェックは不要（ダッシュボードのエラー表示が消えます）"
+
+msgid "No need to check Accessibility Plugin (error suppress)"
+msgstr "アクセシビリティ支援プラグインの存在チェックは不要（ダッシュボードのエラー表示が消えます）"
+
+msgid "Auto Update"
+msgstr "自動更新"
+
+msgid "Auto Update (Core Major Version)"
+msgstr "コアの自動更新を有効にする"
+
+msgid "Auto Update (Theme)"
+msgstr "テーマの自動更新を有効にする"
+
+msgid "Auto Update (Plugin)"
+msgstr "プラグインの自動更新を有効にする"
+
+msgid "Auto Update (Language)"
+msgstr "言語の自動更新を有効にする"
+
+msgid "Specify search index page, when url is not come up to search result. Input URL for each line."
+msgstr "サイト内検索にかからないページがあるときには、一行にいちURLを入力してください。クロールの対象になります"
+
+msgid "Keep SSL connection except for GuzzleHttp access."
+msgstr "httpおよびhttpsのどちらでもアクセスできるサイトに対して、httpsのアクセスを優先するようにする"
+
+#:=== form ===
+
+msgid "Name"
+msgstr "お名前"
+
+msgid "Description"
+msgstr "お問い合わせ内容"
+
+msgid "Zip Code"
+msgstr "郵便番号"
+
+msgid "Address"
+msgstr "ご住所"
+
+msgid "Send"
+msgstr "送信する"
+
+msgid "Back"
+msgstr "戻る"
+
+msgid "Delete"
+msgstr "削除"
+
+msgid "Order"
+msgstr "順序"
+
+msgid "This mail is auto reply."
+msgstr "このメールは自動返信メールです。"
+
+msgid "Inquiries from the website form."
+msgstr "ウェブサイトのフォームから問い合わせがありました。"
+
+msgid "Your mail has been sent. In addition, if there is no response from us after a while, there is a possibility of a trouble of the mail form, sorry to trouble you, but please contact us again by some means again."
+msgstr "送信しました。なお、しばらくしても当方からの反応がない場合は、メールフォームのトラブルの可能性がありますので、お手数ですが、あらためて何らかの手段で別途お問い合わせください。"
+
+#:=== notation ===
+
+msgid "subject"
+msgstr "件名"
+
+msgid "re_subject"
+msgstr "件名 (返信)"
+
+msgid "sender"
+msgstr "送信元"
+
+msgid "recipient"
+msgstr "送信先"
+
+msgid "additional_headers"
+msgstr "その他"
+
+#:=== errors ===
+
+msgid "install %s plugin ex: %s"
+msgstr "%s プラグインをインストールしてください。例：%s"
+
+msgid "now development mode. cache is disabled"
+msgstr "出汁は開発者モードです。フィールドキャッシュ利用を停止しています。"
+
+msgid "Disallow xmlrpc.php"
+msgstr "xmlrpc.phpを使わない場合は、アクセスを制限してください。"
+
+msgid "Disallow directory listing."
+msgstr "directory listingが有効になっています。"
+
+msgid "Disallow wp-config.php"
+msgstr "wp-config.phpへのhttp経由のアクセスを制限してください。"
+
+msgid "Delete \"Hello World!\"."
+msgstr "\"Hello World!\"は削除してください。"
+
+msgid "If this site is not allowed comments. check please."
+msgstr "コメントを受け付けるサイトでなければ、コメントを許可しないでください。"
+
+msgid "backup availability is not checked."
+msgstr "「バックアップ体制設定済み」が未チェックになっています。"
+
+msgid "access log availability is not checked."
+msgstr "「アクセスログ取得体制設定済み」が未チェックになっています。"
+
+msgid "Disallow file edit by WordPress. add wp-config.php to <code>define('DISALLOW_FILE_EDIT', true);</code>"
+msgstr "CMS上でのphp編集を禁止してください。wp-config.phpに<code>define('DISALLOW_FILE_EDIT', true);</code>を足してください。"
+
+msgid "wp-config.php is writable."
+msgstr "wp-config.phpが書き込み可能な状態になっています。"
+
+msgid "directory \"%s\" permission too open. 705 or 755 is better."
+msgstr "\"%s\"ディレクトリのパーミッションを厳しく設定してください。705、755あたりがよいです。"
+
+msgid "PHP error reporting is on. check <a href=\"%s\">themes file</a>"
+msgstr "PHPのエラー表示が有効になっています。php.iniの設定を確認して、エラー表示を無効化してください。<a href=\"%s\">テーマファイル</a>でエラーを確認できます（ここだけでエラー抑止しないでください）。"
+
+msgid "head html is not checked."
+msgstr "生成されているHTML（head内など）の目視確認が未チェックになっています。"
+
+msgid "utility pages are not checked."
+msgstr "サイトマップ、サイトポリシー等のページの目視確認が未チェックになっています。"
+
+msgid "sitemap.xml is not exist."
+msgstr "sitemap.xmlが存在しません。"
+
+msgid "Google Analytics is not implemented. <a href=\"%s\">See How to.</a>"
+msgstr "Google Analyticsを実装していないようです。<a href=\"%s\">実装の手順</a>を参考に実装してください。"
+
+msgid "Now avoid to index search engines."
+msgstr "検索エンジンへの表示を拒否しています。"
+
+msgid "Now suppose to be using \"Just another WordPress site\" as a description."
+msgstr "サイトの説明が\"Just another WordPress site\"のままになっていませんか？"
+
+msgid "Some errors exists. Check please."
+msgstr "入力内容が不十分で送信できませんでした。入力内容を確認してください。"
+
+msgid "recipient of mail1 of Contact Form 7 is different from this host. check please: %s [%s]"
+msgstr "Contact Form 7 のmail1の受取人のメールアドレスのホストがこのサーバと異なります。確認してください: %s [%s]"
+
+msgid "sender of mail2 of Contact Form 7 is different from this host. check please: %s [%s]"
+msgstr "Contact Form 7 のmail2の差出人のメールアドレスのホストがこのサーバと異なります。確認してください: %s [%s]"
+
+msgid "sender of mail2 of Contact Form 7 is using wordpress@. check please: %s [%s]"
+msgstr "Contact Form 7 のmail2の差出人のメールアドレスにwordpress@を使っています。確認してください: %s [%s]"
+
+msgid "You can use alphabet and underscore only when use wysiwyg."
+msgstr "wysiwygエディタを使う時にはフィールド名にはアルファベットとアンダースコアしか使えません"
+
+msgid "%s is incorrect argument or setting of custom_fields of %s is wrong."
+msgstr "%sというカスタムフィールドが存在しないか、あるいは、optionsがないなど、%sのカスタムフィールドの設定が間違っています。"
+
+msgid "There is no functions to normalize unicode separation"
+msgstr "Unicode正規化のための関数のない環境です。"
+
+msgid "%s is required"
+msgstr "「%s」は必須項目です"
+
+msgid "%s is not a valid mail address format"
+msgstr "「%s」のメールアドレスの形式を確認してください"
+
+msgid "%s is must be composed by numbers"
+msgstr "「%s」は数字で入力してください"
+
+msgid "%s contains multi byte character"
+msgstr "「%s」は半角英数字で入力してください"
+
+msgid "%s is suspicious url"
+msgstr "「%s」はURLとして妥当でない可能性があります"
+
+msgid "%s is must be composed by single byte alphabetic and numbers"
+msgstr "「%s」は半角英数字で入力してください"
+
+msgid "%s is must be composed by single byte alphabetic, numbers, hyphen and underbar"
+msgstr "「%s」は半角英数字およびハイフン、アンダーバーで入力してください"
+
+msgid "%s is must be composed by single byte alphabetic, numbers, period, hyphen and underbar"
+msgstr "「%s」は半角英数字およびハイフン、アンダーバー、ピリオドで入力してください"
+
+msgid "%s is must be composed by Katakana"
+msgstr "「%s」はカタカナのみ記入してください"
+
+msgid "%s is must be composed by Hiragana"
+msgstr "「%s」はひらがなのみ記入してください"
+
+msgid "%s is not a image"
+msgstr "「%s」は画像でないようです"
+
+msgid "This file type is not allowed. (allowed: %s)"
+msgstr "許可されていないファイル形式です。許可されているものは、%sです。"
+
+msgid "This file is too large. (allowed: %s)"
+msgstr "ファイルサイズが大きすぎます。許可されているのは、%sまでです。"
+
+msgid "some of errors are automatically fixed by filters. confirm please."
+msgstr "一部のエラーはフィルタによって自動的に修正されることがあります。入力欄をご確認ください。"
+
+msgid "%s cannot be uploaded"
+msgstr "「%s」は送信できません"
+
+msgid "%s is cannot use as taxonomy name"
+msgstr "「%s」はカスタムタクソノミの名称には使えません"
+
+msgid "Mail form require valid \"send to mailaddress\""
+msgstr "送信先メールアドレスがセットされていません"
+
+msgid "Mail form require valid \"reply to mailaddress\""
+msgstr "返信先メールアドレスがセットされていません"
+
+msgid "set \"subject\""
+msgstr "メール件名を設定してください"
+
+msgid "set \"auto_reply_field\" when use auto_reply"
+msgstr "自動返信を使う場合は、auto_reply_fieldを設定してください"
+
+msgid "set \"re_subject\" when use auto_reply"
+msgstr "自動返信を使う場合は、re_subjectをセットしてください"
+
+msgid "Recipients list of Contact Form 7"
+msgstr "Contact Form 7の宛先一覧"
+
+msgid "Recipients list of Dashi Public Forms"
+msgstr "Dashi Public Formsの宛先一覧"
+
+#:=== help ===
+
+msgid "Taxonomies"
+msgstr "タクソノミー設定"
+
+msgid "Custom Fields"
+msgstr "カスタムフィールド設定"
+
+msgid "add Custom Fields to taxonomy"
+msgstr "カスタムタクソノミーにカスタムフィールド設定できます"
+
+msgid "display name of post type. You may use multibyte character"
+msgstr "表示されるカスタムポストタイプ名称。全角可"
+
+msgid "Required items"
+msgstr "必須項目"
+
+msgid "Optional items"
+msgstr "必要に応じて設定"
+
+msgid "search deeply (ex. custom_fields): default true"
+msgstr "カスタムフィールドを検索対象とする場合はtrueです（初期値:true）"
+
+msgid "You may use, text, textarea, radio, checkbox, select and google_map"
+msgstr "text, textarea, radio, checkbox, select, google_mapなどを利用できます"
+
+msgid "You may create duplicatable meta_box."
+msgstr "duplicate設定することで、複製可能なmeta_boxを持つことができます。fieldsにも対応しています。"
+
+msgid "set same \"zip_group\" name"
+msgstr "郵便番号を入力する欄にzip_to、反映される入力欄にzip_fromを設定します。そのペアのzip_groupは同じにしてください。"
+
+msgid "about \"zip_from_type\" see https://github.com/ninton/jquery.jpostal.js"
+msgstr "zip_from_typeについては https://github.com/ninton/jquery.jpostal.js をみてください。"
+
+msgid "Add column to admin index. set order"
+msgstr "管理画面にカスタムフィールドの表示欄を足します。数字で表示順を制御します。"
+
+msgid "Add restriction to admin index"
+msgstr "管理画面にカスタムフィールドの値による絞り込みを追加します。"
+
+msgid "\"dashi_datepicker\" class uses date picker"
+msgstr "\"dashi_datepicker\" classをあてることで、date pickerを呼び出せます。"
+
+msgid "\"dashi_datepicker\" accept date format"
+msgstr "\"dashi_datepicker\" は日付のフォーマットを指定できます"
+
+msgid "\"dashi_chrcount\" class add character counter"
+msgstr "\"dashi_chrcount\" classをあてることで、入力欄付近に文字数を表示できます。"
+
+msgid "\"dashi_chrcount\" accept character number"
+msgstr "\"dashi_chrcount\" の分母にあたる数です"
+
+msgid "you may invoke callback method"
+msgstr "同じクラスの中で適当なmedhodを定義して、その名前を書いてください。methodでechoしたものが表示されます。"
+
+msgid "\"referencer\" shows data table when input"
+msgstr "\"referencer\"にポストタイプ名を指定すると、データテーブルの入力支援を利用できます"
+
+msgid "true or array(). except for textarea_name. see: https://codex.wordpress.org/Function_Reference/wp_editor"
+msgstr "trueかarray()を指定できます。array()の内容は http://wpdocs.osdn.jp/%E9%96%A2%E6%95%B0%E3%83%AA%E3%83%95%E3%82%A1%E3%83%AC%E3%83%B3%E3%82%B9/wp_editor を参照してください。ただし、textarea_nameだけは設定できません。"
+
+msgid "make cannot be searched"
+msgstr "出汁の検索拡張機能を使っていると、カスタムフィールドの値も検索対象になりますが、is_public_searchableをfalseにすることで、検索対象から外します。"
+
+msgid "You may set, public, publicly_queryable, show_ui, query_var, rewrite, capability_type, capabilities, map_meta_cap, hierarchical, menu_position, has_archive, show_in_nav_menus, exclude_from_search"
+msgstr "public, publicly_queryable, show_ui, query_var, rewrite, capability_type, capabilities, map_meta_cap, hierarchical, menu_position, has_archive, show_in_nav_menus, exclude_from_searchなどの値をセットできます。"
+
+msgid "taxonomy settings"
+msgstr "タクソノミーの設定"
+
+msgid "if using taxonomy this field need to be used same name"
+msgstr "typeの値をtaxonomyとする場合、フィールド名称はカスタムタクソノミー名称と一致させてください"
+
+msgid "here must be \"taxonomy\""
+msgstr "この値は、\"taxonomy\"としてください"
+
+msgid "You may use label for public form"
+msgstr "public formを用いる場合は、カスタムタクソノミー設定とは別のラベル名称をあてることができます"
+
+msgid "for index"
+msgstr "管理画面のインデクス用です"
+
+msgid "You may change checkbox to radio"
+msgstr "タクソノミーをチェックボックスでなくラジオボタンに変更できます"
+
+msgid "default value. at checkbox, use array."
+msgstr "初期値です。checkboxの場合は、arrayで設定してください。"
+
+msgid "need when use custom capability"
+msgstr "独自の投稿権限を設定する場合は、複数形は必須です。"
+
+msgid "always shown message at administration"
+msgstr "編集画面の上部に注意書きを常駐します。"
+
+msgid "order of administration menu: default 10"
+msgstr "管理画面での表示順です（初期値:10）"
+
+msgid "administrator only can set sticky: default false"
+msgstr "「先頭に固定表示」の変更を管理者のみに限定します（初期値:false）"
+
+msgid "use sticky: default true"
+msgstr "先頭に固定表示を使うかどうかです（初期値:true）"
+
+msgid "use sticky: default truesearch deeply (ex. custom_fields): default true"
+msgstr "カスタムフィールドを検索対象にする場合はtrueです（初期値:true）"
+
+msgid "invisible each page: default false"
+msgstr "個票を表示しない場合はtrueです（初期値:false）"
+
+msgid "use ascii slug (not multibyte character): default false"
+msgstr "スラッグでの全角文字を禁止する場合はtrueです（初期値:false）"
+
+msgid "invisible post_type, cannot edit: default true"
+msgstr "編集できないポストタイプにする場合はfalseです（初期値:true）"
+
+msgid "invisible post_type at administration menu: default false"
+msgstr "編集可能だが、管理画面に表示しない場合trueです（初期値:false）"
+
+msgid "place holder for first post"
+msgstr "表題部分のプレイスホルダ文字列です"
+
+msgid "Dashi Public Form"
+msgstr "出汁パブリックフォーム設定"
+
+msgid "set redirect url for each single page: default empty"
+msgstr "このポストタイプ全体で、個票を表示した時に決まったページにリダイレクトする場合に設定してください。"
+
+msgid "'dashi_mod_custom_fields' Hook can modify dashi default custom fields. ex: Pagepart"
+msgstr "'dashi_mod_custom_fields'フックを使うことで、Pagepartなど、出汁の初期カスタムポストタイプのカスタムフィールドを変更できます。"
+
+msgid "'dashi_save_post_value' Hook can modify save value."
+msgstr "'dashi_save_post_value'フックを使うことで、保存時の値を改変できます。"
+
+msgid "Hook of \\Dashi\\Core\\Mail::send(). return true, \\Dashi\\Core\\Mail::send() will not send a mail. so you should do something at your code."
+msgstr "'\\Dashi\\Core\\Mail::send()で走るフック。trueを返すと、\\Dashi\\Core\\Mail::send()での送信をしないので、フック側で送信に準ずるコードを書く"
+
+msgid "modify send button of public form"
+msgstr "public formの送信ボタンHTMLを加工するフック"
+
+msgid "modify send button of public form of confirm page"
+msgstr "public formの確認画面送信ボタンHTMLを加工するフック"
+
+msgid "modify final message of public form"
+msgstr "public formの最終画面のメッセージを加工するためのフック"
+
+msgid "modify mail text of public form"
+msgstr "public formから投稿があったときに送信されるメール本文に加工を加えるフック"
+
+msgid "modify auto reply text of public form"
+msgstr "public formから投稿があったときに自動返信されるメール本文に加工を加えるフック"
+
+msgid "Hook when something sent of public form"
+msgstr "public formから投稿があったときに走るフック"
+
+msgid "You may use \\Dashi\\Core\\Posttype\\Sitemap::generate() in your script."
+msgstr "テンプレート内では、\\Dashi\\Core\\Posttype::generate()という関数も使えます。"
+
+msgid "dashi_public_form provides adding content form to guests."
+msgstr "dashi_public_form ショートコードを使うと、ゲストが記事を投稿できるようになります。"
+
+msgid "Prepare sitemap.xml."
+msgstr "sitemap.xmlを用意します。"
+
+msgid "Prepare Gmail account."
+msgstr "Gmailアカウントを用意します。"
+
+msgid "Create Google Analytics account by Gmail account."
+msgstr "GmailアカウントでGoogle Analyticsアカウントを作ります。"
+
+msgid "Set Google Analytics JavaScript in the head of html."
+msgstr "Google AnalyticsのコードをHTMLのheadのなかに入れます。"
+
+msgid "Manage -> Properties -> setting -> Search Console"
+msgstr "Google Analyticsの管理画面で「管理」「プロパティ」「プロパティ設定」「Search Console」に進み、「Search Consoleを調整」を押します。"
+
+msgid "Create account at Search Console and add site and confirm it."
+msgstr "Search Consoleの設定を進め、Search Consoleにサイトを登録し、Google Analyticsのコードでサイトの所有確認を行います。"
+
+msgid "Create Microsoft account by Gmail account."
+msgstr "Gmail アカウントでMicrosoftアカウントをつくり、Bingにサイトを登録します。"
+
+#:=== Google Map ===
+
+msgid "Geocoder failed due to"
+msgstr "なんらかの理由で見つけられませんでした。"
+
+msgid "Place"
+msgstr "場所"
+
+msgid "latitude"
+msgstr "経度"
+
+msgid "longitude"
+msgstr "緯度"
+
+msgid "zoom (1-21)"
+msgstr "地図の拡大率（1-21）"
+
+msgid "Input address and press search button. Then map will be place near point."
+msgstr "「場所」に住所を入力し、「検索」ボタンをおしてください。下の地図が付近を表示するようになります。"
+
+msgid "Move map by mouse to adjust certain place."
+msgstr "マウス操作で地図上のマーカの位置を微調整してください。"
+
+#:=== admin string ===
+
+msgid "This post is another version of <a href=\"%s\">%s</a>. If you publish, replace post immediately."
+msgstr "この投稿は<a href=\"%s\">「%s」</a>の差し換えです。「公開」すると記事がただちに差し替えられます。"
+
+msgid "All of %s"
+msgstr "すべての%s"
+
+msgid "Edit another version"
+msgstr "差替編集"
+
+msgid "Add another version"
+msgstr "差替作成"
+
+msgid "Add another version of %s"
+msgstr "%sの差替を作成"
+
+msgid "Edit another version of %s"
+msgstr "%sの差替を編集"
+
+msgid "Replace Another version was failed"
+msgstr "差し替えに失敗しました"
+
+msgid "Another version is exists (date: %s)"
+msgstr "差し替え予定（予定:%s）"
+
+msgid "Another version is pending (date: %s)"
+msgstr "差し替え承認待ち（予定:%s）"
+
+msgid "Keep this post until another post will be activated"
+msgstr "差し替え記事を編集します。差し替え記事が有効になると、内容が差し替えられます。"
+
+msgid "WordPress: Publish Another @ %s"
+msgstr "WordPress: 差し替え記事の公開 @ %s"
+
+msgid "Update content has done by reserved content.\n\n%s\n\n%s\nDashi Plugin"
+msgstr "差し替え記事が公開されました。公開内容を確認してください。\n\n%s\n\n%s\nDashi Plugin"
+
+msgid "WordPress: Failed to Publish Another @ %s"
+msgstr "WordPress: 差し替えの失敗 @ %s"
+
+msgid "Failed to update content.\n\n%s\n\n%s\nDashi Plugin"
+msgstr "差し替え記事が公開に失敗しました。\n\n%s\n\n%s\nDashi Plugin"
+
+#:=== Copy ===
+
+msgid "Copy"
+msgstr "コピー"
+
+msgid "Create Copy of %s"
+msgstr "%s のコピーを作成します"
+
+msgid "%s's Copy%s"
+msgstr "%s のコピー%s"
+
+#:=== status ===
+
+msgid "Unseen Contents List"
+msgstr "非公開記事一覧"
+
+msgid "future item"
+msgstr "予約"
+
+msgid "pending item"
+msgstr "承認待ち"
+
+msgid "draft item"
+msgstr "下書き"
+
+msgid "private item"
+msgstr "非公開"
+
+msgid "(No Subject)"
+msgstr "(件名なし)"
