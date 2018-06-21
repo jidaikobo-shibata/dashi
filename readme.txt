@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.6.3 =
+add csv export
+
 = 2.6.2 =
 fix copy function
 fix requirement check of public_form's field at admin edit

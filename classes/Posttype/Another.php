@@ -135,6 +135,8 @@ class Another
 		// いつでも有効にするので管理画面だけとしない
 		global $wp_query;
 
+		if (is_null($wp_query)) return;
+
 		// 予約投稿などではフィルタを通さない
 		if (
 			isset($wp_query->query['post_status']) &&

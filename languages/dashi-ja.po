@@ -115,6 +115,9 @@ msgstr "投稿の保存時にUTF-8の濁音・半濁音の泣き別れを修正�
 msgid "avoid heavy dashboard check (turn on at production)."
 msgstr "負荷の大きなダッシュボードでの環境チェックを行わない（運用サイトではオン推奨）"
 
+msgid "show csv export at dashboard."
+msgstr "ダッシュボードにCSVエクスポートを表示する"
+
 msgid "eliminate control codes when saving post."
 msgstr "投稿の保存時にコントロールコードを削除する"
 

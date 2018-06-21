@@ -17,6 +17,7 @@ class Option
 		'dashi_server_accesslog_is_ok' => 'When Server Access Log is available, check this.',
 		'dashi_do_environmental_check' => 'Use dashboard environmental check.',
 		'dashi_do_not_heavy_dashboard_check' => 'avoid heavy dashboard check (turn on at production).',
+		'dashi_show_csv_export_dashboard' => 'show csv export at dashboard.',
 		'dashi_show_wp_version' => 'Show always WordPress version at admin-bar.',
 		'dashi_do_eliminate_control_codes' => 'eliminate control codes when saving post.',
 		'dashi_avoid_wp_redirect_admin_locations' => 'avoid wp redirect admin location.',

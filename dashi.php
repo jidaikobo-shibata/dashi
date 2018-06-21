@@ -6,7 +6,7 @@ Description: Useful classes for creating a custom post type. When you install it
 Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
-Version: 2.6.2
+Version: 2.6.3
 Author URI: http://www.jidaikobo.com/
 License: GPL2
 
@@ -61,6 +61,7 @@ define('DASHI_TMP_UPLOAD_DIR', dirname(WP_PLUGIN_DIR).'/dashi_uploads/');
 \Dashi\Core\Posttype\Copy::forge();
 \Dashi\Core\Posttype\PublicForm::forge();
 \Dashi\Core\Notation::forge();
+\Dashi\Core\Posttype\Csv::forge();
 
 // option menu
 add_action(
