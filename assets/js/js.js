@@ -46,6 +46,28 @@ jQuery(function($){
 	});
 });
 
+// datetime picker
+jQuery(function($){
+	$(".dashi_datetimepicker").datetimepicker({
+			beforeShow: function(input, inst)
+			{
+				// add dashi class
+				$(inst.dpDiv).addClass('dashi_datepicker');
+
+				// set date format
+				var stepMinute = $(this).data('dashi_stepminute');
+				if(stepMinute)
+				{
+					$(this).datepicker('option', 'stepMinute', stepMinute);
+				}
+			},
+			addSliderAccess: false,
+			sliderAccessArgs: { touchonly: false },
+			changeMonth: true,
+			changeYear: true
+		});
+});
+
 // character count
 jQuery(function($){
 	$('.dashi_chrcount').each(function(){

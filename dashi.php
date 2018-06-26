@@ -8,6 +8,7 @@ Text Domain: dashi
 Domain Path: /languages/
 Version: 2.6.3
 Author URI: http://www.jidaikobo.com/
+thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
 License: GPL2
 
 Copyright 2017 jidaikobo (email : support@jidaikobo.com)

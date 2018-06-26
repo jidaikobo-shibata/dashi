@@ -133,6 +133,11 @@ class Posttype
 			function ()
 			{
 				wp_enqueue_style(
+					'dashi_datetimepicker_css',
+					plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE)
+				);
+
+				wp_enqueue_style(
 					'dashi_css',
 					plugins_url('assets/css/css.css', DASHI_FILE)
 				);
@@ -147,6 +152,14 @@ class Posttype
 						null // API key のために ver を含めない
 					);
 				}
+
+				wp_enqueue_script(
+					'dashi_js_timepicker',
+					plugins_url('assets/js/jquery-ui-timepicker-addon.js', DASHI_FILE),
+					array('jquery-ui-datepicker'),
+					'1.1',
+					true
+				);
 
 				wp_enqueue_script(
 					'dashi_js',
@@ -167,6 +180,15 @@ class Posttype
 					'dashi_js_uploader',
 					plugins_url('assets/js/uploader.js', DASHI_FILE)
 				);
+
+				wp_enqueue_script(
+					'dashi_js_timepicker',
+					plugins_url('assets/js/jquery-ui-timepicker-addon.js', DASHI_FILE),
+					array('jquery-ui-datepicker'),
+					'1.1',
+					true
+				);
+
 				wp_enqueue_script(
 					'dashi_js',
 					plugins_url('assets/js/js.js', DASHI_FILE),
@@ -176,6 +198,11 @@ class Posttype
 				);
 
 				// redundancy...
+				wp_enqueue_style(
+					'dashi_datetimepicker_css',
+					plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE)
+				);
+
 				wp_enqueue_style(
 					'dashi_css',
 					plugins_url('assets/css/css.css', DASHI_FILE)

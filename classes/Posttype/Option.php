@@ -105,6 +105,23 @@ class Sample extends \Dashi\Core\Posttype\Base
           ),
         ),
 
+        'event_start' => array(
+          'type' => 'text',
+          'label' => 'Start datetime',
+          'description' => '',
+          'filters' => array(
+            'datetime',
+          ),
+          'validations' => array(
+            'datetime',
+          ),
+          'attrs' => array(
+            'class' => 'datetime dashi_datetimepicker',
+            'data-dashi_timeformat' => 'HH:mm',
+            'data-dashi_stepminute' => '15',
+          )
+        ),
+
         'email' => array(
           'label' => 'メールアドレス',
           'type' => 'text',
