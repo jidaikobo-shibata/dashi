@@ -48,10 +48,13 @@ class CustomFieldsGoogleMap
 		}
 
 		// overwrite if value already exists
-		$place = isset($object->$id['place']) ? $object->$id['place'] : $place;
-		$lat   = isset($object->$id['lat']) ? $object->$id['lat'] : $lat;
-		$lng   = isset($object->$id['lng']) ? $object->$id['lng'] : $lng;
-		$zoom  = isset($object->$id['zoom']) ? intval($object->$id['zoom']) : $zoom;
+		if (property_exists($object, $id) && is_array($object->$id))
+		{
+			$place = isset($object->$id['place']) ? $object->$id['place'] : $place;
+			$lat   = isset($object->$id['lat']) ? $object->$id['lat'] : $lat;
+			$lng   = isset($object->$id['lng']) ? $object->$id['lng'] : $lng;
+			$zoom  = isset($object->$id['zoom']) ? intval($object->$id['zoom']) : $zoom;
+		}
 
 		$place_name = $id.'[place]';
 		$lat_name   = $id.'[lat]';

@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.6.4 =
+fix google map bug
+
 = 2.6.3 =
 add csv export
 
