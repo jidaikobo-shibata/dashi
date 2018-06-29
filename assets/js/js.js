@@ -48,24 +48,28 @@ jQuery(function($){
 
 // datetime picker
 jQuery(function($){
-	$(".dashi_datetimepicker").datetimepicker({
+	$(".dashi_datetimepicker").each(function(){
+		var obj = {
 			beforeShow: function(input, inst)
 			{
 				// add dashi class
 				$(inst.dpDiv).addClass('dashi_datepicker');
-
-				// set date format
-				var stepMinute = $(this).data('dashi_stepminute');
-				if(stepMinute)
-				{
-					$(this).datepicker('option', 'stepMinute', stepMinute);
-				}
 			},
 			addSliderAccess: false,
 			sliderAccessArgs: { touchonly: false },
 			changeMonth: true,
 			changeYear: true
-		});
+		} ;
+		if($(this).data('dashi_stepminute'))
+		{
+			Object.assign( obj, { 'stepMinute' : $(this).data('dashi_stepminute')});
+		}
+		if($(this).data('dashi_timeformat'))
+		{
+			Object.assign( obj, { 'timeFormat' : $(this).data('dashi_timeformat')});
+		}
+		$(this).datetimepicker(obj);
+	});
 });
 
 // character count

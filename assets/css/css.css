@@ -178,3 +178,13 @@ table.dashi_tbl td.nowrap
 {
 	border: 1px #369 dashed;
 }
+
+/* shorten */
+
+#wp-admin-bar-site-name > a,
+#wp-admin-bar-query-monitor > a
+{
+	max-width: 10em;
+	overflow: hidden;
+	text-overflow: '';
+}
