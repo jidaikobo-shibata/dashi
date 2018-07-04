@@ -1,5 +1,8 @@
 jQuery(function($)
 {
+	// Suppress error ( valiate invisible field )
+	$('.media-upload-form').find('submit').attr('formnovalidate', false);
+
 	//file uploads by custom field
 	var formfield;
 	$('.upload_image_button').click(function() {
