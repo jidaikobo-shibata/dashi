@@ -110,10 +110,8 @@ class Sample extends \Dashi\Core\Posttype\Base
           'label' => 'Start datetime',
           'description' => '',
           'filters' => array(
-            'datetime',
           ),
           'validations' => array(
-            'datetime',
           ),
           'attrs' => array(
             'class' => 'datetime dashi_datetimepicker',

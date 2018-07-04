@@ -68,6 +68,7 @@ jQuery(function($){
 		{
 			Object.assign( obj, { 'timeFormat' : $(this).data('dashi_timeformat')});
 		}
+		Object.assign( obj, { 'dateFormat' : 'yy-m-d'});
 		$(this).datetimepicker(obj);
 	});
 });
