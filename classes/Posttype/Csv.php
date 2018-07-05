@@ -45,7 +45,7 @@ class Csv
 	{
 		$html = '';
 		$html.= '<form action="" method="post">';
-		$html.= '<select name="dashi_csv_export">';
+		$html.= '<select name="dashi_csv_export" style="width: 100%;">';
 		$html.= '<option value="">-</option>';
 		foreach (\Dashi\P::instances() as $v)
 		{
@@ -56,6 +56,7 @@ class Csv
 			$html.= '<option value="'.$obj->name.'">'.$obj->label.'</option>';
 		}
 		$html.= '</select>';
+		$html.= '<label style="display: block; padding: 10px 0;"><input type="checkbox" name="excel_compati" value="1">'.__('<span title="some characters disappear">Microsoft Excel compatible CSV</span>', 'dashi').'</label>';
 		$html.= '<input type="submit" class="button button-primary" value="'.__('Export').'">';
 		$html.= '</form>';
 		echo $html;
@@ -70,6 +71,7 @@ class Csv
 	private static function export($posttype)
 	{
 		$class = \Dashi\P::posttype2class($posttype);
+		$excel_compati = filter_input(INPUT_POST, 'excel_compati');
 
 		$args = array(
 			'post_type' => $posttype,
@@ -93,6 +95,10 @@ class Csv
 				)
 				{
 					$value = $v['options'][$value];
+				}
+				if ($excel_compati)
+				{
+					$value = mb_convert_encoding($value, "SJIS", "UTF-8");
 				}
 				$arr[$n][$k] = $value;
 			}

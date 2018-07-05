@@ -667,3 +667,8 @@ msgstr "非公開"
 
 msgid "(No Subject)"
 msgstr "(件名なし)"
+
+#:=== CSV ===
+
+msgid "<span title=\"some characters disappear\">Microsoft Excel compatible CSV</span>"
+msgstr "<span title=\"一部文字が表示されなくなります\">Microsoft Excel互換のCSVにする</span>"

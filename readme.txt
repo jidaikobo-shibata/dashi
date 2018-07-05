@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.6.7 =
+csv for Microsoft Excel
+
 = 2.6.6 =
 fix file uploader bug
 
