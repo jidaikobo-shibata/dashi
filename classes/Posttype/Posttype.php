@@ -746,6 +746,13 @@ class Posttype
 				$name.'_edit_form_fields',
 				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'addCustomFields')
 			);
+
+add_action(
+	'edited_term',
+	array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'saveHook')
+);
+
+
 			static::$_taxonomies[$name] = static::class2posttype($posttype);
 		}
 

@@ -51,4 +51,34 @@ class CustomFieldsCategories
 		}
 		echo $html;
 	}
+
+	/**
+	 * add custom fields
+	 *
+	 * @param object $tag
+	 * @return void
+	 */
+	public static function saveHook($term_id)
+	{
+		global $taxonomy;
+		$taxonomies = P::taxonomies();
+		if ( ! isset($taxonomies[$taxonomy])) return;
+
+		$posttype = P::posttype2class($taxonomies[$taxonomy]);
+		$custom_fields_taxonomies = $posttype::get('custom_fields_taxonomies');
+		$custom_fields = $custom_fields_taxonomies[$tag->taxonomy];
+		$cat_key = 'cat_'.$term_id;
+		$cat_meta = get_option($cat_key);
+
+		// 空値が来たら削除
+		foreach ($cat_meta as $k => $v)
+		{
+			$val = Input::post($k);
+			$val = trim($val);
+			if (empty($val))
+			{
+				delete_option($cat_key);
+			}
+		}
+	}
 }
