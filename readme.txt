@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.6.9 =
+Better Excel compatible CSV
+
 = 2.6.8 =
 be able to delete taxonomy custom fields
 

@@ -110,9 +110,11 @@ class Csv
 		$fp = fopen($filepath, 'w');
 		if ($fp === FALSE) throw new Exception('failed to export');
 
+		$delimiter = $excel_compati ? ',' : "\t";
+
 		foreach($arr as $line){
 //			mb_convert_variables('SJIS', 'UTF-8', $line);
-			fputcsv($fp, $line, "\t");
+			fputcsv($fp, $line, $delimiter);
 		}
 		fclose($fp);
 
