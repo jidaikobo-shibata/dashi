@@ -31,7 +31,10 @@ class Security
 	public static function nonAuthorPageToGuest()
 	{
 		global $wp_query;
-		if (isset($wp_query->query['author_name']) && ! is_user_logged_in())
+		if (
+			(isset($wp_query->query['author_name']) || isset($_GET['author'])) &&
+			! is_user_logged_in()
+		)
 		{
 			wp_redirect(home_url(), 403);
 			exit();

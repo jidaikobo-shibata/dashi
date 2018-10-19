@@ -85,7 +85,14 @@ class Csv
 		foreach ($posts as $post)
 		{
 			$arr[$n] = array();
-			$arr[$n] = (array) $post;
+
+			$tmp = (array) $post;
+			if ($excel_compati)
+			{
+				mb_convert_variables('SJIS', 'UTF-8', $tmp);
+			}
+			$arr[$n] = $tmp;
+
 			foreach ($class::getFlatCustomFields() as $k => $v)
 			{
 				$value = $post->$k ?: '' ;
