@@ -300,9 +300,6 @@ class Field
 		$is_use_wp_uploader
 	)
 	{
-		$err_class = '';
-		$err_text = '';
-
 		$html = '';
 		if ($is_use_wp_uploader)
 		{

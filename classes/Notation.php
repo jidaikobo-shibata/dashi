@@ -601,7 +601,7 @@ class Notation
 	 *
 	 * @return Void
 	 */
-	public static function unseenContentsList($args)
+	public static function unseenContentsList()
 	{
 		$args = array(
 			'posts_per_page' => -1,
