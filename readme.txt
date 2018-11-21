@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.7.2 =
+fix auto update language issue
+
 = 2.7.1 =
 fix author=1 problem
 

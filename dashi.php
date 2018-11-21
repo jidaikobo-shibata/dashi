@@ -6,7 +6,7 @@ Description: Useful classes for creating a custom post type. When you install it
 Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
-Version: 2.7.1
+Version: 2.7.2
 Author URI: http://www.jidaikobo.com/
 thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
 License: GPL2
@@ -250,7 +250,7 @@ if (get_option('dashi_auto_update_plugin'))
 
 if (get_option('dashi_auto_update_language'))
 {
-	add_filter('auto_update_translation', '__return_false');
+	add_filter('auto_update_translation', '__return_true');
 }
 
 // avoid wp redirect admin location
