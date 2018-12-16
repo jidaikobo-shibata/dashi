@@ -397,7 +397,7 @@ class CustomFields
 				{
 					$tmps = get_post_meta($_GET['dashi_copy_original_id'], $tmpkey, false);
 				}
-				else
+				else if (is_object($object) && isset($object->ID))
 				{
 					$tmps = get_post_meta($object->ID, $tmpkey, false);
 				}
