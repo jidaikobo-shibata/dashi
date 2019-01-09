@@ -299,17 +299,9 @@ class Util
 	 */
 	public static function is_url_exists($url, $method = 'header')
 	{
-		$response = static::curl($method, $url);
-
-		if ( ! $response) return null;
-		if (
-			strpos($response, '200 OK') !== false ||
-			strpos($response, 'http_code: 200') !== false
-		)
-		{
-			return true;
-		}
-		return false;
+	//	$response = static::curl($method, $url);
+		$response = wp_remote_get($url, array('timeout' => 10, 'sslverify' => false,));
+		return $response['headers']['status'] == '200 OK';
 	}
 
 	/**

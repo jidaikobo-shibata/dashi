@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.7.5 =
+fix curl related issue
+
 = 2.7.4 =
 fix curl security issue
 
