@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.7.4 =
+fix curl security issue
+
 = 2.7.3 =
 fix duplicatable custom_fields
 

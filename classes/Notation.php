@@ -135,8 +135,11 @@ class Notation
 					file_exists(get_stylesheet_directory().'/index.php')
 				)
 				{
-					$res = Util::curl('get', get_stylesheet_directory_uri().'/index.php');
-					if ($res)
+					$res = wp_remote_get(
+						get_stylesheet_directory_uri().'/index.php',
+						array('timeout' => 10, 'sslverify' => false,)
+					);
+					if ($res['body'])
 					{
 						if (strpos($res, 'get_header') !== false)
 						{
@@ -218,8 +221,8 @@ class Notation
 					! get_option('dashi_no_need_analytics')
 				)
 				{
-					$res = Util::curl('get', home_url());
-					if ($res)
+					$res = wp_remote_get(home_url(), array('timeout' => 10, 'sslverify' => false,));
+					if ($res['body'])
 					{
 						if (
 							strpos($res, 'analytics.js') === false &&

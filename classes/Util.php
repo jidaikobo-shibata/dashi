@@ -291,64 +291,6 @@ class Util
 	}
 
 	/**
-	 * curl
-	 *
-	 * @param  String $method
-	 * @param  String $url
-	 * @param  Array  $params
-	 * @return String|Bool
-	 */
-	public static function curl($method, $url, $params = array())
-	{
-		$method = strtolower($method);
-		$is_err = false;
-		$results = array();
-		if (in_array($method, array('header', 'head')))
-		{
-			$results = @get_headers($url);
-			if ($results)
-			{
-				$results = join("\n", $results);
-			}
-		}
-
-		// try once more
-		// thx http://www.mogumagu.com/wp/wordpress/archives/1601
-		// thx http://qiita.com/kino0104/items/8a6a6dc2404c27bc43ea
-		if ( ! $results && function_exists('curl_init'))
-		{
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $url);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION,true);
-			curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-			curl_setopt($ch, CURLOPT_AUTOREFERER, true);
-			curl_setopt($ch, CURLOPT_HEADER, true);
-			curl_setopt($ch, CURLOPT_SSLVERSION, 1);
-			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
-			if ($method == 'post') curl_setopt($ch, CURLOPT_POST, true);
-			$results = curl_exec($ch);
-			$is_err = $results === false;
-			if ( ! $is_err && in_array($method, array('header', 'head')))
-			{
-				$info = curl_getinfo($ch);
-				if ($info)
-				{
-					$results = '';
-					foreach ($info as $k => $v)
-					{
-						$results.= $k.': '.$v."\n";
-					}
-				}
-			}
-			curl_close($ch);
-		}
-
-		return $results;
-	}
-
-	/**
 	 * is_url_exists
 	 *
 	 * @param  String $url

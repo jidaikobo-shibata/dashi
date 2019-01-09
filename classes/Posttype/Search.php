@@ -5,7 +5,6 @@ class Search
 {
 	private static $null_byte_deleted_s = '';
 
-
 	/**
 	 * delete null byte form string
 	 *
