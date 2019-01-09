@@ -141,7 +141,7 @@ class Notation
 					);
 					if ($res['body'])
 					{
-						if (strpos($res, 'get_header') !== false)
+						if (strpos($res['body'], 'get_header') !== false)
 						{
 							add_action('admin_notices', function ()
 							{
@@ -225,8 +225,8 @@ class Notation
 					if ($res['body'])
 					{
 						if (
-							strpos($res, 'analytics.js') === false &&
-							strpos($res, 'www.googletagmanager.com/gtag/js?id=UA-') === false
+							strpos($res['body'], 'analytics.js') === false &&
+							strpos($res['body'], 'www.googletagmanager.com/gtag/js?id=UA-') === false
 						)
 						{
 							add_action('admin_notices', function ()
