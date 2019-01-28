@@ -42,6 +42,12 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.7.7 =
+suppress error
+
+= 2.7.6 =
+syntax error
+
 = 2.7.5 =
 fix curl related issue
 

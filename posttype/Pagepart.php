@@ -94,7 +94,7 @@ class Pagepart extends \Dashi\Core\Posttype\Base
 			$content = preg_replace("/\<!--[^-]+?--\>/is", '', $item->post_content);
 
 			if ( ! post_password_required($item->ID)):
-				$html.= apply_filters('the_content', $content);
+				$html.= @apply_filters('the_content', $content);
 			else:
 				$html.= get_the_password_form();
 			endif;
