@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.8.0 =
+fix enable filter at admin index
+
 = 2.7.9 =
 hot fix: enable filter at admin index
 
