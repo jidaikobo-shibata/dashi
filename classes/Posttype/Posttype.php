@@ -695,11 +695,16 @@ class Posttype
 						 $posttype::get('is_visible') :
 						 $posttype::get('show_ui');
 
+		// adhoc! cannot filter at admin index
+		global $pagenow;
+		$publicly_queryable = $posttype::get('publicly_queryable');
+		$publicly_queryable = $pagenow == 'edit.php' && is_admin() ? false : true;
+
 		// add
 		$args = array(
 			'labels'             => $labels,
 			'public'             => $posttype::get('public'),
-			'publicly_queryable' => $posttype::get('publicly_queryable'),
+			'publicly_queryable' => $publicly_queryable,
 			'show_ui'            => $show_ui,
 			'show_in_nav_menus'  => $posttype::get('show_in_nav_menus'),
 			'query_var'          => $posttype::get('query_var'),
