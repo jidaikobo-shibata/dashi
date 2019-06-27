@@ -25,7 +25,10 @@ abstract class Base
 
 	// post type setting
 	protected $public = true;
-	protected $publicly_queryable = true;
+// publicly_queryable true: cannot filter items at admin
+// also, CAN search at front even if this value was false
+//	protected $publicly_queryable = true;
+	protected $publicly_queryable = false;
 	protected $show_ui = true;
 	protected $query_var = true;
 	protected $rewrite = true;
