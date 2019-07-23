@@ -128,7 +128,8 @@ class Notation
 			}
 
 			// themes/XXX/index.phpでエラー表示を確認する
-			if ( ! get_option('dashi_do_not_heavy_dashboard_check'))
+//			if ( ! get_option('dashi_do_not_heavy_dashboard_check'))
+			if (1)
 			{
 				if (
 					! get_transient('dashi_notation_display_error_exist') &&
@@ -137,9 +138,11 @@ class Notation
 				{
 					$res = wp_remote_get(
 						get_stylesheet_directory_uri().'/index.php',
-						array('timeout' => 10, 'sslverify' => false,)
+						array('timeout' => 0, 'sslverify' => false,)
 					);
-					if ($res['body'])
+
+					// $res can be Wp_Error object
+					if ( ! is_object($res) && $res['body'])
 					{
 						if (strpos($res['body'], 'get_header') !== false)
 						{
@@ -222,7 +225,9 @@ class Notation
 				)
 				{
 					$res = wp_remote_get(home_url(), array('timeout' => 10, 'sslverify' => false,));
-					if ($res['body'])
+
+					// $res can be Wp_Error object
+					if ( ! is_object($res) && $res['body'])
 					{
 						if (
 							strpos($res['body'], 'analytics.js') === false &&
