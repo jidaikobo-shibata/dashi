@@ -128,8 +128,7 @@ class Notation
 			}
 
 			// themes/XXX/index.phpでエラー表示を確認する
-//			if ( ! get_option('dashi_do_not_heavy_dashboard_check'))
-			if (1)
+			if ( ! get_option('dashi_do_not_heavy_dashboard_check'))
 			{
 				if (
 					! get_transient('dashi_notation_display_error_exist') &&

@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.8.2 =
+remove Debug code
+
 = 2.8.1 =
 fix error handling
 
