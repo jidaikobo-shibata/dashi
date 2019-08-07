@@ -702,17 +702,18 @@ class Posttype
 
 		// add
 		$args = array(
-			'labels'             => $labels,
-			'public'             => $posttype::get('public'),
-			'publicly_queryable' => $publicly_queryable,
-			'show_ui'            => $show_ui,
-			'show_in_nav_menus'  => $posttype::get('show_in_nav_menus'),
-			'query_var'          => $posttype::get('query_var'),
-			'rewrite'            => $posttype::get('rewrite'),
-			'hierarchical'       => $posttype::get('hierarchical'),
-			'menu_position'      => $posttype::get('order') ?: $posttype::get('menu_position'),
-			'has_archive'        => $posttype::get('has_archive'),
-			'supports'           => $posttype::get('supports'),
+			'labels'              => $labels,
+			'public'              => $posttype::get('public'),
+			'publicly_queryable'  => $publicly_queryable,
+			'show_ui'             => $show_ui,
+			'show_in_nav_menus'   => $posttype::get('show_in_nav_menus'),
+			'query_var'           => $posttype::get('query_var'),
+			'rewrite'             => $posttype::get('rewrite'),
+			'hierarchical'        => $posttype::get('hierarchical'),
+			'menu_position'       => $posttype::get('order') ?: $posttype::get('menu_position'),
+			'has_archive'         => $posttype::get('has_archive'),
+			'supports'            => $posttype::get('supports'),
+			'exclude_from_search' => $posttype::get('exclude_from_search'),
 		);
 
 		// capabilities

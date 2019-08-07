@@ -42,6 +42,12 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.8.4 =
+better search logic
+
+= 2.8.3 =
+fix 'exclude_from_search'
+
 = 2.8.2 =
 remove Debug code
 

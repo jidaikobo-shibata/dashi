@@ -76,7 +76,7 @@ class Search
 	 */
 	public static function searchJoin($join)
 	{
-		global $wp_query;
+		global $wp_query, $wpdb;
 
 		if (is_admin()) return $join;
 
@@ -85,7 +85,8 @@ class Search
 		if ( ! static::nullBytelessS()) return $join;
 		if ( ! isset($wp_query->is_search) || ! $wp_query->is_search) return $join;
 
-		$join .= " INNER JOIN wp_postmeta ON (wp_posts.ID = wp_postmeta.post_id)";
+		return $join;
+		$join .= " LEFT OUTER JOIN {$wpdb->postmeta} ON ({$wpdb->posts}.ID = {$wpdb->postmeta}.post_id)";
 		return $join;
 	}
 
@@ -102,13 +103,14 @@ class Search
 		if (isset($wp_query->query['s'])) $wp_query->is_search = true;
 		if ( ! static::nullBytelessS()) return $search;
 		if ( ! $wp_query->is_search) return $search;
+		return $search;
 
 		// modify sql
-		$postmeta = $wpdb->prefix.'postmeta';
 		$sql = $wpdb->prepare(
-			" OR ({$postmeta}.meta_key = 'dashi_search' AND {$postmeta}.meta_value LIKE %s)",
+			") OR ({$wpdb->postmeta}.meta_key = 'dashi_search' AND {$wpdb->postmeta}.meta_value LIKE %s",
 			'%'.static::nullBytelessS().'%');
 		$search = str_replace(')))', $sql.')))', $search);
+
 		return $search;
 	}
 
