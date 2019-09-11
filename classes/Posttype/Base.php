@@ -311,7 +311,6 @@ abstract class Base
 		{
 			return get_post_meta($post_id, $key, true);
 		}
-		return false;
 	}
 
 	/**

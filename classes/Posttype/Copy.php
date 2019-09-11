@@ -107,11 +107,10 @@ class Copy
 	/**
 	 * modCopyTitle
 	 *
-	 * @param  string $post_type
 	 * @param  string $post_title
 	 * @return void
 	 */
-	public static function modCopyTitle ($post_type, $post_title)
+	public static function modCopyTitle ($post_title)
 	{
 		global $wpdb;
 		$sql = 'SELECT count(ID) as num FROM '.$wpdb->posts.' WHERE `post_title` LIKE %s AND `post_status` = "publish";';
@@ -137,7 +136,7 @@ class Copy
 		$original = get_post($original_id);
 
 		global $post;
-		$post->post_title = self::modCopyTitle($original->post_type, $original->post_title);
+		$post->post_title = self::modCopyTitle($original->post_title);
 		$post->post_content = $original->post_content;
 		$post->post_excerpt = $original->post_excerpt;
 		// $post->post_date = $original->post_date;

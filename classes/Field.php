@@ -98,7 +98,7 @@ class Field
 			$ret = '';
 			foreach ($value as $val)
 			{
-				$ret .= field_hidden($name.'[]', $val);
+				$ret .= static::field_hidden($name.'[]', $val);
 			}
 			return $ret;
 		}

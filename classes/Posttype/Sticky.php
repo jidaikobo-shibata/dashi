@@ -33,7 +33,7 @@ class Sticky
 	 * js.jsでhiddenを追加
 	 * @return  void
 	 */
-	public static function column($status, $post, $date, $mode)
+	public static function column($status, $post)
 	{
 		if ($post->post_type == 'post') return;
 

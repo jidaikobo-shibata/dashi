@@ -167,7 +167,6 @@ class PublicForm
 		}
 
 		// set value
-		$vals = (object) array();
 		$vals = self::setValue($class, $form, $req_method);
 
 		// posted value
@@ -306,16 +305,7 @@ class PublicForm
 		$retVal['original_name'] = $file['name'];
 
 		// ファイル名を予測が難しいものにする
-		$final_upload_parh = self::uploadDir();
-		$name = strtolower(sanitize_file_name(base64_encode(microtime()))).$ext;
 		$name = wp_unique_filename( DASHI_TMP_UPLOAD_DIR, $name );
-
-		/*
-			do
-			{
-			$name = strtolower(sanitize_file_name(base64_encode(microtime()))).$ext;
-			} while (file_exists(DASHI_TMP_UPLOAD_DIR.$name) || file_exists($final_upload_parh.$name));
-		*/
 
 		$retVal['name'] = $name;
 		$upload_path = DASHI_TMP_UPLOAD_DIR.$name;
@@ -1013,9 +1003,6 @@ class PublicForm
 		$post_type = P::class2posttype($class);
 		static::precheckSendmail($class);
 
-		// template
-		$fields = $class::getFlatCustomFields();
-
 		// client mail address
 		$client_mail_field = $class::get('auto_reply_field');
 		$client_mail = isset($vals->$client_mail_field) ? $vals->$client_mail_field : '';
@@ -1242,7 +1229,6 @@ class PublicForm
 			if ( ! $eyecatched)
 			{
 				update_post_meta($post->ID, '_thumbnail_id', $attach_id);
-				$eyecatched = true;
 			}
 
 			// update post meta

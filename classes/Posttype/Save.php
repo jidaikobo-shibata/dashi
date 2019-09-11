@@ -99,7 +99,6 @@ class Save
 			foreach ($odrs as $kk => $vv)
 			{
 				$keys = explode('::', $kk);
-				$idx = array_shift($keys); // $field[$idx]は$vv番目になる
 
 				// $valueに戻す前に、まとめて順番を修正する
 				// $keysには、フィールドの名前

@@ -26,7 +26,7 @@ class Editablehelp extends \Dashi\Core\Posttype\Base
 		static::set('custom_fields', array(
 				'dashi_bind_slug' => array(
 					'type' => 'hidden',
-					'value' => esc_html(\Dashi\Core\Input::get('slug'), ''),
+					'value' => esc_html(\Dashi\Core\Input::get('slug')),
 			)));
 	}
 }

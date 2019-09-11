@@ -85,7 +85,6 @@ class Search
 		if ( ! static::nullBytelessS()) return $join;
 		if ( ! isset($wp_query->is_search) || ! $wp_query->is_search) return $join;
 
-		return $join;
 		$join .= " LEFT OUTER JOIN {$wpdb->postmeta} ON ({$wpdb->posts}.ID = {$wpdb->postmeta}.post_id)";
 		return $join;
 	}
@@ -103,7 +102,6 @@ class Search
 		if (isset($wp_query->query['s'])) $wp_query->is_search = true;
 		if ( ! static::nullBytelessS()) return $search;
 		if ( ! $wp_query->is_search) return $search;
-		return $search;
 
 		// modify sql
 		$sql = $wpdb->prepare(

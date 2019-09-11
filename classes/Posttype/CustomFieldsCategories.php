@@ -66,7 +66,6 @@ class CustomFieldsCategories
 
 		$posttype = P::posttype2class($taxonomies[$taxonomy]);
 		$custom_fields_taxonomies = $posttype::get('custom_fields_taxonomies');
-		$custom_fields = $custom_fields_taxonomies[$tag->taxonomy];
 		$cat_key = 'cat_'.$term_id;
 		$cat_meta = get_option($cat_key);
 

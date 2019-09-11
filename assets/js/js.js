@@ -1,6 +1,6 @@
 // label_fb
 jQuery(function($){
-	$('.label_fb').find('input[type="checkbox"], input[type="radio"]').each(function(e){
+	$('.label_fb').find('input[type="checkbox"], input[type="radio"]').each(function(){
 		check_fb($(this));
 	});
 

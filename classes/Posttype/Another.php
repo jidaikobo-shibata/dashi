@@ -97,9 +97,9 @@ class Another
 	/**
 	 * postDateColumnTime
 	 *
-	 * @return  void
+	 * @return  string
 	 */
-	public static function postDateColumnTime ($t_time, $post, $date, $mode)
+	public static function postDateColumnTime ($t_time, $post)
 	{
 		$str = '';
 		$another = static::getAnother($post->ID);
@@ -176,7 +176,6 @@ class Another
 		// 差し替えの編集画面の場合
 		if (isset($post->dashi_original_id))
 		{
-			$original = get_post($post->dashi_original_id);
 			$original_posttype = get_post_type_object($post->post_type);
 			$str = static::getAnother($post->dashi_original_id) ?
 				 sprintf(__('Edit another version of %s', 'dashi'), $original_posttype->label) :
@@ -371,7 +370,10 @@ $("h1.wp-heading-inline").text("'.$str.'");
 			$link = get_preview_post_link($original->ID);
 		}
 
-		echo sprintf(__('This post is another version of <a href="%s">%s</a>. If you publish, replace post immediately.', 'dashi'), $link, $original->post_title);
+		if (is_string($link))
+		{
+			echo sprintf(__('This post is another version of <a href="%s">%s</a>. If you publish, replace post immediately.', 'dashi'), $link, $original->post_title);
+		}
 
 		// taxonomy
 		// 作成時のみ
@@ -512,7 +514,7 @@ $("#'.$ul_id.'").find(":input").each(function(){
 	/**
 	 * getAnotherLink
 	 *
-	 * @return  void
+	 * @return  string
 	 */
 	public static function getAnotherLink ($post_id)
 	{

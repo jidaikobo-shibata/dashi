@@ -37,7 +37,6 @@ class CustomFieldsGoogleMap
 		$lng = '';
 		$zoom = 13;
 
-		$metas = array();
 		if (is_object($object) && isset($object->ID))
 		{
 			$metas = get_post_meta($object->ID, $id, true);

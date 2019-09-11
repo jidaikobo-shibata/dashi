@@ -70,7 +70,7 @@ class Posttype
 		// force temaplate change
 		if (get_option('dashi_enrich_search_result_page') && Input::get('s', false) !== false)
 		{
-			add_action('template_include', function ($template)
+			add_action('template_include', function ()
 			{
 				$template = DASHI_DIR.'/templates/search.php';
 				return $template;
@@ -239,7 +239,7 @@ class Posttype
 		{
 			add_filter(
 				'wp_terms_checklist_args',
-				function ($args, $post_id = null)
+				function ($args)
 				{
 					$args['checked_ontop'] = false;
 					return $args;
@@ -697,7 +697,7 @@ class Posttype
 
 		// adhoc! cannot filter at admin index
 		global $pagenow;
-		$publicly_queryable = $posttype::get('publicly_queryable');
+//		$publicly_queryable = $posttype::get('publicly_queryable');
 		$publicly_queryable = $pagenow == 'edit.php' && is_admin() ? false : true;
 
 		// add

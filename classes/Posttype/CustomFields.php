@@ -11,7 +11,7 @@ class CustomFields
 	/**
 	 * excludes
 	 *
-	 * @return  void
+	 * @return  array
 	 */
 	public static function excludes ()
 	{
@@ -28,7 +28,6 @@ class CustomFields
 		$post_id = filter_input(INPUT_GET, 'post');
 		$action = filter_input(INPUT_GET, 'action');
 		$post_type = filter_input(INPUT_GET, 'post_type');
-		$post = null;
 
 		if ( ! $post_type && $post_id && $action)
 		{

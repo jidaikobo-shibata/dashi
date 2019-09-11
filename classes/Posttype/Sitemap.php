@@ -143,7 +143,7 @@ class Sitemap
 	 *
 	 * @return  mixed
 	 */
-	public static function shortcode ($params, $content = null)
+	public static function shortcode ($params)
 	{
 		$items = static::generate();
 		$h = isset($params['h']) ? $params['h'] : 'h2';
