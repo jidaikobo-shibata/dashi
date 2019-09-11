@@ -292,62 +292,9 @@ class Posttype
 	 */
 	public static function preload()
 	{
-		$posttypes = array();
-		$posttypes_files = array();
-
-		// load posttypes first
-		foreach (glob(get_stylesheet_directory()."/posttype/*.php") as $filename)
-		{
-			include($filename);
-			$posttypes_files[] = $filename;
-		}
-
-		// 子テーマを使っているなら、親テーマを読む
-		$pt_check = array_map('basename', $posttypes_files);
-		if (get_stylesheet_directory() != get_template_directory())
-		{
-			foreach (glob(get_template_directory()."/posttype/*.php") as $filename)
-			{
-				if (in_array(basename($filename), $pt_check)) continue;
-				include($filename);
-				$posttypes_files[] = $filename;
-			}
-		}
-
-		// define classes
-		foreach ($posttypes_files as $filename)
-		{
-			$class = '\\Dashi\\Posttype\\'.ucfirst(substr(basename($filename), 0, -4));
-			if (is_callable($class, '__init'))
-			{
-				$posttypes[] = $class;
-			}
-		}
-
-		// default post type - allow override
-		foreach (glob(DASHI_DIR."/posttype/*.php") as $filename)
-		{
-			$post_type = substr(basename($filename), 0, -4);
-			$class = '\\Dashi\\Posttype\\'.ucfirst($post_type);
-			if (in_array($class, $posttypes)) continue;
-			if ($post_type == 'pagepart' && ! get_option('dashi_activate_pagepart')) continue;
-			include($filename);
-			$posttypes[] = $class;
-		}
-
-		// 出汁由来でないポストタイプの取得
-		global $wpdb;
-		$sql = 'SELECT `post_type` FROM '.$wpdb->posts.' GROUP BY `post_type`;';
-		foreach ($wpdb->get_results($sql) as $v)
-		{
-			if (in_array($v->post_type, array('revision', 'attachment'))) continue;
-			if (strpos($v->post_type, '-') !== false) continue;
-			$class = '\\Dashi\\Posttype\\'.ucfirst($v->post_type);
-			if (in_array($class, $posttypes)) continue;
-			$posttypes[] = $class;
-			static::virtual($v->post_type);
-		}
-
+		// load posttypes
+		$posttypes_files = self::loadPostTypeFiles();
+		$posttypes = self::definePostTypes($posttypes_files);
 
 		// スラッグでカスタムフィールドを上書きするために取得
 		$post_id = filter_input(INPUT_GET, 'post');
@@ -390,6 +337,79 @@ class Posttype
 	}
 
 	/**
+	 * loadPostTypeFiles
+	 *
+	 * @return  array
+	 */
+	private static function loadPostTypeFiles()
+	{
+		$posttypes_files = array();
+		foreach (glob(get_stylesheet_directory()."/posttype/*.php") as $filename)
+		{
+			include($filename);
+			$posttypes_files[] = $filename;
+		}
+
+		// 子テーマを使っているなら、親テーマを読む
+		$pt_check = array_map('basename', $posttypes_files);
+		if (get_stylesheet_directory() != get_template_directory())
+		{
+			foreach (glob(get_template_directory()."/posttype/*.php") as $filename)
+			{
+				if (in_array(basename($filename), $pt_check)) continue;
+				include($filename);
+				$posttypes_files[] = $filename;
+			}
+		}
+		return $posttypes_files;
+	}
+
+	/**
+	 * definePostTypes
+	 *
+	 * @return  array
+	 */
+	private static function definePostTypes($posttypes_files)
+	{
+		$posttypes = array();
+
+		foreach ($posttypes_files as $filename)
+		{
+			$class = '\\Dashi\\Posttype\\'.ucfirst(substr(basename($filename), 0, -4));
+			if (is_callable($class, '__init'))
+			{
+				$posttypes[] = $class;
+			}
+		}
+
+		// default post type - allow override
+		foreach (glob(DASHI_DIR."/posttype/*.php") as $filename)
+		{
+			$post_type = substr(basename($filename), 0, -4);
+			$class = '\\Dashi\\Posttype\\'.ucfirst($post_type);
+			if (in_array($class, $posttypes)) continue;
+			if ($post_type == 'pagepart' && ! get_option('dashi_activate_pagepart')) continue;
+			include($filename);
+			$posttypes[] = $class;
+		}
+
+		// 出汁由来でないポストタイプの取得
+		global $wpdb;
+		$sql = 'SELECT `post_type` FROM '.$wpdb->posts.' GROUP BY `post_type`;';
+		foreach ($wpdb->get_results($sql) as $v)
+		{
+			if (in_array($v->post_type, array('revision', 'attachment'))) continue;
+			if (strpos($v->post_type, '-') !== false) continue;
+			$class = '\\Dashi\\Posttype\\'.ucfirst($v->post_type);
+			if (in_array($class, $posttypes)) continue;
+			$posttypes[] = $class;
+			static::virtual($v->post_type);
+		}
+
+		return $posttypes;
+	}
+
+	/**
 	 * duplicateMetaBox
 	 *
 	 * @return  void
@@ -417,37 +437,7 @@ class Posttype
 				$arr_name = isset($val['label']) ? $val['label'] : $key;
 
 				// 必要数を確保するために、現在DBに保管されている数を数える
-				$allnum = 0;
-				if (
-					isset($_GET['dashi_copy_original_id']) &&
-					is_numeric($_GET['dashi_copy_original_id'])
-				)
-				{
-					$post_id = filter_input(INPUT_GET, 'dashi_copy_original_id', FILTER_SANITIZE_NUMBER_INT);
-				}
-				else
-				{
-					$post_id = filter_input(INPUT_GET, 'post', FILTER_SANITIZE_NUMBER_INT);
-				}
-
-				// fieldsの場合、入力されている最大値を用いる。
-				if ($post_id)
-				{
-					$items = array();
-					if (isset($val['fields']) && is_array($val['fields']))
-					{
-						foreach ($val['fields'] as $kk => $fs)
-						{
-							$items[] = count(get_post_meta($post_id, $kk));
-						}
-						$allnum = max($items);
-					}
-					else
-					{
-						// fieldsでない場合は普通にカウント
-						$allnum = count(get_post_meta($post_id, $key));
-					}
-				}
+				$allnum = self::countMetaboxAmount($val);
 
 				// labelを保存しておく
 				if (isset($val['fields']) && is_array($val['fields']))
@@ -514,6 +504,48 @@ class Posttype
 
 			$posttype::set('custom_fields', $custom_fields);
 		}
+	}
+
+	/**
+	 * countMetaboxAmount
+	 *
+	 * @param  array $val
+	 * @return  integer
+	 */
+	private static function countMetaboxAmount($val)
+	{
+		$allnum = 0;
+		if (
+			isset($_GET['dashi_copy_original_id']) &&
+			is_numeric($_GET['dashi_copy_original_id'])
+		)
+		{
+			$post_id = filter_input(INPUT_GET, 'dashi_copy_original_id', FILTER_SANITIZE_NUMBER_INT);
+		}
+		else
+		{
+			$post_id = filter_input(INPUT_GET, 'post', FILTER_SANITIZE_NUMBER_INT);
+		}
+
+		// fieldsの場合、入力されている最大値を用いる。
+		if ($post_id)
+		{
+			$items = array();
+			if (isset($val['fields']) && is_array($val['fields']))
+			{
+				foreach ($val['fields'] as $kk => $fs)
+				{
+					$items[] = count(get_post_meta($post_id, $kk));
+				}
+				$allnum = max($items);
+			}
+			else
+			{
+				// fieldsでない場合は普通にカウント
+				$allnum = count(get_post_meta($post_id, $key));
+			}
+		}
+		return $allnum;
 	}
 
 	/**
