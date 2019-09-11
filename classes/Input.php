@@ -6,7 +6,7 @@ class Input
 	/**
 	 * Return's the referrer
 	 *
-	 * @return  string
+	 * @return  String|Array
 	 */
 	public static function referrer($default = '')
 	{
@@ -16,7 +16,7 @@ class Input
 	/**
 	 * Return's the user agent
 	 *
-	 * @return  string
+	 * @return  string|array
 	 */
 	public static function user_agent($default = '')
 	{

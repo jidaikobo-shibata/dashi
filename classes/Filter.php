@@ -7,7 +7,7 @@ class Filter
 	 * filetr alnum
 	 *
 	 * @param   mixed
-	 * @return  string
+	 * @return  mixed
 	 */
 	public static function alnum($val)
 	{
@@ -19,7 +19,7 @@ class Filter
 	 * filetr lower
 	 *
 	 * @param   mixed
-	 * @return  string
+	 * @return  mixed
 	 */
 	public static function lower($val)
 	{
@@ -31,7 +31,7 @@ class Filter
 	 * filetr upper
 	 *
 	 * @param   mixed
-	 * @return  string
+	 * @return  mixed
 	 */
 	public static function upper($val)
 	{
@@ -43,7 +43,7 @@ class Filter
 	 * filetr trim
 	 *
 	 * @param   mixed
-	 * @return  string
+	 * @return  mixed
 	 */
 	public static function trim($val)
 	{
@@ -55,7 +55,7 @@ class Filter
 	 * filetr int
 	 *
 	 * @param   mixed
-	 * @return  string
+	 * @return  mixed
 	 */
 	public static function int($val)
 	{
@@ -67,7 +67,7 @@ class Filter
 	 * filetr date
 	 *
 	 * @param   mixed
-	 * @return  string
+	 * @return  mixed
 	 */
 	public static function date($val)
 	{
@@ -79,7 +79,7 @@ class Filter
 	 * filetr datetime
 	 *
 	 * @param   mixed
-	 * @return  string
+	 * @return  mixed
 	 */
 	public static function datetime($val)
 	{
