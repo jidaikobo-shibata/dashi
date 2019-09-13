@@ -420,6 +420,10 @@ class Posttype
 		$custom_fields = $posttype::get('custom_fields');
 		if ( ! $custom_fields) return;
 
+		// 編集画面以外ではmetaboxは無視していい
+		global $pagenow;
+		if ($pagenow != 'post.php') return;
+
 		// 表示順番を維持するためにカウント
 		$mods = array();
 		foreach ($custom_fields as $key => $val)
@@ -437,7 +441,7 @@ class Posttype
 				$arr_name = isset($val['label']) ? $val['label'] : $key;
 
 				// 必要数を確保するために、現在DBに保管されている数を数える
-				$allnum = self::countMetaboxAmount($val);
+				$allnum = self::countMetaboxAmount($key, $val);
 
 				// labelを保存しておく
 				if (isset($val['fields']) && is_array($val['fields']))
@@ -449,31 +453,7 @@ class Posttype
 				}
 
 				// 必要数ぶん増やす
-				for ($i = 0;$i <= $allnum;$i++)
-				{
-					$numstr = $i + 1;
-					// fieldsの各要素を複製する
-					if (isset($val['fields']) && is_array($val['fields']))
-					{
-						$fields = array();
-						foreach ($val['fields'] as $kk => $fs)
-						{
-							// もとから配列の形をしているようなものは破棄
-							$tmpkey = preg_replace("/\[\d*?\]/", '', $kk);
-							$fs['label'] = $labels[$tmpkey].' ('.$numstr.')';
-							$fs['label_origi'] =  $labels[$tmpkey];
-
-							// ここで、配列の形に変更
-							$fields[$tmpkey.'['.$i.']'] = $fs;
-						}
-						$val['fields'] = $fields;
-					}
-					$val['label'] =  $arr_name.' ('.$numstr.')';
-					$val['label_origi'] =  $arr_name;
-
-					$val['original_key'] =  $key;
-					$adds[$key.'['.$i.']'] = $val; // keyはfieldsがない場合はそのままnameになる
-				}
+				$adds = self::addBoxes($key, $val, $allnum, $labels, $arr_name, $adds);
 
 				// meta_boxを増やすため、$keyを記憶
 				$mods[$key] = $adds;
@@ -509,10 +489,11 @@ class Posttype
 	/**
 	 * countMetaboxAmount
 	 *
+	 * @param  string $key
 	 * @param  array $val
 	 * @return  integer
 	 */
-	private static function countMetaboxAmount($val)
+	private static function countMetaboxAmount($key, $val)
 	{
 		$allnum = 0;
 		if (
@@ -546,6 +527,47 @@ class Posttype
 			}
 		}
 		return $allnum;
+	}
+
+	/**
+	 * addBoxes
+	 *
+	 * @param  string $val
+	 * @param  array $val
+	 * @param  integer $allnum
+	 * @param  array $labels
+	 * @param  string $arr_name
+	 * @param  array $adds
+	 * @return  array
+	 */
+	private static function addBoxes($key, $val, $allnum, $labels, $arr_name, $adds)
+	{
+		for ($i = 0;$i <= $allnum;$i++)
+		{
+			$numstr = $i + 1;
+			// fieldsの各要素を複製する
+			if (isset($val['fields']) && is_array($val['fields']))
+			{
+				$fields = array();
+				foreach ($val['fields'] as $kk => $fs)
+				{
+					// もとから配列の形をしているようなものは破棄
+					$tmpkey = preg_replace("/\[\d*?\]/", '', $kk);
+					$fs['label'] = $labels[$tmpkey].' ('.$numstr.')';
+					$fs['label_origi'] = $labels[$tmpkey];
+
+					// ここで、配列の形に変更
+					$fields[$tmpkey.'['.$i.']'] = $fs;
+				}
+				$val['fields'] = $fields;
+			}
+			$val['label'] = $arr_name.' ('.$numstr.')';
+			$val['label_origi'] = $arr_name;
+
+			$val['original_key'] = $key;
+			$adds[$key.'['.$i.']'] = $val; // keyはfieldsがない場合はそのままnameになる
+		}
+		return $adds;
 	}
 
 	/**
@@ -749,6 +771,30 @@ class Posttype
 		);
 
 		// capabilities
+		$args = self::registerCapabilities($posttype, $args);
+
+		register_post_type($posttype::get('post_type'), $args);
+
+		// flush_rules
+		global $wp_rewrite;
+		$wp_rewrite->flush_rules();
+
+		// taxonomies
+		self::registerTaxonomy($posttype);
+
+		// run __after
+		$posttype::__after();
+	}
+
+	/**
+	 * registerCapabilities
+	 *
+	 * @param  Object $posttype
+	 * @param  Array $args
+	 * @return  Array
+	 */
+	private static function registerCapabilities($posttype, $args)
+	{
 		if ($posttype::get('capability_type'))
 		{
 			$args['capability_type'] = $posttype::get('capability_type');
@@ -761,14 +807,17 @@ class Posttype
 		{
 			$args['map_meta_cap'] = $posttype::get('map_meta_cap');
 		}
+		return $args;
+	}
 
-		register_post_type($posttype::get('post_type'), $args);
-
-		// flush_rules
-		global $wp_rewrite;
-		$wp_rewrite->flush_rules();
-
-		// taxonomies
+	/**
+	 * registerTaxonomy
+	 *
+	 * @param  Object $posttype
+	 * @return  void
+	 */
+	private static function registerTaxonomy ($posttype)
+	{
 		$custom_fields_taxonomies = $posttype::get('custom_fields_taxonomies');
 		foreach ($posttype::get('taxonomies') as $name => $val)
 		{
@@ -785,16 +834,12 @@ class Posttype
 				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'addCustomFields')
 			);
 
-add_action(
-	'edited_term',
-	array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'saveHook')
-);
-
+			add_action(
+				'edited_term',
+				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'saveHook')
+			);
 
 			static::$_taxonomies[$name] = static::class2posttype($posttype);
 		}
-
-		// run __after
-		$posttype::__after();
 	}
 }

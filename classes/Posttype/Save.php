@@ -95,39 +95,7 @@ class Save
 
 			// odrsのキーは (現在のkey)::(フィールドの名前1)::(フィールドの名前2) -> $kk
 			// odrsの値は並ぶ順番 -> $vv
-			$new = array();
-			foreach ($odrs as $kk => $vv)
-			{
-				$keys = explode('::', $kk);
-
-				// $valueに戻す前に、まとめて順番を修正する
-				// $keysには、フィールドの名前
-				foreach ($keys as $each_key)
-				{
-					// save hookの途中で使う
-					static::$duplicateds[] = $each_key;
-
-					foreach ($values[$each_key] as $kkk => $vvv)
-					{
-						$new[$kkk]['dashi_field_order'] = $simple_odrs[$kkk];
-						$new[$kkk][$each_key] = $vvv;
-					}
-				}
-			}
-
-			// array_multisortように作り直し（いかにも泥臭い……）
-			$dashi_field_order = array();
-			foreach ($new as $kkkk => $row)
-			{
-				$dashi_field_order[$kkkk] = $row['dashi_field_order'];
-			}
-			array_multisort($dashi_field_order, SORT_ASC, $new);
-
-			// newができているので、古いvalueをハツる
-			foreach ($keys as $each_key)
-			{
-				$values[$each_key] = array();
-			}
+			list($values, $new) = self::genNewOrder4DuplicatedMetaBox($odrs, $simple_odrs, $values);
 
 			// あたらしいvalueをつくる
 			foreach ($new as $vvv)
@@ -148,6 +116,57 @@ class Save
 		unset($values['dashi_odrs']);
 
 		return $values;
+	}
+
+	/**
+	 * genNewOrder4DuplicatedMetaBox
+	 *
+	 * @param array $ordrs
+	 * @param array $simple_odrs
+	 * @param array $values
+	 * @return array
+	 */
+	public static function genNewOrder4DuplicatedMetaBox($odrs, $simple_odrs, $values)
+	{
+		// odrsのキーは (現在のkey)::(フィールドの名前1)::(フィールドの名前2) -> $kk
+		// odrsの値は並ぶ順番 -> $vv
+		$new = array();
+		foreach ($odrs as $kk => $vv)
+		{
+			$keys = explode('::', $kk);
+			array_shift($keys);
+
+			// $valueに戻す前に、まとめて順番を修正する
+			// $keysには、フィールドの名前
+			foreach ($keys as $each_key)
+			{
+				// save hookの途中で使う
+				static::$duplicateds[] = $each_key;
+
+				if ( ! isset($values[$each_key])) continue;
+				foreach ($values[$each_key] as $kkk => $vvv)
+				{
+					$new[$kkk]['dashi_field_order'] = $simple_odrs[$kkk];
+					$new[$kkk][$each_key] = $vvv;
+				}
+			}
+		}
+
+		// array_multisortように作り直し（いかにも泥臭い……）
+		$dashi_field_order = array();
+		foreach ($new as $kkkk => $row)
+		{
+			$dashi_field_order[$kkkk] = $row['dashi_field_order'];
+		}
+		array_multisort($dashi_field_order, SORT_ASC, $new);
+
+		// newができているので、古いvalueをハツる
+		// $keysの使い回しがやや気持ち悪いが……
+		foreach ($keys as $each_key)
+		{
+			$values[$each_key] = array();
+		}
+		return array($values, $new);
 	}
 
 	/**
