@@ -194,49 +194,16 @@ class Search
 		if ( ! function_exists('is_user_logged_in'))
 		{
 			require(ABSPATH.WPINC.'/pluggable.php');
+
+			// suppress error wp-includes/post.php on line 4153
+			global $wp_rewrite;
+			$wp_rewrite = (object) array('feeds' => array());
 		}
 
 		$target_urls = array_merge($ms[1], $specified_urls);
 
-		// for eliminate normal page
-		global $wpdb;
-		$sql = 'select post_name, post_type from '.$wpdb->posts.' where `post_status` = "publish"';
-		$slugs_posttypes = $wpdb->get_results($sql);
-		$black_list = array();
-		foreach ($slugs_posttypes as $slugs_posttype)
-		{
-			if (in_array($slugs_posttype->post_type, array('crawlsearch', 'pagepart', 'editablehelp'))) continue;
-			if (in_array($slugs_posttype->post_type, array('post', 'page')))
-			{
-				$black_list[] = '/'.$slugs_posttype->post_name;
-			}
-			else
-			{
-				$black_list[] = '/'.$slugs_posttype->post_type.'/'.$slugs_posttype->post_name;
-			}
-		}
-
-		// eliminate assets
-		$urls = array(home_url());
-		foreach ($target_urls as $v)
-		{
-			if (strpos($v, 'wp-content') !== false) continue;
-			if (strpos($v, wp_login_url()) !== false) continue;
-			if (strpos($v, '/wp-json') !== false) continue;
-			if (strpos($v, '/feed') !== false) continue;
-			if (strpos($v, home_url()) === false) continue;
-			if (strpos($v, '?p=') !== false) continue; // indexable page
-
-			// indexable page
-			foreach ($black_list as $black)
-			{
-				if (strpos($v, $black) !== false) continue 2;
-			}
-
-			$urls[] = rtrim(trim($v), '/');
-		}
-
-		$urls = array_unique($urls);
+		// for eliminate normal page and assets
+		$urls = self::eliminateAssets($target_urls, self::getBlackList());
 
 		// check db
 		$posts = get_posts('post_type=crawlsearch&numberposts=-1&post_status=any');
@@ -266,25 +233,26 @@ class Search
 			$html = static::generateSearchStr($html);
 
 			// obj
-			$obj = (object) array();
+			$item = array();
 			$title = isset($ts[1]) ? $ts[1] : $url;
-			$obj->post_title   = $title;
-			$obj->post_content = $html;
-			$obj->post_type    = 'crawlsearch';
-			$obj->post_status  = 'publish';
+			$item['post_title']   = $title;
+			$item['post_name']   = 'crawlsearch-'.microtime();
+			$item['post_content'] = $html;
+			$item['post_type']    = 'crawlsearch';
+			$item['post_status']  = 'publish';
 
 			// update
 			if (array_key_exists($title, $titles))
 			{
 				$id = $titles[$title];
-				$obj->ID = $id;
-				wp_update_post($obj);
+				$item['ID'] = $id;
+				wp_update_post($item);
 				$ids[] = $id;
 			}
 			// add
 			else
 			{
-				$id = wp_insert_post($obj);
+				$id = wp_insert_post($item);
 				$ids[] = $id;
 			}
 
@@ -298,5 +266,63 @@ class Search
 			if (in_array($post->ID, $ids)) continue;
 			wp_delete_post($post->ID, $force_delete = 1);
 		}
+	}
+
+	/**
+	 * getBlackList
+	 *
+	 * @return array
+	 */
+	private static function getBlackList()
+	{
+		global $wpdb;
+		$sql = 'select post_name, post_type from '.$wpdb->posts.' where `post_status` = "publish"';
+		$slugs_posttypes = $wpdb->get_results($sql);
+		$black_list = array();
+		foreach ($slugs_posttypes as $slugs_posttype)
+		{
+			if (in_array($slugs_posttype->post_type, array('crawlsearch', 'pagepart', 'editablehelp'))) continue;
+			if (in_array($slugs_posttype->post_type, array('post', 'page')))
+			{
+				$black_list[] = '/'.$slugs_posttype->post_name;
+			}
+			else
+			{
+				$black_list[] = '/'.$slugs_posttype->post_type.'/'.$slugs_posttype->post_name;
+			}
+		}
+		return $black_list;
+	}
+
+	/**
+	 * eliminateAssets
+	 *
+	 * @param array $target_urls
+	 * @param array $black_list
+	 * @return array
+	 */
+	private static function eliminateAssets($target_urls, $black_list)
+	{
+		$urls = array(home_url());
+		foreach ($target_urls as $v)
+		{
+			if (strpos($v, 'wp-content') !== false) continue;
+			if (strpos($v, wp_login_url()) !== false) continue;
+			if (strpos($v, '/wp-json') !== false) continue;
+			if (strpos($v, '/feed') !== false) continue;
+			if (strpos($v, home_url()) === false) continue;
+			if (strpos($v, '?p=') !== false) continue; // indexable page
+
+			// indexable page
+			foreach ($black_list as $black)
+			{
+				if (strpos($v, $black) !== false) continue 2;
+			}
+
+			$urls[] = rtrim(trim($v), '/');
+		}
+
+		$urls = array_unique($urls);
+		return $urls;
 	}
 }
