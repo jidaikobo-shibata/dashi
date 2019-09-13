@@ -273,6 +273,8 @@ class CustomFields
 		$is_use_wp_uploader = true
 	)
 	{
+		global $pagenow;
+		if ($pagenow != 'post.php') return; // 編集ページのみで動作
 		echo static::_addMetaFieldsCallback($object, $value, $is_label_hide, $is_use_wp_uploader);
 	}
 
@@ -283,90 +285,13 @@ class CustomFields
 		$is_use_wp_uploader = true
 	)
 	{
-		$output = '';
 		$err_msg = '<strong class="dashi_err_msg">Notice: set "label" attribute for label.</strong>';
 
 		// duplicateされたフィールドの順番制御用HTMLの準備
-		$duped_ctrl = '';
-		if (isset($value['args']['duplicated']))
-		{
-			preg_match("/\[(\d+?)\]/", $value['id'], $idx);
-
-			// fieldsのセットを取得
-			if (isset($value['args']['fields']) && is_array($value['args']['fields']))
-			{
-				$fields = array_map(
-					function ($v)
-					{
-						return preg_replace('/\[.*?\]/', '', $v);
-					},
-					array_keys($value['args']['fields'])
-				);
-				$idx_str = join('::', $fields);
-			}
-			else
-			{
-				$idx_str = $value['args']['original_key'];
-			}
-			$idx_str = intval($idx[1]).'::'.$idx_str;
-			$order = intval($idx[1]) + 1;
-			$odr_key = 'dashi_odrs['.$value['args']['original_key'].']['.$idx_str.']';
-			$del_key = 'dashi_dels['.$value['args']['original_key'].']['.$order.']';
-
-			$duped_ctrl.= '<div class="dashi_duped_ctrl_fields">';
-			$duped_ctrl.= '<label>'.__('Order', 'dashi');
-			$duped_ctrl.= ' <input type="text" name="'.$odr_key.'" size="5" value="'.$order.'">';
-			$duped_ctrl.= '</label>';
-			$duped_ctrl.= '<label>';
-			$duped_ctrl.= ' <input type="checkbox" name="'.$del_key.'" value="'.$idx_str.'">';
-			$duped_ctrl.= __('Delete', 'dashi').'</label>';
-			$duped_ctrl.= '</div>';
-		}
+		$duped_ctrl = self::addOrdrfield4dup($value);
 
 		// 複数フィールドを持っている場合
-		if (isset($value['args']['fields']) && is_array($value['args']['fields']))
-		{
-			if (isset($value['args']['description']))
-			{
-				$output.= '<span class="dashi_description dashi_fields_description">'.$value['args']['description'].'</span>';
-			}
-
-			foreach ($value['args']['fields'] as $key => $field)
-			{
-				// public form only
-				if (isset($field['public_form_only']) && $field['public_form_only'] == true) continue;
-
-				$required = '';
-				if (isset($field['attrs']['required']) && $field['attrs']['required'])
-				{
-					$required = '&nbsp;<span class="required">'.__('Required', 'dashi').'</span>';
-				}
-
-				$output.= '<div class="dashi_custom_fields_in_fields">';
-				if (
-					isset($field['type']) &&
-					in_array($field['type'], array('checkbox', 'radio'))
-				)
-				{
-					$output.= isset($field['label']) ?
-						'<h3 class="dashi_custom_fields_label">'.$field['label'].$required.'</h3>' :
-						$err_msg;
-				}
-
-				$output.= static::_addMetaFieldsCallback(
-					$object,
-					array(
-						'id' => $key,
-						'title' => isset($field['label']) ? $field['label'].$required : '',
-						'args' => $field
-					),
-					false,
-					$is_use_wp_uploader
-				);
-				$output.= '</div>';
-			}
-			$output.= $duped_ctrl;
-		}
+		$output = self::addMultiFields($value, $object, $is_use_wp_uploader, $duped_ctrl);
 
 		// カスタムフィールドを作成
 		$key = $value['id'];
@@ -602,6 +527,110 @@ class CustomFields
 		}
 
 		return $output;
+	}
+
+	/**
+	 * addMultiFields
+	 *
+	 * @param  array $value
+	 * @param  object $object
+	 * @param  bool $is_use_wp_uploader
+	 * @param  string $duped_ctrl
+	 * @return  string
+	 */
+	private static function addMultiFields($value, $object, $is_use_wp_uploader, $duped_ctrl)
+	{
+		$output = '';
+		if (isset($value['args']['fields']) && is_array($value['args']['fields']))
+		{
+			if (isset($value['args']['description']))
+			{
+				$output.= '<span class="dashi_description dashi_fields_description">'.$value['args']['description'].'</span>';
+			}
+
+			foreach ($value['args']['fields'] as $key => $field)
+			{
+				// public form only
+				if (isset($field['public_form_only']) && $field['public_form_only'] == true) continue;
+
+				$required = '';
+				if (isset($field['attrs']['required']) && $field['attrs']['required'])
+				{
+					$required = '&nbsp;<span class="required">'.__('Required', 'dashi').'</span>';
+				}
+
+				$output.= '<div class="dashi_custom_fields_in_fields">';
+				if (
+					isset($field['type']) &&
+					in_array($field['type'], array('checkbox', 'radio'))
+				)
+				{
+					$output.= isset($field['label']) ?
+						'<h3 class="dashi_custom_fields_label">'.$field['label'].$required.'</h3>' :
+						$err_msg;
+				}
+
+				$output.= static::_addMetaFieldsCallback(
+					$object,
+					array(
+						'id' => $key,
+						'title' => isset($field['label']) ? $field['label'].$required : '',
+						'args' => $field
+					),
+					false,
+					$is_use_wp_uploader
+				);
+				$output.= '</div>';
+			}
+			$output.= $duped_ctrl;
+		}
+		return $output;
+	}
+
+	/**
+	 * addOrdrfield4dup
+	 *
+	 * @param  array $value
+	 * @return  string
+	 */
+	private static function addOrdrfield4dup($value)
+	{
+		$duped_ctrl = '';
+		if (isset($value['args']['duplicated']))
+		{
+			preg_match("/\[(\d+?)\]/", $value['id'], $idx);
+
+			// fieldsのセットを取得
+			if (isset($value['args']['fields']) && is_array($value['args']['fields']))
+			{
+				$fields = array_map(
+					function ($v)
+					{
+						return preg_replace('/\[.*?\]/', '', $v);
+					},
+					array_keys($value['args']['fields'])
+				);
+				$idx_str = join('::', $fields);
+			}
+			else
+			{
+				$idx_str = $value['args']['original_key'];
+			}
+			$idx_str = intval($idx[1]).'::'.$idx_str;
+			$order = intval($idx[1]) + 1;
+			$odr_key = 'dashi_odrs['.$value['args']['original_key'].']['.$idx_str.']';
+			$del_key = 'dashi_dels['.$value['args']['original_key'].']['.$order.']';
+
+			$duped_ctrl.= '<div class="dashi_duped_ctrl_fields">';
+			$duped_ctrl.= '<label>'.__('Order', 'dashi');
+			$duped_ctrl.= ' <input type="text" name="'.$odr_key.'" size="5" value="'.$order.'">';
+			$duped_ctrl.= '</label>';
+			$duped_ctrl.= '<label>';
+			$duped_ctrl.= ' <input type="checkbox" name="'.$del_key.'" value="'.$idx_str.'">';
+			$duped_ctrl.= __('Delete', 'dashi').'</label>';
+			$duped_ctrl.= '</div>';
+		}
+		return $duped_ctrl;
 	}
 
 	/**

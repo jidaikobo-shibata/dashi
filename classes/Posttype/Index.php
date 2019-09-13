@@ -77,35 +77,48 @@ class Index
 				$v = get_post_meta($post_id, $key, true);
 			}
 
-			// 値がない
-			// 文字列の0が来る場合があるのでstrlen()もかける
-			if (
-				( ! is_array($v) && empty($v) && strlen($v) === 0) ||
-				(is_array($v) && isset($v[0]) && strlen($v[0]) === 0)
-			)
+			// 値の表示
+			self::displayValue($v, $field);
+		}
+	}
+
+	/**
+	 * displayValue
+	 *
+	 * @param  string $v
+	 * @param  array $field
+	 * @return  void
+	 */
+	private static function displayValue($v, $field)
+	{
+		// 値がない
+		// 文字列の0が来る場合があるのでstrlen()もかける
+		if (
+			( ! is_array($v) && empty($v) && strlen($v) === 0) ||
+			(is_array($v) && isset($v[0]) && strlen($v[0]) === 0)
+		)
+		{
+			echo __('None');
+		}
+		// そのまま表示
+		elseif ( ! isset($field['options']) && $v)
+		{
+			echo esc_html($v);
+		}
+		// 配列＆複数
+		elseif (isset($field['options']) && is_array($v))
+		{
+			$arr = array();
+			foreach ($v as $vv)
 			{
-				echo __('None');
+				$arr[] = $field['options'][$vv];
 			}
-			// そのまま表示
-			elseif ( ! isset($field['options']) && $v)
-			{
-				echo esc_html($v);
-			}
-			// 配列＆複数
-			elseif (isset($field['options']) && is_array($v))
-			{
-				$arr = array();
-				foreach ($v as $vv)
-				{
-					$arr[] = $field['options'][$vv];
-				}
-				echo esc_html(join(',', $arr));
-			}
-			// 選択式
-			elseif (isset($field['options']) && ! is_array($v))
-			{
-				echo esc_html($field['options'][$v]);
-			}
+			echo esc_html(join(',', $arr));
+		}
+		// 選択式
+		elseif (isset($field['options']) && ! is_array($v))
+		{
+			echo esc_html($field['options'][$v]);
 		}
 	}
 
