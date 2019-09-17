@@ -132,7 +132,6 @@ class Index
 		if ( ! Input::get('post_type')) return;
 		$class = P::posttype2class(Input::get('post_type'));
 		if ( ! $class) return;
-		global $wpdb;
 
 		// インデクスに抽出を足すもの
 		foreach ($class::getFlatCustomFields() as $key => $field)
@@ -141,53 +140,78 @@ class Index
 
 			if (isset($field['type']) && $field['type'] == 'taxonomy')
 			{
-				$label = isset($field['label']) && $field['label'] ? $field['label'] :'タクソノミー指定なし';
-				$html = '<select name="'.$key.'"><option value="">'.$label.'</option>';
-				$terms = get_terms($key);
-				foreach ($terms as $term)
-				{
-					$selected = filter_input(INPUT_GET, $key);
-					$selected_html = $selected == $term->slug ? 'selected="selected"' : '';
-					$html .= '<option value="'.$term->slug.'" '.$selected_html.'>'.$term->name.'</option>';
-				}
-				$html.= '</select>';
+				self::addTaxonomy2Index($field, $key);
 			}
 			else
 			{
-				$options = array();
-				if (isset($field['options']))
-				{
-					$options = $field['options'];
-				}
-				else
-				{
-					$sql = 'SELECT '.$wpdb->postmeta.'.`meta_value` FROM '.$wpdb->postmeta.'
-						JOIN '.$wpdb->posts.' ON '.$wpdb->postmeta.'.`post_id` = '.$wpdb->posts.'.`ID`
-						WHERE '.$wpdb->postmeta.'.`meta_key` = "handle"
-							AND '.$wpdb->posts.'.`post_status` IN ("publish", "draft", "future", "private")
-						GROUP BY '.$wpdb->postmeta.'.`meta_value`';
-
-					foreach ($wpdb->get_results($sql) as $v)
-					{
-						$options[$v->meta_value] = $v->meta_value;
-					}
-				}
-
-				$selected = filter_input(INPUT_GET, $key);
-				$html = '';
-				$html .= '<select name="' . esc_attr($key) . '">';
-				$html .= '<option value="">'.sprintf(__("All of %s", 'dashi'), isset($field['label']) ? $field['label'] : $key).'</option>';
-				foreach ($options as $value => $text)
-				{
-					if (empty($value)) continue;
-					$selected_html = selected($selected, $value, false);
-					$html .= '<option value="'.esc_attr($value).'"'.$selected_html.'>'.esc_html($text).'</option>';
-				}
-				$html .= '</select>';
+				self::addOption2Index($field, $key);
 			}
-
-			echo $html;
 		}
+	}
+
+	/**
+	 * addTaxonomy2Index
+	 *
+	 * @param  array $field
+	 * @param  string $key
+	 * @return  Void
+	 */
+	private static function addTaxonomy2Index ($field, $key)
+	{
+		$label = isset($field['label']) && $field['label'] ? $field['label'] :'タクソノミー指定なし';
+		$html = '<select name="'.$key.'"><option value="">'.$label.'</option>';
+		$terms = get_terms($key);
+		foreach ($terms as $term)
+		{
+			$selected = filter_input(INPUT_GET, $key);
+			$selected_html = $selected == $term->slug ? 'selected="selected"' : '';
+			$html .= '<option value="'.$term->slug.'" '.$selected_html.'>'.$term->name.'</option>';
+		}
+		$html.= '</select>';
+		echo $html;
+	}
+
+	/**
+	 * addOption2Index
+	 *
+	 * @param  array $field
+	 * @param  string $key
+	 * @return  Void
+	 */
+	private static function addOption2Index ($field, $key)
+	{
+		global $wpdb;
+		$options = array();
+		if (isset($field['options']))
+		{
+			$options = $field['options'];
+		}
+		else
+		{
+			$sql = 'SELECT '.$wpdb->postmeta.'.`meta_value` FROM '.$wpdb->postmeta.'
+JOIN '.$wpdb->posts.' ON '.$wpdb->postmeta.'.`post_id` = '.$wpdb->posts.'.`ID`
+WHERE '.$wpdb->postmeta.'.`meta_key` = "handle"
+AND '.$wpdb->posts.'.`post_status` IN ("publish", "draft", "future", "private")
+GROUP BY '.$wpdb->postmeta.'.`meta_value`';
+
+			foreach ($wpdb->get_results($sql) as $v)
+			{
+				$options[$v->meta_value] = $v->meta_value;
+			}
+		}
+
+		$selected = filter_input(INPUT_GET, $key);
+		$html = '';
+		$html .= '<select name="' . esc_attr($key) . '">';
+		$html .= '<option value="">'.sprintf(__("All of %s", 'dashi'), isset($field['label']) ? $field['label'] : $key).'</option>';
+		foreach ($options as $value => $text)
+		{
+			if (empty($value)) continue;
+			$selected_html = selected($selected, $value, false);
+			$html .= '<option value="'.esc_attr($value).'"'.$selected_html.'>'.esc_html($text).'</option>';
+		}
+		$html .= '</select>';
+		echo $html;
 	}
 
 	/**
