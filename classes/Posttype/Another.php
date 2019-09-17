@@ -355,6 +355,21 @@ $("h1.wp-heading-inline").text("'.$str.'");
 		$original = get_post($original_id);
 
 		// back link
+		self::echoBackLink($original);
+
+		// taxonomy
+		// 作成時のみ
+		self::echoTaxonomyScript($original);
+	}
+
+	/**
+	 * echoBackLink
+	 *
+	 * @param  object $original
+	 * @return  void
+	 */
+	private static function echoBackLink ($original)
+	{
 		$cu = wp_get_current_user();
 		$link = 'edit.php?post_type='.$original->post_type;
 		if ($cu->caps['administrator'] || $cu->caps['editor'] )
@@ -374,9 +389,16 @@ $("h1.wp-heading-inline").text("'.$str.'");
 		{
 			echo sprintf(__('This post is another version of <a href="%s">%s</a>. If you publish, replace post immediately.', 'dashi'), $link, $original->post_title);
 		}
+	}
 
-		// taxonomy
-		// 作成時のみ
+	/**
+	 * echoTaxonomyScript
+	 *
+	 * @param  object $original
+	 * @return  void
+	 */
+	private static function echoTaxonomyScript ($original)
+	{
 		$class = P::post2class($original);
 		if ($class && isset($_GET['dashi_original_id']))
 		{
@@ -545,22 +567,7 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		// failed
 		if ( ! $posted_id)
 		{
-			// send a mail?
-			if (get_option('dashi_another_done_sendmail'))
-			{
-				$to = get_option('admin_email');
-				$subject = sprintf(__('WordPress: Failed to Publish Another @ %s', 'dashi'), home_url());
-				$message = sprintf(__("Failed to update content.\n\n%s\n\n%s\nDashi Plugin", 'dashi'), get_permalink($posted_id), "-- \n");
-				\Dashi\Core\Mail::send($to, $subject, $message);
-
-				// 管理者と別のユーザが記事を作っていたらそちらにも送信する
-				$posted = get_post($posted_id);
-				$userdata = get_userdata($posted->post_author);
-				if ($userdata->data->user_email != $to)
-				{
-					\Dashi\Core\Mail::send($userdata->data->user_email, $subject, $message);
-				}
-			}
+			self::sendAFailMail($original_id);
 			return;
 		}
 
@@ -618,5 +625,30 @@ $("#'.$ul_id.'").find(":input").each(function(){
 
 		// recover hook
 		add_action('save_post', array('\\Dashi\\Core\\Posttype\\Another', 'savePost'));
+	}
+
+	/**
+	 * sendAFailMail
+	 *
+	 * @param  integer $original_id
+	 * @return  void
+	 */
+	private static function sendAFailMail ($original_id)
+	{
+		if (get_option('dashi_another_done_sendmail'))
+		{
+			$to = get_option('admin_email');
+			$subject = sprintf(__('WordPress: Failed to Publish Another @ %s', 'dashi'), home_url());
+			$message = sprintf(__("Failed to update content.\n\n%s\n\n%s\nDashi Plugin", 'dashi'), get_permalink($original_id), "-- \n");
+			\Dashi\Core\Mail::send($to, $subject, $message);
+
+			// 管理者と別のユーザが記事を作っていたらそちらにも送信する
+			$posted = get_post($original_id);
+			$userdata = get_userdata($posted->post_author);
+			if ($userdata->data->user_email != $to)
+			{
+				\Dashi\Core\Mail::send($userdata->data->user_email, $subject, $message);
+			}
+		}
 	}
 }
