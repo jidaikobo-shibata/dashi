@@ -91,10 +91,6 @@ class Notation
 			// query monitorのインストールを促す
 			self::recommendQueryMonitor();
 
-			// XML Sitemap & Google News feedsのインストールを促す
-			// 別途sitemap.xmlがあるならスルーする
-			self::recommendXmlSitemap();
-
 			// コメントを受け付ける設定のサイトかどうか確認する
 			self::checkAllowComment();
 
@@ -254,7 +250,7 @@ class Notation
 	 */
 	private static function checkSiteMapXml()
 	{
-		if ( ! get_option('dashi_do_not_heavy_dashboard_check'))
+		if ( ! get_option('dashi_do_not_heavy_dashboard_check') && ! get_option('dashi_no_need_sitemap_plugin'))
 		{
 			if ( ! get_transient('dashi_notation_sitemap_exist'))
 			{
@@ -263,8 +259,7 @@ class Notation
 				$xmlsf_sitemaps = get_option('xmlsf_sitemaps');
 				if (
 					! Util::is_url_exists(home_url('sitemap.xml')) &&
-					! (isset($xmlsf_sitemaps['sitemap']) && $xmlsf_sitemaps['sitemap'] == 'sitemap.xml') &&
-					! get_option('dashi_no_need_sitemap_plugin')
+					! (isset($xmlsf_sitemaps['sitemap']) && $xmlsf_sitemaps['sitemap'] == 'sitemap.xml')
 				)
 				{
 					add_action('admin_notices', function ()
@@ -567,25 +562,6 @@ class Notation
 			add_action('admin_notices', function ()
 			{
 				echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('install %s plugin ex: %s', 'dashi'), 'security', 'siteguard').'</strong></p></div>';
-			});
-		}
-	}
-
-	/**
-	 * recommendXmlSitemap
-	 *
-	 * @return Void
-	 */
-	private static function recommendXmlSitemap()
-	{
-		if (
-			! is_plugin_active('xml-sitemap-feed/xml-sitemap.php') &&
-			! get_transient('dashi_notation_sitemap_exist')
-		)
-		{
-			add_action('admin_notices', function ()
-			{
-				echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('install %s plugin ex: %s', 'dashi'), 'sitemap.xml', 'XML Sitemap & Google News feeds').'</strong></p></div>';
 			});
 		}
 	}

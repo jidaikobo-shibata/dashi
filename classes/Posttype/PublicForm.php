@@ -23,30 +23,6 @@ class PublicForm
 			2
 		);
 
-		// static::garbageCollection();
-		/*
-		// TODO 別・カプセル化
-		// 1/10の確率でメンテナンス
-		$r = rand(1, 10);
-		if ($r == 1)
-		{
-			// ガベコレ
-			foreach (glob(DASHI_TMP_UPLOAD_DIR."*") as $filename)
-			{
-				if (filectime($filename) <= time() - 86400 * 7)
-				{
-					unlink($filename);
-				}
-			}
-
-			// 安全性の確認
-			if ( ! file_exists(DASHI_TMP_UPLOAD_DIR.'.htaccess'))
-			{
-				file_put_contents(DASHI_TMP_UPLOAD_DIR.'.htaccess', 'deny from all');
-			}
-		}
-		 */
-
 		add_action(
 			'wp_ajax_public_uploader_ajax',
 			array('\\Dashi\\Core\\Posttype\\PublicForm', 'uploader_ajax_handler')
