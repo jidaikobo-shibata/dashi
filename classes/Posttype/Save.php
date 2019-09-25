@@ -12,9 +12,6 @@ class Save
 	 */
 	public static function updateCustomFields($post_id)
 	{
-		// 適用するページのみ
-		global $pagenow;
-		if ($pagenow != 'post.php') return; // 編集ページのみで動作
 		if ( ! Input::post()) return;
 		if (wp_is_post_revision($post_id)) return $post_id;
 

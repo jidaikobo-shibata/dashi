@@ -274,7 +274,7 @@ class CustomFields
 	)
 	{
 		global $pagenow;
-		if ($pagenow != 'post.php') return; // 編集ページのみで動作
+		if ( ! in_array($pagenow, array('post-new.php', 'post.php'))) return; // 編集ページのみで動作
 		echo static::_addMetaFieldsCallback($object, $value, $is_label_hide, $is_use_wp_uploader);
 	}
 

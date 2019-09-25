@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.8.6 =
+fix post-new custom_fields problem
+
 = 2.8.5 =
 maintenance
 
