@@ -13,140 +13,95 @@ class Notation
 	 */
 	public static function forge()
 	{
-		if ( ! is_admin()) return;
-
 		// ダッシュボード判定 - pagenowではマルチサイトで判定できないため
-		// global $pagenow;
-		// if ($pagenow == 'index.php' && get_option('dashi_do_environmental_check'))
 		if (
-			isset($_SERVER['SCRIPT_NAME']) &&
-			substr($_SERVER['SCRIPT_NAME'], -19) == '/wp-admin/index.php' &&
-			get_option('dashi_do_environmental_check')
-		)
-		{
-			// ダッシュボードに記事数を表示する
-			add_filter(
-				'dashboard_glance_items',
-				array('\\Dashi\\Core\\Notation', 'addDashboardGlanceItems')
-			);
+			! is_admin() ||
+			(
+				isset($_SERVER['SCRIPT_NAME']) &&
+				substr($_SERVER['SCRIPT_NAME'], -19) == '/wp-admin/index.php' &&
+				get_option('dashi_do_environmental_check')
+			)
+		) return;
 
-			// キャッシュが有効かどうかを表示
-			self::isCacheAvairable();
+		// ダッシュボードに記事数を表示する
+		add_filter(
+			'dashboard_glance_items',
+			array('\\Dashi\\Core\\Notation', 'addDashboardGlanceItems')
+		);
 
-			// 検索エンジンに表示しない設定をしていたら警告する
-			self::alertIfAvoidSearchEngine();
+		// キャッシュが有効かどうかを表示
+		self::isCacheAvairable();
 
-			// WordPressによるphp編集を許可しない
-			self::disallowFileEdit();
+		// 検索エンジンに表示しない設定をしていたら警告する
+		self::alertIfAvoidSearchEngine();
 
-			// wp-config.phpがドキュメントルートにある場合パーミッションを確認する
-			// 一階層上にある場合は配慮があるとみなす
-			self::checkPermissionOfWpconfig();
+		// WordPressによるphp編集を許可しない
+		self::disallowFileEdit();
 
-			// Just another WordPress siteを放置しない
-			self::doNotLeaveDefaultDescrition();
+		// wp-config.phpがドキュメントルートにある場合パーミッションを確認する
+		// 一階層上にある場合は配慮があるとみなす
+		self::checkPermissionOfWpconfig();
 
-			// ディレクトリのパーミッションが開きすぎていないかチェック
-			self::checkDirectoryPermission();
+		// Just another WordPress siteを放置しない
+		self::doNotLeaveDefaultDescrition();
 
-			// sitemap.xmlの設置を促す
-			// see laterhttps://technote.space/blog/archives/1195
-			self::checkSiteMapXml();
+		// ディレクトリのパーミッションが開きすぎていないかチェック
+		self::checkDirectoryPermission();
 
-			// themes/XXX/index.phpでエラー表示を確認する
-			self::checkDisplayError();
+		// sitemap.xmlの設置を促す
+		// see laterhttps://technote.space/blog/archives/1195
+		self::checkSiteMapXml();
 
-			// xmlrpc.phpを拒否する
-			self::denyXmlrpc();
+		// themes/XXX/index.phpでエラー表示を確認する
+		self::checkDisplayError();
 
-			// ディレクトリリスティングを拒否する
-			self::denyDirectoryListing();
+		// xmlrpc.phpを拒否する
+		self::denyXmlrpc();
 
-			// wp-config.phpへのhttpアクセスを拒否する
-			self::denyHttpAccess2WpConfig();
+		// ディレクトリリスティングを拒否する
+		self::denyDirectoryListing();
 
-			// Google Analyticsの設置を促す
-			self::recommendSetGoogleAnalytics();
+		// wp-config.phpへのhttpアクセスを拒否する
+		self::denyHttpAccess2WpConfig();
 
-			// headのソースチェック
-			self::recommendHtmlCheck();
+		// Google Analyticsの設置を促す
+		self::recommendSetGoogleAnalytics();
 
-			// その他のページの目視チェック
-			self::recommendPageCheck();
+		// headのソースチェック
+		self::recommendHtmlCheck();
 
-			// バックアップ体制の確認
-			self::checkBackUp();
+		// その他のページの目視チェック
+		self::recommendPageCheck();
 
-			// サーバ側アクセスログの有効性チェック
-			self::checkAccesslog();
+		// バックアップ体制の確認
+		self::checkBackUp();
 
-			// 以降プラグインのチェック
-			include_once(ABSPATH.'wp-admin/includes/plugin.php');
+		// サーバ側アクセスログの有効性チェック
+		self::checkAccesslog();
 
-			// siteguardのインストールを促す
-			self::recommendSiteguard();
+		// 以降プラグインのチェック
+		include_once(ABSPATH.'wp-admin/includes/plugin.php');
 
-			// jwp-a11yのインストールを促す
-			self::recommendJwpA11y();
+		// siteguardのインストールを促す
+		self::recommendSiteguard();
 
-			// query monitorのインストールを促す
-			self::recommendQueryMonitor();
+		// jwp-a11yのインストールを促す
+		self::recommendJwpA11y();
 
-			// コメントを受け付ける設定のサイトかどうか確認する
-			self::checkAllowComment();
+		// query monitorのインストールを促す
+		self::recommendQueryMonitor();
 
-			// Hello Worldの削除を促す
-			self::deleteHelloWorld();
+		// コメントを受け付ける設定のサイトかどうか確認する
+		self::checkAllowComment();
 
-			// pendingやfutureの記事の一覧を表示
-			self::showPendingAndFuture();
+		// Hello Worldの削除を促す
+		self::deleteHelloWorld();
 
-			// Contact Form 7
-			if (is_plugin_active('contact-form-7/wp-contact-form-7.php'))
-			{
-				// Contact Form 7が有効な場合宛先を表示する
-				add_action('wp_dashboard_setup', function ()
-				{
-					wp_add_dashboard_widget (
-						'dashi_wpcf7_contact',
-						__('Recipients list of Contact Form 7', 'dashi'),
-						array('\\Dashi\\Core\\Notation', 'wpcf7ContactList')
-					);
-				});
+		// pendingやfutureの記事の一覧を表示
+		self::showPendingAndFuture();
 
-					// mail1の送信先、mail2の送信元のドメインが異なっていたら警告を出す
-				add_action(
-					'admin_init',
-					array('\\Dashi\\Core\\Notation', 'wpcf7ChkDomain')
-				);
-			}
-
-			// dashi_public_formが宛先を持っている場合は表示する
-			$dashi_mails = array();
-			foreach (\Dashi\P::instances() as $v)
-			{
-				$sendto = $v::get('sendto');
-				if ( ! $sendto) continue;
-				$posttype_name = $v::get('name');
-
-				$dashi_mails[$posttype_name]['subject'] = $v::get('subject');
-				$dashi_mails[$posttype_name]['re_subject'] = $v::get('re_subject');
-				$dashi_mails[$posttype_name]['recipient'] = $sendto;
-			}
-			static::$dashi_mails = $dashi_mails;
-			if ($dashi_mails)
-			{
-				add_action('wp_dashboard_setup', function ()
-				{
-					wp_add_dashboard_widget (
-						'dashi_public_form_contact',
-						__('Recipients list of Dashi Public Forms', 'dashi'),
-						array('\\Dashi\\Core\\Notation', 'dashiContactList')
-					);
-				});
-			}
-		}
-
+		// Contact Form 7 and form domains
+		self::chkDomains();
 	}
 
 	/**
@@ -251,29 +206,28 @@ class Notation
 	 */
 	private static function checkSiteMapXml()
 	{
-		if ( ! get_option('dashi_do_not_heavy_dashboard_check') && ! get_option('dashi_no_need_sitemap_plugin'))
+		if (
+			get_option('dashi_do_not_heavy_dashboard_check') ||
+			get_option('dashi_no_need_sitemap_plugin') ||
+			get_transient('dashi_notation_sitemap_exist')
+		) return;
+
+		// redirect loopなどでsitemap.xmlの存在を確認できなくても、
+		// XML sitemap プラグインを特別扱いする
+		$xmlsf_sitemaps = get_option('xmlsf_sitemaps');
+		if (
+			! Util::is_url_exists(home_url('sitemap.xml')) &&
+			! (isset($xmlsf_sitemaps['sitemap']) && $xmlsf_sitemaps['sitemap'] == 'sitemap.xml')
+		)
 		{
-			if ( ! get_transient('dashi_notation_sitemap_exist'))
+			add_action('admin_notices', function ()
 			{
-				// redirect loopなどでsitemap.xmlの存在を確認できなくても、
-				// XML sitemap プラグインを特別扱いする
-				$xmlsf_sitemaps = get_option('xmlsf_sitemaps');
-				if (
-					! Util::is_url_exists(home_url('sitemap.xml')) &&
-					! (isset($xmlsf_sitemaps['sitemap']) && $xmlsf_sitemaps['sitemap'] == 'sitemap.xml')
-				)
-				{
-					add_action('admin_notices', function ()
-					{
-						echo '<div class="message error dashi_error"><p><strong>'.__('sitemap.xml is not exist.', 'dashi').'</strong></p></div>';
-					});
-				}
-				else
-				{
-					set_transient('dashi_notation_sitemap_exist', true, 24 * HOUR_IN_SECONDS);
-				}
-			}
+				echo '<div class="message error dashi_error"><p><strong>'.__('sitemap.xml is not exist.', 'dashi').'</strong></p></div>';
+			});
+			return;
 		}
+
+		set_transient('dashi_notation_sitemap_exist', true, 24 * HOUR_IN_SECONDS);
 	}
 
 	/**
@@ -299,35 +253,32 @@ class Notation
 	 */
 	private static function checkDisplayError()
 	{
-			if ( ! get_option('dashi_do_not_heavy_dashboard_check'))
-			{
-				if (
-					! get_transient('dashi_notation_display_error_exist') &&
-					file_exists(get_stylesheet_directory().'/index.php')
-				)
-				{
-					$res = wp_remote_get(
-						get_stylesheet_directory_uri().'/index.php',
-						array('timeout' => 0, 'sslverify' => false,)
-					);
+		if (get_option('dashi_do_not_heavy_dashboard_check')) return;
 
-					// $res can be Wp_Error object
-					if ( ! is_object($res) && $res['body'])
-					{
-						if (strpos($res['body'], 'get_header') !== false)
-						{
-							add_action('admin_notices', function ()
-							{
-								echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('PHP error reporting is on. check <a href="%s">themes file</a>', 'dashi'), get_stylesheet_directory_uri().'/index.php').'</strong></p></div>';
-							});
-						}
-						else
-						{
-							set_transient('dashi_notation_display_error_exist', true, 24 * HOUR_IN_SECONDS);
-						}
-					}
-				}
+		if (
+			! get_transient('dashi_notation_display_error_exist') &&
+			file_exists(get_stylesheet_directory().'/index.php')
+		)
+		{
+			$res = wp_remote_get(
+				get_stylesheet_directory_uri().'/index.php',
+				array('timeout' => 0, 'sslverify' => false,)
+			);
+
+			// $res can be Wp_Error object
+			if (is_object($res) || empty($res['body'])) return;
+
+			if (strpos($res['body'], 'get_header') !== false)
+			{
+				add_action('admin_notices', function ()
+				{
+					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('PHP error reporting is on. check <a href="%s">themes file</a>', 'dashi'), get_stylesheet_directory_uri().'/index.php').'</strong></p></div>';
+				});
+				return;
 			}
+
+			set_transient('dashi_notation_display_error_exist', true, 24 * HOUR_IN_SECONDS);
+		}
 	}
 
 	/**
@@ -415,34 +366,32 @@ class Notation
 	 */
 	private static function recommendSetGoogleAnalytics()
 	{
-		if ( ! get_option('dashi_do_not_heavy_dashboard_check'))
+		if (get_option('dashi_do_not_heavy_dashboard_check')) return;
+
+		if (
+			! get_transient('dashi_notation_check_google_analytics') &&
+			! get_option('dashi_no_need_analytics')
+		)
 		{
+			$res = wp_remote_get(home_url(), array('timeout' => 10, 'sslverify' => false,));
+
+			// $res can be Wp_Error object
+			if (is_object($res) || empty($res['body'])) return;
+
+			// check
 			if (
-				! get_transient('dashi_notation_check_google_analytics') &&
-				! get_option('dashi_no_need_analytics')
+				strpos($res['body'], 'analytics.js') === false &&
+				strpos($res['body'], 'www.googletagmanager.com/gtag/js?id=UA-') === false
 			)
 			{
-				$res = wp_remote_get(home_url(), array('timeout' => 10, 'sslverify' => false,));
-
-				// $res can be Wp_Error object
-				if ( ! is_object($res) && $res['body'])
+				add_action('admin_notices', function ()
 				{
-					if (
-						strpos($res['body'], 'analytics.js') === false &&
-						strpos($res['body'], 'www.googletagmanager.com/gtag/js?id=UA-') === false
-					)
-					{
-						add_action('admin_notices', function ()
-						{
-							echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('Google Analytics is not implemented. <a href="%s">See How to.</a>', 'dashi'), site_url('/wp-admin/options-general.php?page=dashi_options&help=seo#help_area')).'</strong></p></div>';
-						});
-					}
-					else
-					{
-						set_transient('dashi_notation_check_google_analytics', true, 24 * HOUR_IN_SECONDS);
-					}
-				}
+					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('Google Analytics is not implemented. <a href="%s">See How to.</a>', 'dashi'), site_url('/wp-admin/options-general.php?page=dashi_options&help=seo#help_area')).'</strong></p></div>';
+				});
+				return;
 			}
+
+			set_transient('dashi_notation_check_google_analytics', true, 24 * HOUR_IN_SECONDS);
 		}
 	}
 

@@ -6,6 +6,58 @@ trait NotationDomain
 	static $dashi_mails = array();
 
 	/**
+	 * chkDomains
+	 *
+	 * @return Void
+	 */
+	public static function chkDomains()
+	{
+		if (is_plugin_active('contact-form-7/wp-contact-form-7.php'))
+		{
+			// Contact Form 7が有効な場合宛先を表示する
+			add_action('wp_dashboard_setup', function ()
+			{
+				wp_add_dashboard_widget (
+					'dashi_wpcf7_contact',
+					__('Recipients list of Contact Form 7', 'dashi'),
+					array('\\Dashi\\Core\\Notation', 'wpcf7ContactList')
+				);
+			});
+
+			// mail1の送信先、mail2の送信元のドメインが異なっていたら警告を出す
+			add_action(
+				'admin_init',
+				array('\\Dashi\\Core\\Notation', 'wpcf7ChkDomain')
+			);
+		}
+
+		// dashi_public_formが宛先を持っている場合は表示する
+		$dashi_mails = array();
+		foreach (\Dashi\P::instances() as $v)
+		{
+			$sendto = $v::get('sendto');
+			if ( ! $sendto) continue;
+			$posttype_name = $v::get('name');
+
+			$dashi_mails[$posttype_name]['subject'] = $v::get('subject');
+			$dashi_mails[$posttype_name]['re_subject'] = $v::get('re_subject');
+			$dashi_mails[$posttype_name]['recipient'] = $sendto;
+		}
+		static::$dashi_mails = $dashi_mails;
+		if ($dashi_mails)
+		{
+			add_action('wp_dashboard_setup', function ()
+			{
+				wp_add_dashboard_widget (
+					'dashi_public_form_contact',
+					__('Recipients list of Dashi Public Forms', 'dashi'),
+					array('\\Dashi\\Core\\Notation', 'dashiContactList')
+				);
+			});
+		}
+	}
+
+	/**
 	 * wpcf7ChkDomain
 	 * contactform7 の宛先がドメインと異なっていたら警告する
 	 *
