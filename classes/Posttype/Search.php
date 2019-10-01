@@ -226,38 +226,8 @@ class Search
 			preg_match('/\<body ([^\>]+?)\>/', $html, $ms);
 			if ( ! $ms || preg_match('/single/', $ms[1])) continue;
 
-			// get page title
-			preg_match('/\<title[^\>]*?\>([^\<]+?)\</', $html, $ts);
-
-			// words
-			$html = static::generateSearchStr($html);
-
-			// obj
-			$item = array();
-			$title = isset($ts[1]) ? $ts[1] : $url;
-			$item['post_title']   = $title;
-			$item['post_name']   = 'crawlsearch-'.microtime();
-			$item['post_content'] = $html;
-			$item['post_type']    = 'crawlsearch';
-			$item['post_status']  = 'publish';
-
-			// update
-			if (array_key_exists($title, $titles))
-			{
-				$id = $titles[$title];
-				$item['ID'] = $id;
-				wp_update_post($item);
-				$ids[] = $id;
-			}
-			// add
-			else
-			{
-				$id = wp_insert_post($item);
-				$ids[] = $id;
-			}
-
-			// add postmeta
-			update_post_meta($id, 'dashi_redirect_to', $url);
+			// update database
+			$ids = self::updateDatabase($html, $titles, $url, $ids);
 		}
 
 		// garbage collector
@@ -266,6 +236,52 @@ class Search
 			if (in_array($post->ID, $ids)) continue;
 			wp_delete_post($post->ID, $force_delete = 1);
 		}
+	}
+
+	/**
+	 * updateDatabase
+	 *
+	 * @param $html string
+	 * @param $titles array
+	 * @param $url string
+	 * @param $ids array
+	 * @return array
+	 */
+	private static function updateDatabase($html, $titles, $url, $ids)
+	{
+		// get page title
+		preg_match('/\<title[^\>]*?\>([^\<]+?)\</', $html, $ts);
+
+		// words
+		$html = static::generateSearchStr($html);
+
+		// obj
+		$item = array();
+		$title = isset($ts[1]) ? $ts[1] : $url;
+		$item['post_title']   = $title;
+		$item['post_name']    = 'crawlsearch-'.microtime();
+		$item['post_content'] = $html;
+		$item['post_type']    = 'crawlsearch';
+		$item['post_status']  = 'publish';
+
+		// update
+		if (array_key_exists($title, $titles))
+		{
+			$id = $titles[$title];
+			$item['ID'] = $id;
+			wp_update_post($item);
+		}
+		// add
+		else
+		{
+			$id = wp_insert_post($item);
+		}
+		$ids[] = $id;
+
+		// add postmeta
+		update_post_meta($id, 'dashi_redirect_to', $url);
+
+		return $ids;
 	}
 
 	/**
