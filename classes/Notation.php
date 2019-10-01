@@ -654,45 +654,73 @@ class Notation
 					$v = trim(substr($v, strpos($v, '@') + 1), '>');
 
 					// mail1の送信先、mail2の送信元のドメインが異なっていたら警告を出す
-					if (
-						$mailnum == 1 &&
-						$k == 'recipient' &&
-						strpos($host, $v) === false
-					)
-					{
-						add_action('admin_notices', function () use ($v, $post_title)
-						{
-							echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('recipient of mail1 of Contact Form 7 is different from this host. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
-						});
-					}
+					self::chkMail1($mailnum, $k, $host, $v, $post_title);
 
 					// mail2
-					if (
-						$mailnum == 2 &&
-						$k == 'sender'
-					)
-					{
-						// mail2の送信元のドメインが異なっていたら警告を出す
-						if (strpos($host, $v) === false)
-						{
-							add_action('admin_notices', function () use ($v, $post_title)
-							{
-								echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is different from this host. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
-							});
-						}
-
-						// mail2の送信元のにwordpress@を使っていたら警告を出す
-						if (strpos($v, 'wordpress@') !== false)
-						{
-							add_action('admin_notices', function () use ($v, $post_title)
-							{
-								echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is using wordpress@. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
-							});
-						}
-
-					}
-
+					self::chkMail2($mailnum, $k, $host, $v, $post_title);
 				}
+			}
+		}
+	}
+
+	/**
+	 * chkMail1
+	 *
+	 * @param $mailnum integer
+	 * @param $k string
+	 * @param $host string
+	 * @param $v string
+	 * @param $post_title string
+	 * @return Void
+	 */
+	private static function chkMail1($mailnum, $k, $host, $v, $post_title)
+	{
+		if (
+			$mailnum == 1 &&
+			$k == 'recipient' &&
+			strpos($host, $v) === false
+		)
+		{
+			add_action('admin_notices', function () use ($v, $post_title)
+			{
+				echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('recipient of mail1 of Contact Form 7 is different from this host. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
+			});
+		}
+	}
+
+	/**
+	 * chkMail2
+	 *
+	 * @param $mailnum integer
+	 * @param $k string
+	 * @param $host string
+	 * @param $v string
+	 * @param $post_title string
+	 * @return Void
+	 */
+	private static function chkMail2($mailnum, $k, $host, $v, $post_title)
+	{
+		if (
+			$mailnum == 2 &&
+			$k == 'sender'
+		)
+		{
+			// mail2の送信元のドメインが異なっていたら警告を出す
+			if (strpos($host, $v) === false)
+			{
+				add_action('admin_notices', function () use ($v, $post_title)
+				{
+					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is different from this host. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
+				});
+			}
+
+			// mail2の送信元のにwordpress@を使っていたら警告を出す
+			if (strpos($v, 'wordpress@') !== false)
+			{
+				add_action('admin_notices', function () use ($v, $post_title)
+				{
+					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is using wordpress@. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
+				});
 			}
 		}
 	}
