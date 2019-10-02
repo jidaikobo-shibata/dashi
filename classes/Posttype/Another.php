@@ -607,21 +607,7 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		wp_delete_post($another->ID, true);
 
 		// send a mail?
-		if (get_option('dashi_another_done_sendmail'))
-		{
-			$to = get_option('admin_email');
-			$subject = sprintf(__('WordPress: Publish Another @ %s', 'dashi'), home_url());
-			$message = sprintf(__("Update content has done by reserved content.\n\n%s\n\n%s\nDashi Plugin", 'dashi'), get_permalink($posted_id), "-- \n");
-			\Dashi\Core\Mail::send($to, $subject, $message);
-
-			// 管理者と別のユーザが記事を作っていたらそちらにも送信する
-			$posted = get_post($posted_id);
-			$userdata = get_userdata($posted->post_author);
-			if ($userdata->data->user_email != $to)
-			{
-				\Dashi\Core\Mail::send($userdata->data->user_email, $subject, $message);
-			}
-		}
+		self::sendAReplaceMail($posted_id);
 
 		// recover hook
 		add_action('save_post', array('\\Dashi\\Core\\Posttype\\Another', 'savePost'));
@@ -644,6 +630,31 @@ $("#'.$ul_id.'").find(":input").each(function(){
 
 			// 管理者と別のユーザが記事を作っていたらそちらにも送信する
 			$posted = get_post($original_id);
+			$userdata = get_userdata($posted->post_author);
+			if ($userdata->data->user_email != $to)
+			{
+				\Dashi\Core\Mail::send($userdata->data->user_email, $subject, $message);
+			}
+		}
+	}
+
+	/**
+	 * sendAReplaceMail
+	 *
+	 * @param  integer $posted_id
+	 * @return  void
+	 */
+	private static function sendAReplaceMail ($posted_id)
+	{
+		if (get_option('dashi_another_done_sendmail'))
+		{
+			$to = get_option('admin_email');
+			$subject = sprintf(__('WordPress: Publish Another @ %s', 'dashi'), home_url());
+			$message = sprintf(__("Update content has done by reserved content.\n\n%s\n\n%s\nDashi Plugin", 'dashi'), get_permalink($posted_id), "-- \n");
+			\Dashi\Core\Mail::send($to, $subject, $message);
+
+			// 管理者と別のユーザが記事を作っていたらそちらにも送信する
+			$posted = get_post($posted_id);
 			$userdata = get_userdata($posted->post_author);
 			if ($userdata->data->user_email != $to)
 			{
