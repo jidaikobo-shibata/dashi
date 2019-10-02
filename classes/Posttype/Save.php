@@ -233,87 +233,13 @@ class Save
 				}
 
 				// add error - validators
-				if (isset($attrs['validations']) && $attrs['validations'])
-				{
-					$is_err = false;
-					foreach ($attrs['validations'] as $validator)
-					{
-						$tmp = is_array($val) ? $val : trim($val);
-						if ( ! $tmp) continue;
-						$method = 'validate'.ucfirst($validator);
-
-						// duppedな値は配列なので、個別にvalidate
-						if ($is_dupped && is_array($val))
-						{
-							foreach ($val as $k => $each)
-							{
-								$err = Validation::$method($each);
-								if ($err !== true)
-								{
-									$is_err = true;
-									$idx = $k+1;
-									$e->add('errors', sprintf(__($err, 'dashi'), $label.' ('.$idx.')'));
-								}
-							}
-						}
-						// 非array
-						else
-						{
-							$err = Validation::$method($val);
-							if ($err !== true)
-							{
-								$is_err = true;
-								$e->add('errors', sprintf(__($err, 'dashi'), $label));
-							}
-						}
-					}
-					if ($is_err && isset($attrs['filters']) && $attrs['filters'])
-					{
-						$e->add('errors', __('some of errors are automatically fixed by filters. confirm please.', 'dashi'));
-					}
-				}
+				self::aplyValidation($attrs, $val, $is_dupped, $label, $e);
 
 				// filters
-				if (isset($attrs['filters']) && $attrs['filters'])
-				{
-					foreach ($attrs['filters'] as $filter)
-					{
-						$filter = strtolower($filter);
-
-						// duppedな値は配列なので、個別にfilter
-						if ($is_dupped && is_array($val))
-						{
-							foreach ($val as $k => $each)
-							{
-								$val[$k] = \Dashi\Core\Filter::$filter($each);
-							}
-						}
-						// 非array
-						else
-						{
-							$val = \Dashi\Core\Filter::$filter($val);
-						}
-					}
-				}
+				self::applyFilter($attrs, $val, $is_dupped);
 
 				// add error - require
-				// dupではarrayがくるが、duppedはいつも空の値があるので、要一考。
-				if (isset($attrs['attrs']) && $attrs['attrs'])
-				{
-					// checkbox, multiple select
-					$tmp = is_array($val) ? $val : trim($val);
-					if (
-						! (isset($attrs['public_form_only']) && $attrs['public_form_only'] === true) &&
-						isset($attrs['attrs']['required']) &&
-						(
-							(is_array($tmp) && empty($tmp)) ||
-							( ! is_array($tmp) && strlen($tmp) == 0)
-						)
-					)
-					{
-						$e->add('errors', sprintf(__("%s is required", 'dashi'), $label));
-					}
-				}
+				self::addError($attrs, $val, $e, $label);
 
 				// eliminateControlCodes
 				if (get_option('dashi_do_eliminate_control_codes'))
@@ -355,6 +281,134 @@ class Save
 		}
 
 		// search
+		self::updateSearch($class, $is_default, $post_id);
+	}
+
+	/**
+	 * aplyValidation
+	 *
+	 * @param  array $attrs
+	 * @param  mixed $val
+	 * @param  bool $is_dupped
+	 * @param  string $label
+	 * @param  object $e
+	 * @return Void
+	 */
+	private static function aplyValidation($attrs, $val, $is_dupped, $label, $e)
+	{
+		if ( ! isset($attrs['validations']) || empty($attrs['validations'])) return;
+
+		$is_err = false;
+		foreach ($attrs['validations'] as $validator)
+		{
+			$tmp = is_array($val) ? $val : trim($val);
+			if ( ! $tmp) continue;
+			$method = 'validate'.ucfirst($validator);
+
+			// duppedな値は配列なので、個別にvalidate
+			if ($is_dupped && is_array($val))
+			{
+				foreach ($val as $k => $each)
+				{
+					$err = Validation::$method($each);
+					if ($err !== true)
+					{
+						$is_err = true;
+						$idx = $k+1;
+						$e->add('errors', sprintf(__($err, 'dashi'), $label.' ('.$idx.')'));
+					}
+				}
+			}
+			// 非array
+			else
+			{
+				$err = Validation::$method($val);
+				if ($err !== true)
+				{
+					$is_err = true;
+					$e->add('errors', sprintf(__($err, 'dashi'), $label));
+				}
+			}
+		}
+		if ($is_err && isset($attrs['filters']) && $attrs['filters'])
+		{
+			$e->add('errors', __('some of errors are automatically fixed by filters. confirm please.', 'dashi'));
+		}
+	}
+
+	/**
+	 * applyFilter
+	 *
+	 * @param  array $attrs
+	 * @param  mixed $val
+	 * @param  bool $is_dupped
+	 * @return Void
+	 */
+	private static function applyFilter($attrs, $val, $is_dupped)
+	{
+		if (isset($attrs['filters']) && $attrs['filters'])
+		{
+			foreach ($attrs['filters'] as $filter)
+			{
+				$filter = strtolower($filter);
+
+				// duppedな値は配列なので、個別にfilter
+				if ($is_dupped && is_array($val))
+				{
+					foreach ($val as $k => $each)
+					{
+						$val[$k] = \Dashi\Core\Filter::$filter($each);
+					}
+				}
+				// 非array
+				else
+				{
+					$val = \Dashi\Core\Filter::$filter($val);
+				}
+			}
+		}
+	}
+
+	/**
+	 * addError
+	 *
+	 * @param  array $attrs
+	 * @param  mixed $val
+	 * @param  object $e
+	 * @param  string $label
+	 * @return Void
+	 */
+	private static function addError($attrs, $val, $e, $label)
+	{
+		// dupではarrayがくるが、duppedはいつも空の値があるので、要一考。
+		if (isset($attrs['attrs']) && $attrs['attrs'])
+		{
+			// checkbox, multiple select
+			$tmp = is_array($val) ? $val : trim($val);
+			if (
+				! (isset($attrs['public_form_only']) && $attrs['public_form_only'] === true) &&
+				isset($attrs['attrs']['required']) &&
+				(
+					(is_array($tmp) && empty($tmp)) ||
+					( ! is_array($tmp) && strlen($tmp) == 0)
+				)
+			)
+			{
+				$e->add('errors', sprintf(__("%s is required", 'dashi'), $label));
+			}
+		}
+	}
+
+	/**
+	 * updateSearch
+	 *
+	 * @param  object $class
+	 * @param  bool $is_default
+	 * @param  integer $post_id
+	 * @return Void
+	 */
+	private static function updateSearch($class, $is_default, $post_id)
+	{
 		if (($class && $class::get('is_searchable')) || $is_default)
 		{
 			$str = static::searchStr($class, $post_id);
