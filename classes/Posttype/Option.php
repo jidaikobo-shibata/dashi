@@ -289,6 +289,11 @@ class Sample extends \Dashi\Core\Posttype\Base
     static::set('public_form_allowed_mimes', array(
         'jpg|jpeg|jpe' => 'image/jpeg',
       ));
+    static::set('sendto', 'example@example.com');
+    static::set('subject', 'mail subject');
+    static::set('re_subject', 'auto reply mail subject');
+    static::set('is_auto_reply', true);
+    static::set('auto_reply_field', 'email');
 
   }
 }
