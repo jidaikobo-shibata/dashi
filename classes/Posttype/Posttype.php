@@ -730,6 +730,7 @@ class Posttype
 		$labels = array(
 			'name'              => $posttype::get('name'),
 			'singular_name'     => $posttype::get('singular_name') ?: $posttype::get('name'),
+			'menu_name'         => $posttype::get('menu_name') ?: $posttype::get('name'),
 			'add_new'           => sprintf(__('add %s', 'dashi'), $posttype::get('name')),
 			'add_new_item'      => sprintf(__('add %s', 'dashi'), $posttype::get('name')),
 			'edit_item'         => sprintf(__('edit %s', 'dashi'), $posttype::get('name')),

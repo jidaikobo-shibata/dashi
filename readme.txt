@@ -3,7 +3,7 @@ Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: plugin, custom field, custom, field, meta, meta field, framework
 Requires at least: 4.9.7
-Tested up to: 5.2.3
+Tested up to: 5.3.2
 Stable tag: 4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -41,6 +41,12 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 2.8.7 =
+add menu_name for label
+
+= 2.8.6 =
+fix post-new custom_fields problem
 
 = 2.8.6 =
 fix post-new custom_fields problem

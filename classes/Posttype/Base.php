@@ -9,6 +9,7 @@ abstract class Base
 
 	// for human
 	protected $name = '';
+	protected $menu_name = '';
 	protected $singular_name = '';
 	protected $plural = '';
 
