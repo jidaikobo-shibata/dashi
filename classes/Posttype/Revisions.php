@@ -67,25 +67,26 @@ class Revisions
 		$class = P::postid2class($post_id);
 		if ( ! $class) return;
 
-		foreach ($class::getCustomFieldsKeys() as $key)
+		foreach ($class::getCustomFieldsKeys(true) as $key)
 		{
-			$val = get_post_meta($revision_id, $key, TRUE);
+			$vals = get_post_meta($revision_id, $key);
+			if (is_null($vals)) continue;
 
-			if (is_null($val)) continue;
-
-			// dashiはpost_metaは全消し全入れが基本。
-			// revisionは、wordpress式なので、arrayはシリアライズされている。
-			// シリアライズされた値だったら、個別にアップデートする
-			if ( ! is_array($val))
-			{
-				$val = array($val);
-			}
-
-			// ここでも全消し全入れ
 			delete_post_meta($post_id, $key);
-			foreach ($val as $v)
+			if (count($vals) > 1 && $key != 'google_map')
 			{
-				add_post_meta($post_id, $key, $v);
+				foreach ($vals as $v)
+				{
+					add_metadata('post', $post_id, $key, $v);
+				}
+			}
+			else if ($key == 'google_map')
+			{
+				add_metadata('post', $post_id, $key, $vals);
+			}
+			else if (isset($vals[0]))
+			{
+				add_metadata('post', $post_id, $key, $vals[0]);
 			}
 		}
 	}
@@ -115,15 +116,21 @@ class Revisions
 		$custom_fields = $class::get('custom_fields');
 
 		// Wordpressはadd(udpate)_post_meta()で配列を渡すとシリアライズした値を保存するが、
-		// dashiでは全消し全入れなので、ここでは、trueで取るので正しい
-		$val = get_post_meta($post->ID, $key, true);
-
-
-// echo '<textarea style="width:100%;height:200px;background-color:#fff;color:#111;font-size:90%;font-family:monospace;position:relative;z-index:9999">';
-// var_dump($key);
-// var_dump($val);
-// var_dump(get_post_meta($post->ID));
-// echo '</textarea>';
+		// dashiでは全消し全入れなので、ここでは、まず配列を取る
+		$val = '';
+		$tmps = get_post_meta($post->ID, $key);
+		if (count($tmps) > 1)
+		{
+			foreach ($tmps as $tmp)
+			{
+				if (empty($tmp)) continue;
+				$val.= '-'.$tmp."\n";
+			}
+		}
+		else if ( ! empty($tmps))
+		{
+			$val = $tmps[0];
+		}
 
 		// $custom_fields[$key]がない場合はfields
 		if ( ! isset($custom_fields[$key]))

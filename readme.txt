@@ -44,6 +44,7 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 = 2.8.7 =
 add menu_name for label
+fix bug of revision
 
 = 2.8.6 =
 fix post-new custom_fields problem

@@ -310,8 +310,11 @@ class Posttype
 		if ($dashi_original_id)
 		{
 			$original_post = get_post($dashi_original_id);
-			$post_name = $original_post->post_name;
-			$post_type = $original_post->post_type;
+			if (is_object($original_post))
+			{
+				$post_name = $original_post->post_name;
+				$post_type = $original_post->post_type;
+			}
 		}
 
 		// forge

@@ -114,7 +114,18 @@ class Preview
 			foreach ($post_metas as $post_meta)
 			{
 				if ( ! isset($_POST[$post_meta])) continue;
-				add_metadata('post', $post_id, $post_meta, $_POST[$post_meta]);
+				$vals = $_POST[$post_meta];
+				if (is_array($vals) && $post_meta != 'google_map')
+				{
+					foreach ($vals as $v)
+					{
+						add_metadata('post', $post_id, $post_meta, $v);
+					}
+				}
+				else
+				{
+					add_metadata('post', $post_id, $post_meta, $vals);
+				}
 			}
 			do_action('save_preview_postmeta', $post_id);
 		}
