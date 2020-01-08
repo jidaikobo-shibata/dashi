@@ -14,7 +14,6 @@ class Save
 	{
 		if ( ! Input::post()) return;
 		if (wp_is_post_revision($post_id)) return $post_id;
-
 		$post_values = Input::post();
 
 		// _dashi_pubic_form_pending_process の際は pendingToPublish で file の値が update

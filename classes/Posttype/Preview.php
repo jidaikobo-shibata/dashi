@@ -88,7 +88,7 @@ class Preview
 
 	/**
 	 * wpInsertPost
-	 * プレビュー用にメタデータを保存
+	 * プレビュー用にメタデータを保存（リビジョンでも保存されることが判明）
 	 *
 	 * @param int $post_id preview_id
 	 * @	return void
@@ -107,7 +107,7 @@ class Preview
 			$post = get_post($post_id);
 			$class = P::postid2class($post->post_parent);
 			if ( ! $class) return;
-			$fields = $class::getCustomFieldsKeys();
+			$fields = $class::getCustomFieldsKeys(true);
 
 			$post_metas = apply_filters('preview_post_meta_keys', $fields);
 

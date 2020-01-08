@@ -217,17 +217,25 @@ abstract class Base
 	/**
 	 * return keys
 	 *
-	 * @return  void
+	 * @param  bool $remove_bracket
+	 * @return  Array
 	 */
-	public static function getCustomFieldsKeys()
+	public static function getCustomFieldsKeys($remove_bracket = false)
 	{
-		return C::getExpectedKeys(get_called_class());
+		$ret = C::getExpectedKeys(get_called_class());
+		if ($remove_bracket)
+		{
+			$ret = array_map(function($v){
+				return str_replace('[0]', '', $v);
+			}, $ret);
+		}
+		return $ret;
 	}
 
 	/**
 	 * return flattened custom_fields
 	 *
-	 * @return  void
+	 * @return  Array
 	 */
 	public static function getFlatCustomFields()
 	{
@@ -237,7 +245,7 @@ abstract class Base
 	/**
 	 * return key_val
 	 *
-	 * @return  array
+	 * @return  Array
 	 */
 	public static function getOpts()
 	{

@@ -33,6 +33,15 @@ class Pagepart extends \Dashi\Core\Posttype\Base
 					'value' => esc_html(\Dashi\Core\Input::get('slug')),
 			)));
 
+		// supports
+		static::set('supports', array(
+				'title',
+				'editor',
+				'author',
+				'thumbnail',
+				'revisions',
+			));
+
 		// shortcode
 		add_shortcode("get_pagepart", array('\\Dashi\\Posttype\\Pagepart', 'get_pagepart'));
 
@@ -99,14 +108,14 @@ class Pagepart extends \Dashi\Core\Posttype\Base
 				$html.= get_the_password_form();
 			endif;
 
-			if (isset($current_user->roles[0]) && $current_user->roles[0]=='administrator')
+			if (isset($current_user->roles[0]) && $current_user->roles[0] == 'administrator')
 			{
 				$html.= '<a class="edit_link" href="'.site_url('/wp-admin/post.php?post='.$item->ID.'&action=edit').'">[EDIT "'.$item->post_title.'"]</a>';
 			}
 		}
 		else
 		{
-			if (isset($current_user->roles[0]) && $current_user->roles[0]=='administrator')
+			if (isset($current_user->roles[0]) && $current_user->roles[0] == 'administrator')
 			{
 				// 新規作成
 				// \Dashi\Hooks::auto_post_slug()に依存

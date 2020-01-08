@@ -118,6 +118,13 @@ class Revisions
 		// dashiでは全消し全入れなので、ここでは、trueで取るので正しい
 		$val = get_post_meta($post->ID, $key, true);
 
+
+// echo '<textarea style="width:100%;height:200px;background-color:#fff;color:#111;font-size:90%;font-family:monospace;position:relative;z-index:9999">';
+// var_dump($key);
+// var_dump($val);
+// var_dump(get_post_meta($post->ID));
+// echo '</textarea>';
+
 		// $custom_fields[$key]がない場合はfields
 		if ( ! isset($custom_fields[$key]))
 		{
@@ -247,10 +254,10 @@ class Revisions
 		$post
 	)
 	{
+/*
 		$post_meta = array();
 		$posted_data = array();
 		$class = P::post2class($post);
-
 		if ( ! $class) return true;
 
 		$fields = $class::get('custom_fields');
@@ -293,11 +300,17 @@ class Revisions
 				}
 			}
 		}
+*/
 
-		$serialized_post_meta = serialize($post_meta);
-		$serialized_posted_data = serialize($posted_data);
+		$serialized_revision_meta = serialize(get_post_meta($last_revision->ID));
+		$serialized_post_meta = serialize(get_post_meta($post->ID));
+
+		$is_not_custom_fields_update = $serialized_revision_meta == $serialized_post_meta;
+		$is_not_content_updated =
+												$last_revision->post_content.$last_revision->post_title.$last_revision->post_excerpt ==
+												$post->post_content.$post->post_title.$post->post_excerpt;
 
 		// 値が同じなら、trueが返り、revisionは更新されない
-		return ($serialized_post_meta == $serialized_posted_data);
+		return $is_not_content_updated && $is_not_custom_fields_update;
 	}
 }
