@@ -125,6 +125,7 @@ class Sample extends \Dashi\Core\Posttype\Base
           'type' => 'text',
           'store_data' => false,
           'public_form_only' => true,
+          'public_form_allow_send_by_mail' => false,
           'attrs' => array(
             'required' => true,
           ),

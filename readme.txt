@@ -42,6 +42,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.8.8 =
+fix validation hiragana/katakana
+
 = 2.8.7 =
 add menu_name for label
 fix bug of revision

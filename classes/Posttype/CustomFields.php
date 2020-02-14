@@ -74,7 +74,11 @@ class CustomFields
 			}
 
 			// add sticky
-			if ($class::get('is_use_sticky'))
+			if (
+				$class::get('is_use_sticky') &&
+				P::class2posttype($class) != 'page' &&
+				P::class2posttype($class) != 'post'
+			)
 			{
 				$arr = $class::get('custom_fields');
 				$arr['dashi_sticky'] = array(

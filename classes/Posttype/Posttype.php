@@ -23,6 +23,11 @@ class Posttype
 		'date', 'dashi',
 	);
 
+	public static $defaults = array(
+		'Dashi\\Posttype\\Post',
+		'Dashi\\Posttype\\Page',
+	);
+
 	/**
 	 * forge
 	 *
@@ -406,7 +411,7 @@ class Posttype
 			$class = '\\Dashi\\Posttype\\'.ucfirst($v->post_type);
 			if (in_array($class, $posttypes)) continue;
 			$posttypes[] = $class;
-			static::virtual($v->post_type);
+			self::virtual($v->post_type);
 		}
 
 		return $posttypes;
@@ -578,7 +583,7 @@ class Posttype
 	 *
 	 * @return  void
 	 */
-	public static function virtual($posttype)
+	private static function virtual($posttype)
 	{
 		$posttype = ucfirst($posttype);
 		eval("namespace Dashi\\Posttype;class {$posttype} extends \\Dashi\\Core\\Posttype\\Base {public static function __init (){ static::set('is_dashi', false); } }");
@@ -724,6 +729,7 @@ class Posttype
 	private static function addCustomPostType ($posttype)
 	{
 		if ( ! $posttype::get('is_dashi')) return;
+		if (in_array($posttype, static::$defaults)) return;
 
 		if (in_array($posttype, static::$banned))
 		{

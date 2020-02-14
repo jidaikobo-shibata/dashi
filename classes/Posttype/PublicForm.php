@@ -1050,6 +1050,7 @@ class PublicForm
 		{
 			if ($k == 'post_type') continue;
 			if ( ! isset($fields[$k])) continue;
+			if ($is_admin && isset($fields[$k]['public_form_allow_send_by_mail']) && $fields[$k]['public_form_allow_send_by_mail'] === false) continue;
 
 			// taxonomies
 			$terms = array();
