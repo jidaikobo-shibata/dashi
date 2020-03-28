@@ -70,7 +70,7 @@ class Revisions
 		foreach ($class::getCustomFieldsKeys(true) as $key)
 		{
 			$vals = get_post_meta($revision_id, $key);
-			if (is_null($vals)) continue;
+			if (empty($vals)) continue;
 
 			delete_post_meta($post_id, $key);
 			if (count($vals) > 1 && $key != 'google_map')

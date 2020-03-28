@@ -501,16 +501,26 @@ class CustomFields
 				$html.= '<div class="dashi_chrcount_area" id="dashi_chrcount_'.$attrs['id'].'">-</div>';
 			}
 
-			// 予約語と既存ポストタイプと一致する名称をキーにしている場合、開発者向けにエラーを出す
-			if (
-				get_option('dashi_development_mode') &&
-				(
+			if (get_option('dashi_development_mode'))
+			{
+				// 予約語と既存ポストタイプと一致する名称をキーにしている場合、開発者向けにエラーを出す
+				if (
 					in_array($tmpkey, P::$banned) ||
 					in_array($tmpkey, array_map(array('\\Dashi\\P', 'class2posttype'), P::instances()))
 				)
-			)
-			{
-				$output.= '<strong class="dashi_err_msg">Notice: '.sprintf(__('"%s" is cannot use as custom field name.', 'dashi'), $key).'</strong>';
+				{
+					$output.= '<strong class="dashi_err_msg">Notice: '.sprintf(__('"%s" is cannot use as custom field name.', 'dashi'), $key).'</strong>';
+				}
+
+				$current_class = P::posttype2class($object->post_type);
+				// 既存のカスタムフィールド名（他のポストタイプを含む）をカブっていたら、エラー
+				foreach (static::$custom_fields_flat as $each_class => $each_custom_fields)
+				{
+					if($current_class != '\\'.$each_class && in_array($tmpkey, array_keys($each_custom_fields)))
+					{
+						$output.= '<strong class="dashi_err_msg">Notice: '.sprintf(__('"%s" is already used other custom post type. This field cannot use "add_column" attribute at administration screen.', 'dashi'), $key).'</strong>';
+					}
+				}
 			}
 
 			// スクリーンリーダ向けに表題がない場合は、開発者用にエラーを出す

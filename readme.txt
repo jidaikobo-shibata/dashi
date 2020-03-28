@@ -7,6 +7,7 @@ Tested up to: 5.3.2
 Stable tag: 4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Requires PHP: 5.4
 
 Useful classes for creating a custom post type. When you install it, a custom post type called Page Parts is created. There is no GUI, it is for engineers who create theme.
 
@@ -41,6 +42,10 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 2.8.9 =
+fix revision behaviour
+add check sequence same custome field name
 
 = 2.8.8 =
 fix validation hiragana/katakana
