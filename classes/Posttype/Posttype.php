@@ -87,7 +87,7 @@ class Posttype
 		add_action('edited_term', array('\\Dashi\\Core\\Posttype\\SaveCategories', 'save'));
 
 		// non multi-byte slug
-		add_filter('wp_unique_post_slug', array('\\Dashi\\Core\\Posttype\\Save', 'autoPostSlug'), 10, 4);
+		add_filter('pre_wp_unique_post_slug', array('\\Dashi\\Core\\Posttype\\Save', 'autoPostSlug'), 10, 6);
 
 		// add post_type description
 		add_action('admin_notices', array('\\Dashi\\Core\\Posttype\\Hook', 'showDescription'));

@@ -560,7 +560,8 @@ class Save
 	 * @param  string  $post_type
 	 * @return String
 	 */
-	public static function autoPostSlug ($slug, $post_ID, $post_status, $post_type)
+	public static function autoPostSlug ($override_slug, $slug, $post_ID, $post_status, $post_type, $post_parent)
+//	public static function autoPostSlug ($slug, $post_ID, $post_status, $post_type)
 	{
 		$class = Posttype::getInstance($post_type);
 		if ( ! $class || ! $class::get('is_use_force_ascii_slug')) return $slug;

@@ -82,6 +82,7 @@ trait NotationInfo
 		foreach ($posts as $v)
 		{
 			$class = \Dashi\Core\Posttype\Posttype::posttype2class($v->post_type);
+			if ( ! is_callable($class)) continue;
 
 			$html.= '<tr>';
 			$edit_str = $v->post_title ? esc_html($v->post_title) : __('(no title)');
