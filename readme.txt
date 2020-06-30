@@ -43,6 +43,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.9.1 =
+fix class check.
+
 = 2.9.0 =
 fix slug problem with BOGO and add class check.
 
