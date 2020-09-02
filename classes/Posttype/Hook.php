@@ -12,7 +12,8 @@ class Hook
 	{
 		global $wp_query;
 
-		$current_post_type = esc_html(Input::get('post_type', $wp_query->query['post_type']));
+		$query_posttype = isset($wp_query->query['post_type']) ? $wp_query->query['post_type'] : '';
+		$current_post_type = esc_html(Input::get('post_type', $query_posttype));
 		$current_post_type = $current_post_type ?: get_post_type(intval(Input::get('post')));
 
 		foreach (Posttype::instances() as $posttype)

@@ -127,7 +127,7 @@ class Validation
 	 */
 	public static function isKatakana($str)
 	{
-		return preg_match("/^[ァ-ヾ　 ]+$/u", $str) ? true : false;
+		return preg_match("/^[ァ-ヾ　 ー]+$/u", $str) ? true : false;
 	}
 
 	/**
@@ -136,7 +136,7 @@ class Validation
 	 */
 	public static function isHiragana($str)
 	{
-		return preg_match("/^[ぁ-ゞ　 ]+$/u", $str) ? true : false;
+		return preg_match("/^[ぁ-ゞ　 ー]+$/u", $str) ? true : false;
 	}
 
 	/**
