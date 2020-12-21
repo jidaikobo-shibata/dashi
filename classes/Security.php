@@ -18,26 +18,14 @@ class Security
 		{
 			add_action(
 				'template_redirect',
-				array('\\Dashi\\Core\\Security', 'nonAuthorPageToGuest')
+				function () {
+					 if(is_author())
+					 {
+							wp_redirect( home_url());
+							exit;
+					 }
+				}
 			);
-		}
-	}
-
-	/**
-	 * nonAuthorPageToGuest
-	 *
-	 * @return Void
-	 */
-	public static function nonAuthorPageToGuest()
-	{
-		global $wp_query;
-		if (
-			(isset($wp_query->query['author_name']) || isset($_GET['author'])) &&
-			! is_user_logged_in()
-		)
-		{
-			wp_redirect(home_url(), 403);
-			exit();
 		}
 	}
 }

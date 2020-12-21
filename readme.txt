@@ -43,6 +43,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 
 == Changelog ==
 
+= 2.9.3 =
+fix avoid access to author=1
+
 = 2.9.2 =
 fix wrong query access.
 
