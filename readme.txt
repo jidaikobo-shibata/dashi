@@ -3,7 +3,7 @@ Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: plugin, custom field, custom, field, meta, meta field, framework
 Requires at least: 4.9.7
-Tested up to: 5.4.2
+Tested up to: 5.7.2
 Stable tag: 4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -42,6 +42,19 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 2.9.7 =
+add new checklist (ACL)
+
+= 2.9.6 =
+better dashi_search
+
+= 2.9.5 =
+fix session timing
+
+= 2.9.4 =
+fix is_public_searchable
+fix admin_enqueue_scripts at Dashi\Core\Posttype\Posttype
 
 = 2.9.3 =
 fix avoid access to author=1

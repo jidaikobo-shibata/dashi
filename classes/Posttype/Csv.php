@@ -93,6 +93,16 @@ class Csv
 			}
 			$arr[$n] = $tmp;
 
+/*
+// 考え中
+			foreach (get_post_meta($post->ID) as $k => $v)
+			{
+				if (strpos($k, 'dashi') !== false) continue;
+				if ($k[0] == '_') continue;
+				$arr[$n][] = $v[0];
+			}
+*/
+
 			foreach ($class::getFlatCustomFields() as $k => $v)
 			{
 				$value = $post->$k ?: '' ;

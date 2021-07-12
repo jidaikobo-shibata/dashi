@@ -181,6 +181,10 @@ class Posttype
 			'admin_enqueue_scripts',
 			function ()
 			{
+				global $post_type;
+				$class = \Dashi\P::posttype2class($post_type);
+				if ( ! $class || $class::get('is_dashi') === false) return;
+
 				wp_enqueue_script(
 					'dashi_js_uploader',
 					plugins_url('assets/js/uploader.js', DASHI_FILE)

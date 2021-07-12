@@ -507,6 +507,7 @@ class Save
 			{
 				foreach ($fields['fields'] as $inner_field_name => $inner_fields)
 				{
+					if (isset($inner_fields['is_public_searchable']) && $inner_fields['is_public_searchable'] === false) continue;
 					$strs = $genStr($post_id, $inner_field_name, $inner_fields, $strs);
 				}
 			}
@@ -515,9 +516,11 @@ class Save
 				$strs = $genStr($post_id, $field_name, $fields, $strs);
 			}
 		}
+		// add title
+		$post = get_post($post_id);
+		$strs[] = $post->post_title;
 
 		// expose shortcode
-		$post = get_post($post_id);
 		if (preg_match_all('/'.get_shortcode_regex().'/s', $post->post_content, $ms))
 		{
 			$strs[] = Search::generateSearchStr(apply_filters('the_content', $post->post_content));

@@ -39,6 +39,9 @@ class Option
 		'dashi_sitemap_page_upsidedown' => 'At Dashi Sitemap, turn page appears.',
 		'dashi_sitemap_home_string' => 'At Dashi Sitemap, use this strings as a label.',
 
+		'dashi_alert_acl' => 'Confirmed the existence and validity of login-required content for content managed by WordPress.',
+		'dashi_alert_fileacl' => 'Confirmed the existence and validity of login-required File (direct access).',
+
 		'dashi_auto_update_core' => 'Auto Update (Core Major Version)',
 		'dashi_auto_update_theme' => 'Auto Update (Theme)',
 		'dashi_auto_update_plugin' => 'Auto Update (Plugin)',

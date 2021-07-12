@@ -25,6 +25,10 @@ class Notation
 			array('\\Dashi\\Core\\Notation', 'addDashboardGlanceItems')
 		);
 
+		// コンテンツの権限確認
+		self::alertAcl();
+		self::alertFileAcl();
+
 		// キャッシュが有効かどうかを表示
 		self::isCacheAvairable();
 
@@ -90,6 +94,36 @@ class Notation
 		add_action('admin_notices', function ()
 		{
 			echo '<div class="message error dashi_error"><p><strong>'.__('Now avoid to index search engines.', 'dashi').'</strong></p></div>';
+		});
+	}
+
+	/**
+	 * alertAcl
+	 *
+	 * @return Void
+	 */
+	private static function alertAcl()
+	{
+		if (get_option('dashi_alert_acl')) return;
+
+		add_action('admin_notices', function ()
+		{
+			echo '<div class="message error dashi_error"><p><strong>'.__('Confirmed the existence and validity of login-required content for content managed by WordPress.', 'dashi').'</strong></p></div>';
+		});
+	}
+
+	/**
+	 * alertFileAcl
+	 *
+	 * @return Void
+	 */
+	private static function alertFileAcl()
+	{
+		if (get_option('dashi_alert_fileacl')) return;
+
+		add_action('admin_notices', function ()
+		{
+			echo '<div class="message error dashi_error"><p><strong>'.__('Confirmed the existence and validity of login-required File (direct access).', 'dashi').'</strong></p></div>';
 		});
 	}
 

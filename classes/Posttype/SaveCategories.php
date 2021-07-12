@@ -13,6 +13,7 @@ class SaveCategories
 		$term = get_term($term_id);
 		$taxonomy = $term->taxonomy;
 		$taxonomies = P::taxonomies();
+		if ( ! isset($taxonomies[$taxonomy])) return; //210524 shibata@jidaikobo.com: need reconfirm
 		$posttype = P::posttype2class($taxonomies[$taxonomy]);
 		if ( ! $posttype) return;
 		$custom_fields_taxonomies = $posttype::get('custom_fields_taxonomies');

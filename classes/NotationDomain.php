@@ -107,9 +107,8 @@ trait NotationDomain
 	private static function chkMail1($mailnum, $k, $host, $v, $post_title)
 	{
 		if (
-			$mailnum == 1 &&
-			$k == 'recipient' &&
-			strpos($host, $v) === false
+			($mailnum == 1 && $k == 'recipient' && empty($v)) ||
+			($mailnum == 1 && $k == 'recipient' && strpos($host, $v) === false)
 		)
 		{
 			add_action('admin_notices', function () use ($v, $post_title)
