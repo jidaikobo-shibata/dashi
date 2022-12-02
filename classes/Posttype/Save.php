@@ -567,7 +567,7 @@ class Save
 //	public static function autoPostSlug ($slug, $post_ID, $post_status, $post_type)
 	{
 		$class = Posttype::getInstance($post_type);
-		if ( ! $class || ! $class::get('is_use_force_ascii_slug')) return $slug;
+		if ( ! $class || ! $class::get('is_use_force_ascii_slug')) return $override_slug;
 
 		if (Input::post('dashi_bind_slug'))
 		{

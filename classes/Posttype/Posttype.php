@@ -102,7 +102,7 @@ class Posttype
 		add_action('current_screen', array('\\Dashi\\Core\\Posttype\\Help', 'hook'));
 
 		// search hook
-		if ( ! is_admin())
+		if ( ! is_admin() && get_option('dashi_enrich_search_result_page'))
 		{
 			add_action('posts_request', array('\\Dashi\\Core\\Posttype\\Search', 'postsRequest'), 1, 2);
 			add_action('posts_join', array('\\Dashi\\Core\\Posttype\\Search', 'searchJoin'));
@@ -778,6 +778,7 @@ class Posttype
 			'query_var'           => $posttype::get('query_var'),
 			'rewrite'             => $posttype::get('rewrite'),
 			'hierarchical'        => $posttype::get('hierarchical'),
+			'show_in_rest'        => $posttype::get('hierarchical'),
 			'menu_position'       => $posttype::get('order') ?: $posttype::get('menu_position'),
 			'has_archive'         => $posttype::get('has_archive'),
 			'supports'            => $posttype::get('supports'),

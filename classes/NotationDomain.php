@@ -106,6 +106,7 @@ trait NotationDomain
 	 */
 	private static function chkMail1($mailnum, $k, $host, $v, $post_title)
 	{
+		if ($mailnum == 1 && $k == 'recipient' && $v == '_site_admin_email]') return;
 		if (
 			($mailnum == 1 && $k == 'recipient' && empty($v)) ||
 			($mailnum == 1 && $k == 'recipient' && strpos($host, $v) === false)

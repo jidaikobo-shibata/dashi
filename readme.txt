@@ -3,7 +3,7 @@ Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: plugin, custom field, custom, field, meta, meta field, framework
 Requires at least: 4.9.7
-Tested up to: 5.7.2
+Tested up to: 6.0.2
 Stable tag: 4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -42,6 +42,24 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 3.0.3 =
+fix pre_wp_unique_post_slug Hook
+
+= 3.0.2 =
+fix NotationDomain
+
+= 3.0.1 =
+fix posttype/another.php
+
+= 3.0.0 =
+support show_in_rest
+
+= 2.9.9 =
+exapnd dashi_enrich_search_result_page
+
+= 2.9.8 =
+fix js uploader
 
 = 2.9.7 =
 add new checklist (ACL)

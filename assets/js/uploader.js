@@ -22,7 +22,7 @@ jQuery(function($)
 		formfield = false;
 	});
 
-	window.original_send_to_editor = window.send_to_editor;
+	window.original_send_to_editor_dashi = window.send_to_editor;
 	window.send_to_editor = function(html){
 		if (formfield) {
 			fileurl = $('img',html).attr('src');
@@ -37,7 +37,7 @@ jQuery(function($)
 			tb_remove();
 			$('html').removeClass('Image');
 		} else {
-			window.original_send_to_editor(html);
+			window.original_send_to_editor_dashi(html);
 		}
 	};
 

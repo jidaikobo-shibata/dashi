@@ -372,7 +372,11 @@ $("h1.wp-heading-inline").text("'.$str.'");
 	{
 		$cu = wp_get_current_user();
 		$link = 'edit.php?post_type='.$original->post_type;
-		if ($cu->caps['administrator'] || $cu->caps['editor'] )
+
+		if (
+			(isset($cu->caps['administrator']) && $cu->caps['administrator'] === true) ||
+			(isset($cu->caps['editor']) && $cu->caps['editor'] === true)
+		)
 		{
 			$link = 'post.php?post='.$original->ID.'&action=edit';
 		}
