@@ -1,0 +1,51 @@
+/* div.dashi_pagepart_wrapper */
+
+div.dashi_pagepart_wrapper
+{
+	position: relative;
+}
+
+div.dashi_pagepart_wrapper:before,
+div.dashi_pagepart_wrapper:after
+{
+	content: " ";
+	display: table;
+}
+
+div.dashi_pagepart_wrapper:after
+{
+	clear: both;
+}
+div.dashi_pagepart_wrapper
+{
+	*zoom: 1;
+}
+
+/* by pagepart.js */
+div.dashi_pagepart_wrapper.outline_hover
+{
+	outline: dotted 1px #373;
+}
+
+/* a.edit_link */
+div.dashi_pagepart_wrapper a.edit_link
+{
+	font-size: 80%;
+	font-weight: bold;
+	text-decoration: none;
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	z-index: 10000;
+	color: #373 !important;
+	background-color: #fff;
+	opacity: 0.7;
+}
+div.dashi_pagepart_wrapper a.edit_link:hover
+{
+	opacity: 0.9;
+}
+.dashi_pagepart_wrapper .edit_link:first-child {
+	position: relative;
+	float: right;
+}
