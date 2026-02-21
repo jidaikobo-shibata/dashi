@@ -116,7 +116,65 @@ class Save
 		return $values;
 	}
 
-	/**
+
+    /**
+     * updateFileMediaText
+     *
+     * @return void
+     */
+    private static function updateFileMediaText()
+    {
+        $dashi_file_media_texts = filter_input(
+            INPUT_POST,
+            'dashi_file_media_text',
+            FILTER_DEFAULT,
+            FILTER_REQUIRE_ARRAY
+        );
+        $dashi_file_media_metas = filter_input(
+            INPUT_POST,
+            'dashi_file_media_meta',
+            FILTER_DEFAULT,
+            FILTER_REQUIRE_ARRAY
+        );
+
+        if (empty($dashi_file_media_texts)) return;
+
+        // 保存処理
+        foreach ($dashi_file_media_texts as $media_id => $v) {
+            $media_id = intval($media_id);
+            if ($media_id <= 0) continue;
+
+            // 権限確認（重要）
+            if (!current_user_can('edit_post', $media_id)) continue;
+
+            // ファイルがなかったらスキップ
+            if (empty($dashi_file_media_metas[$media_id])) continue;
+            $media_url = $dashi_file_media_metas[$media_id];
+
+            // ファイルの種類の判定
+            $ext = strtolower(pathinfo(parse_url($media_url, PHP_URL_PATH), PATHINFO_EXTENSION));
+            $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
+
+            $safe_value = sanitize_text_field($v);
+
+            // update
+            if ($isImg) {
+                update_post_meta(
+                    $media_id,
+                    '_wp_attachment_image_alt',
+                    $safe_value
+                );
+            } else {
+                wp_update_post([
+                        'ID' => $media_id,
+                        'post_title' => $safe_value
+                    ]
+                );
+            }
+        }
+    }
+
+    /**
 	 * genNewOrder4DuplicatedMetaBox
 	 *
 	 * @param array $ordrs
@@ -185,6 +243,9 @@ class Save
 		$values = self::deleteDuplicatedMetaBox($class, $values);
 		$values = self::fixOrderDuplicatedMetaBox($class, $values);
 
+		// メディア管理を更新
+		self::updateFileMediaText();
+
 		// database
 		if ($class)
 		{
@@ -221,7 +282,8 @@ class Save
 
 				// label
 				$label = isset($attrs['label']) ? $attrs['label'] : $orig_key;
-				$label = $is_dupped ? $attrs['label_origi'] : $label;
+				$label_origi = isset($attrs['label_origi']) ? $attrs['label_origi'] : '';
+				$label = $is_dupped ? $label_origi : $label;
 
 				// uploadの場合はルート相対パスを使う
 				if (
@@ -261,7 +323,8 @@ class Save
 				$is_serialize = false;
 				if (
 					isset($attrs['type']) &&
-					in_array($attrs['type'], array('google_map'))
+					in_array($attrs['type'], array('google_map')) &&
+					is_array($val)
 				)
 				{
 					static::cudPostmeta($post_id, $key.'_lat',   @$val['lat'], false);
@@ -461,6 +524,11 @@ class Save
 		// closure
 		$genStr = function ($post_id, $field_name, $fields, $strs)
 		{
+			// ★ options を解決
+			if (isset($fields['options'])) {
+				$fields['options'] = \Dashi\Core\Util::resolveOptions($fields['options']);
+			}
+
 			// stored value
 			$val = get_post_meta($post_id, $field_name);
 

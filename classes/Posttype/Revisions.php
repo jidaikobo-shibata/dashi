@@ -149,6 +149,11 @@ class Revisions
 			$current_custom_field = $custom_fields[$key];
 		}
 
+		if (isset($current_custom_field['options'])) {
+			$current_custom_field['options']
+				= \Dashi\Core\Util::resolveOptions($current_custom_field['options']);
+		}
+
 		// array
 		$type = isset($current_custom_field['type']) ? $current_custom_field['type'] : '';
 		$is_multiple = ($type == 'select' && isset($current_custom_field['attrs']['multiple']));

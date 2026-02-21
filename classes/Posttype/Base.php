@@ -150,37 +150,60 @@ abstract class Base
 		}
 	}
 
-	/**
-	 * rebuildCustomFields
-	 *
-	 * @param   string $class
-	 * @param   string $post_name
-	 * @param   string $post_type
-	 * @return  void
-	 */
-	public static function rebuildCustomFields($class, $post_name, $post_type)
-	{
-		foreach (glob(get_stylesheet_directory()."/slug_custom_fields/*.php") as $filename)
-		{
-			$slug_class = str_replace('.php', '', basename($filename));
-			if (
-				P::class2posttype($class) == $post_type &&
-				$slug_class == $post_name
-			)
-			{
-				include_once($filename);
-				$slug_class_name = '\\Dashi\\Slug\\'.ucfirst($slug_class);
-				if ( ! class_exists($slug_class_name)) continue;
-				$slug_custom_fields = $slug_class_name::__init();
+    /**
+     * rebuildCustomFields
+     *
+     * @param   string $class
+     * @param   string $post_name
+     * @param   string $post_type
+     * @return  void
+     */
+    public static function rebuildCustomFields($class, $post_name, $post_type)
+    {
+        $dir = get_stylesheet_directory() . "/slug_custom_fields/";
+        $files = glob($dir . "*.php");
 
-				$custom_fields = $class::get('custom_fields');
-				$class::set('custom_fields', array_merge($custom_fields, $slug_custom_fields));
+        foreach ($files as $filename)
+        {
+            $basename = basename($filename, '.php');
 
-				// overhead...
-				C::setExpectedKeys();
-			}
-		}
-	}
+            // セキュリティ: ファイル名のバリデーション（英数字とアンダースコアのみ許可）
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $basename)) {
+                continue;
+            }
+
+            // post_nameが一致していなければスキップ
+            if ($basename !== $post_name) {
+                continue;
+            }
+
+            // post_typeの一致チェック
+            if (P::class2posttype($class) !== $post_type) {
+                continue;
+            }
+
+            // ファイルが読み込み可能か確認
+            if (!is_readable($filename)) {
+                continue;
+            }
+
+            include_once($filename);
+
+            $slug_class_name = '\\Dashi\\Slug\\' . ucfirst($basename);
+            if (!class_exists($slug_class_name)) {
+                continue;
+            }
+
+            $slug_custom_fields = $slug_class_name::__init();
+
+            $custom_fields = $class::get('custom_fields');
+            $class::set('custom_fields', array_merge($custom_fields, $slug_custom_fields));
+
+            C::setExpectedKeys();
+
+            break;
+        }
+    }
 
 	/**
 	 * getter
@@ -195,6 +218,9 @@ abstract class Base
 
 		if (property_exists($instance, $name))
 		{
+			if ($name == 'description') {
+				return __($instance->$name, 'dashi');
+			}
 			return $instance->$name;
 		}
 	}
@@ -331,28 +357,37 @@ abstract class Base
 	public static function getPostMetaOptions($key)
 	{
 		$custom_fields = static::get('custom_fields');
+		$opts = null;
 
-		$opts = false;
-		if (isset($custom_fields[$key]))
-		{
-			$opts = isset($custom_fields[$key]['options']) ? $custom_fields[$key]['options'] : false;
+		if (isset($custom_fields[$key]['options'])) {
+			$opts = Util::resolveOptions($custom_fields[$key]['options']);
 		}
+
+		// $opts = false;
+		// if (isset($custom_fields[$key]))
+		// {
+		// 	$opts = isset($custom_fields[$key]['options']) ? $custom_fields[$key]['options'] : false;
+		// }
 
 		// optsが見つかってないので、fieldsを疑う
 		if ( ! $opts)
 		{
 			foreach ($custom_fields as $field => $v)
 			{
-				if ( ! isset($v['fields'][$key])) continue;
+				if (!isset($v['fields'][$key]['options'])) continue;
+				$opts = Util::resolveOptions($v['fields'][$key]['options']);
+				break;
 
-				$opts = isset($custom_fields['fields'][$key]['options']) ?
-					$custom_fields['fields'][$key]['options'] :
-					false;
+				// if ( ! isset($v['fields'][$key])) continue;
+
+				// $opts = isset($custom_fields['fields'][$key]['options']) ?
+				// 	$custom_fields['fields'][$key]['options'] :
+				// 	false;
 			}
 		}
 
 		// ここまで見つかっていないということは、妥当でない値を尋ねているか、設定値が妥当でないので、例外をスローする
-		if ( ! $opts)
+		if (!is_array($opts))
 		{
 			throw new \Exception (sprintf(__('%s is incorrect argument or setting of custom_fields of %s is wrong.', 'dashi'), $key, get_called_class()));
 		}

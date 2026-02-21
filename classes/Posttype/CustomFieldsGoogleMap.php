@@ -13,12 +13,6 @@ class CustomFieldsGoogleMap
 	 */
 	public static function draw ($object, $value, $is_public_form = false)
 	{
-		if ( ! get_option('dashi_google_map_api_key'))
-		{
-			echo '<strong style="color: #f00;background-color: #fff;">Set Google API key</strong>';
-			return;
-		}
-
 		// base value
 		$id = $value['id'];
 		$place_id = 'place_'.$id;
@@ -59,6 +53,20 @@ class CustomFieldsGoogleMap
 		$lat_name   = $id.'[lat]';
 		$lng_name   = $id.'[lng]';
 		$zoom_name  = $id.'[zoom]';
+
+		if ( ! get_option('dashi_google_map_api_key'))
+		{
+            echo '<strong style="color: #f00;background-color: #fff;">'.__('Google Map is disabled. Enter coordinates manually.', 'dashi').'</strong>';
+
+            echo '<table class="form-table"><tr><th><label for="lat_'.$map_id.'">'.__('latitude', 'dashi').'</label></th><td>';
+            echo '<input type="text" name="'.$lat_name.'" id="lat_'.$map_id.'" value="'.esc_attr($lat).'" />';
+            echo '</td></tr><tr><th><label for="lng_'.$map_id.'">'.__('longitude', 'dashi').'</label></th><td>';
+            echo '<input type="text" name="'.$lng_name.'" id="lng_'.$map_id.'" value="'.esc_attr($lng).'" />';
+            echo '</td></tr><tr><th><label for="zoom_'.$map_id.'">'.__('zoom (1-21)', 'dashi').'</label></th><td>';
+            echo '<input type="text" name="'.$zoom_name.'" id="zoom_'.$map_id.'" value="'.esc_attr($zoom).'" min="1" max="21" style="width: 4rem;" />';
+            echo '</td></tr></table>';
+            return;
+		}
 ?>
 
 <!-- Google Map -->
@@ -102,7 +110,7 @@ class CustomFieldsGoogleMap
 			var myOptions = {
 				zoom: czoom,
 				center: latLng,
-				scrollwheel: false,
+				scrollwheel: true,
 				disableDoubleClickZoom: true,
 				mapTypeControlOptions: {style: google.maps.MapTypeControlStyle.DROPDOWN_MENU},
 				mapTypeId: google.maps.MapTypeId.ROADMAP
@@ -155,6 +163,12 @@ class CustomFieldsGoogleMap
 			jQuery('#lat_<?php echo $map_id ?>').attr('value',[latLng.lat()]) ;
 			jQuery('#lng_<?php echo $map_id ?>').attr('value',[latLng.lng()]) ;
 		}
+
+        google.maps.event.addListener(map, 'zoom_changed', function() {
+            var currentZoom = map.getZoom();
+            jQuery('#zoom_<?php echo $map_id ?>').val(currentZoom);
+        });
+
 		});
 		// -->
 		</script>
@@ -171,7 +185,7 @@ class CustomFieldsGoogleMap
 <?php if ( ! $is_public_form): ?>
 <tr>
 	<td><label for="zoom"><?php echo __('zoom (1-21)', 'dashi') ?></label>
-	<input type="text" id="zoom" name="<?php echo $zoom_name ?>" value="<?php echo intval( $zoom ) ?>" /></td>
+	<input type="number" id="zoom_<?php echo $map_id ?>" style="width: 3rem;" name="<?php echo $zoom_name ?>" value="<?php echo intval( $zoom ) ?>" min="1" max="21" /></td>
 </tr>
 <?php endif; ?>
 

@@ -1,6 +1,6 @@
 <?php
-	global $wp_query, $post;
-	get_header();
+    global $wp_query, $post;
+    get_header();
 ?>
 
 <!-- entry -->
@@ -22,19 +22,19 @@ $additional_information = '';
 $post_type = get_post_type($post);
 if ( ! in_array($post_type, array('post', 'page')))
 {
-	$post_type_obj = $post_type ? get_post_type_object($post_type) : null;
+    $post_type_obj = $post_type ? get_post_type_object($post_type) : null;
 
-	if (class_exists('\\Dashi\\Core\\Posttype\\Posttype'))
-	{
-		$class = \Dashi\Core\Posttype\Posttype::getInstance($post_type);
-		if (class_exists($class))
-		{
-			if ( ! $class::get('is_redirect') && substr($post_type, 0, 1) != '_')
-			{
-				$additional_information = ' (<a href="'.get_post_type_archive_link($post_type).'">'.$post_type_obj->label.'</a>)';
-			}
-		}
-	}
+    if (class_exists('\\Dashi\\Core\\Posttype\\Posttype'))
+    {
+        $class = \Dashi\Core\Posttype\Posttype::getInstance($post_type);
+        if (class_exists($class))
+        {
+            if ( ! $class::get('is_redirect') && substr($post_type, 0, 1) != '_')
+            {
+                $additional_information = ' <span class="link2archive">(<a href="'.get_post_type_archive_link($post_type).'">'.$post_type_obj->label.'</a>)</span>';
+            }
+        }
+    }
 }
 
 // summary
@@ -53,8 +53,8 @@ endwhile;
 
 <?php
 the_posts_pagination(array(
-  'prev_text' => __('Previous'),
-	'next_text' => __('Next'),
+    'prev_text' => __('Previous'),
+    'next_text' => __('Next'),
 ));
 
 endif;

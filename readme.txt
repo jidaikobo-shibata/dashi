@@ -2,12 +2,11 @@
 Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: custom field, custom post type
-Requires at least: 4.9.7
-Tested up to: 6.7.1
-Stable tag: 3.1.4
+Tested up to: 6.9.0
+Stable tag: 3.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Requires PHP: 5.4
+Requires PHP: 7.0
 
 Useful classes for creating a custom post type. Creates Page Parts custom post type. Designed for theme developers.
 
@@ -42,6 +41,59 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 3.3.1 =
+fix: resolve custom field options lazily to avoid undefined array key warnings
+fix: stabilize handling of options in select / radio / checkbox fields
+note: minimum required PHP version is now 7.0
+
+= 3.3.0 =
+add tiny class to seach template
+
+= 3.2.9 =
+fix around addCustomColumn
+
+= 3.2.8 =
+fix manage_[custom post type]_posts_custom_column
+
+= 3.2.7 =
+fix lat and lng
+
+= 3.2.6 =
+fix array key
+
+= 3.2.5 =
+add file_media type to custom_fields
+
+= 3.2.4 =
+Enhance Google Map usability
+
+= 3.2.3 =
+add more custom fields to taxonomy
+
+= 3.2.2 =
+security review "Posttype::class"
+
+= 3.2.1 =
+secure search logic
+
+= 3.1.10 =
+fix several typos
+
+= 3.1.9 =
+fix path traversal
+
+= 3.1.8 =
+fix sashikae issue
+
+= 3.1.7 =
+add WP-CLI check
+
+= 3.1.6 =
+fix posttype/save
+
+= 3.1.5 =
+fix Deprecated issue
 
 = 3.1.4 =
 fix version number

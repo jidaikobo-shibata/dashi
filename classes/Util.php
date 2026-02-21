@@ -318,4 +318,15 @@ class Util
 		}
 		die(Util::s($message));
 	}
+
+	/**
+	 * resolveOptions
+	 *
+	 * @param  array|callable | function $options
+	 * @return array
+	 */
+	public static function resolveOptions($options)
+	{
+		return is_callable($options) ? call_user_func($options) : $options;
+	}
 }

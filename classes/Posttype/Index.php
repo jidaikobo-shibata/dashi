@@ -56,17 +56,18 @@ class Index
 		{
 			if ($column_name != $key) continue;
 
-			if (
-				$field['type'] == 'taxonomy'
-			)
+			if (isset($field['type']) && $field['type'] === 'taxonomy')
 			{
 				$terms = wp_get_post_terms( $post_id, $key, array("fields" => "names") );
 				$v = esc_html(join(',', $terms));
 			}
 			// checkbox or multiple
 			else if (
-				$field['type'] == 'checkbox' ||
-				($field['type'] == 'select' && isset($field['multiple']))
+				isset($field['type']) &&
+				(
+					$field['type'] == 'checkbox' ||
+					($field['type'] == 'select' && isset($field['multiple']))
+				)
 			)
 			{
 				$v = get_post_meta($post_id, $key);
@@ -91,6 +92,9 @@ class Index
 	 */
 	private static function displayValue($v, $field)
 	{
+		$options = $field['options'] ?? null;
+		$options = Util::resolveOptions($options);
+
 		// 値がない
 		// 文字列の0が来る場合があるのでstrlen()もかける
 		if (
@@ -101,24 +105,24 @@ class Index
 			echo __('None');
 		}
 		// そのまま表示
-		elseif ( ! isset($field['options']) && $v)
+		elseif ( ! isset($options) && $v)
 		{
 			echo esc_html($v);
 		}
 		// 配列＆複数
-		elseif (isset($field['options']) && is_array($v))
+		elseif (isset($options) && is_array($v))
 		{
 			$arr = array();
 			foreach ($v as $vv)
 			{
-				$arr[] = $field['options'][$vv];
+				$arr[] = $options[$vv];
 			}
 			echo esc_html(join(',', $arr));
 		}
 		// 選択式
-		elseif (isset($field['options']) && ! is_array($v))
+		elseif (isset($options) && ! is_array($v))
 		{
-			echo esc_html($field['options'][$v]);
+			echo esc_html($options[$v]);
 		}
 	}
 
@@ -182,6 +186,7 @@ class Index
 	{
 		global $wpdb;
 		$options = array();
+
 		if (isset($field['options']))
 		{
 			$options = $field['options'];
@@ -206,7 +211,7 @@ GROUP BY '.$wpdb->postmeta.'.`meta_value`';
 		$html .= '<option value="">'.sprintf(__("All of %s", 'dashi'), isset($field['label']) ? $field['label'] : $key).'</option>';
 		foreach ($options as $value => $text)
 		{
-			if (empty($value)) continue;
+			if ($value === '') continue;
 			$selected_html = selected($selected, $value, false);
 			$html .= '<option value="'.esc_attr($value).'"'.$selected_html.'>'.esc_html($text).'</option>';
 		}
@@ -237,7 +242,7 @@ GROUP BY '.$wpdb->postmeta.'.`meta_value`';
 				if (isset($field['type']) && $field['type'] == 'taxonomy') continue;
 
 				if ( ! isset($field['add_restriction']) || ! $field['add_restriction']) continue;
-				$value = filter_input(INPUT_GET, $key);
+				$value = filter_input(INPUT_GET, $key) ?? '';
 				if (strlen($value))
 				{
 					$meta_query = $query->get('meta_query');

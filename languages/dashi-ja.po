@@ -579,10 +579,10 @@ msgid "Place"
 msgstr "場所"
 
 msgid "latitude"
-msgstr "経度"
+msgstr "緯度"
 
 msgid "longitude"
-msgstr "緯度"
+msgstr "経度"
 
 msgid "zoom (1-21)"
 msgstr "地図の拡大率（1-21）"

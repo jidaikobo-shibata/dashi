@@ -66,7 +66,10 @@ class Copy
 		$script.= 'jQuery (function($){';
 
 		// コピーのリンク
-			$script.= '$(".wp-heading-inline").after("<a href=\"post-new.php?post_type='.$post->post_type.'&amp;dashi_copy_original_id='.$post->ID.'\" class=\"page-title-action\">'.__('Copy', 'dashi').'</a>");';
+		$post_type = esc_js(esc_attr($post->post_type));
+		$post_id = intval($post->ID);
+		$link_label = esc_js(__('Copy', 'dashi'));
+		$script.= '$(".wp-heading-inline").after("<a href=\"post-new.php?post_type='.$post_type.'&amp;dashi_copy_original_id='.$post_id.'\" class=\"page-title-action\">'.$link_label.'</a>");';
 
 		$script.= '});';
 		$script.= '</script>';
@@ -229,8 +232,13 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		global $pagenow;
 		$dashi_original_id = Input::post('dashi_copy_original_id');
 
+        if (is_null($dashi_original_id)) return $post_id;
 		if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return $post_id;
 		if ( ! $dashi_original_id || $pagenow != 'post.php') return $post_id;
+
+		if (!current_user_can('edit_post', $post_id)) {
+			return $post_id;
+		}
 
 		$copy = get_post($post_id);
 		$original = get_post($dashi_original_id);

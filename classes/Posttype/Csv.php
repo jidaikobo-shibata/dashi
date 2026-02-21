@@ -10,30 +10,30 @@ class Csv
 	 */
 	public static function forge()
 	{
-		if ( ! is_admin()) return;
+		if (!is_admin()) return;
 
-		// ダッシュボード判定
-		if (
-			isset($_SERVER['SCRIPT_NAME']) &&
-			substr($_SERVER['SCRIPT_NAME'], -19) == '/wp-admin/index.php' &&
-			get_option('dashi_show_csv_export_dashboard')
-		)
-		{
-			// ダッシュボードにCSV生成
-			add_action('wp_dashboard_setup', function ()
-			{
-				wp_add_dashboard_widget (
-					'dashi_list_posttype_to_gen_csv',
-					'CSV'.__('Export'),
-					array('\\Dashi\\Core\\Posttype\\Csv', 'posttypeList')
-				);
-			});
+		// ダッシュボード表示時にウィジェット追加
+		add_action('wp_dashboard_setup', function () {
+			if (!get_option('dashi_show_csv_export_dashboard')) return;
 
-			if ($posttype = filter_input(INPUT_POST, 'dashi_csv_export'))
-			{
+			wp_add_dashboard_widget(
+				'dashi_list_posttype_to_gen_csv',
+				'CSV'.__('Export'),
+				array('\\Dashi\\Core\\Posttype\\Csv', 'posttypeList')
+			);
+		});
+
+		// CSV エクスポート処理（init 後で）
+		add_action('admin_init', function () {
+			if (!get_option('dashi_show_csv_export_dashboard')) return;
+
+			if (
+				$posttype = filter_input(INPUT_POST, 'dashi_csv_export') and
+				check_admin_referer('dashi_csv_export_action')
+			) {
 				self::export($posttype);
 			}
-		}
+		});
 	}
 
 	/**
@@ -58,6 +58,7 @@ class Csv
 		$html.= '</select>';
 		$html.= '<label style="display: block; padding: 10px 0;"><input type="checkbox" name="excel_compati" value="1">'.__('<span title="some characters disappear">Microsoft Excel compatible CSV</span>', 'dashi').'</label>';
 		$html.= '<input type="submit" class="button button-primary" value="'.__('Export').'">';
+		$html .= wp_nonce_field('dashi_csv_export_action', '_wpnonce', true, false);
 		$html.= '</form>';
 		echo $html;
 	}
@@ -70,6 +71,12 @@ class Csv
 	 */
 	private static function export($posttype)
 	{
+		// 安全な posttype だけ許可
+		$allowed_posttypes = array_map(['\Dashi\P', 'class2posttype'], \Dashi\P::instances());
+		if (!in_array($posttype, $allowed_posttypes, true)) {
+			wp_die(__('Invalid post type', 'dashi'), 403);
+		}
+
 		$class = \Dashi\P::posttype2class($posttype);
 		$excel_compati = filter_input(INPUT_POST, 'excel_compati');
 
@@ -106,12 +113,16 @@ class Csv
 			foreach ($class::getFlatCustomFields() as $k => $v)
 			{
 				$value = $post->$k ?: '' ;
+
+				// ★ options の解決（Closure / array / null）
+				$options = \Dashi\Core\Util::resolveOptions($v['options'] ?? null);
+
 				if (
 					in_array($v['type'], array('select', 'radio', 'checkbox')) &&
-					isset($v['options'][$value])
+					isset($options[$value])
 				)
 				{
-					$value = $v['options'][$value];
+					$value = $options[$value];
 				}
 				if ($excel_compati)
 				{
@@ -122,9 +133,11 @@ class Csv
 			$n++;
 		}
 
-		$filename = $posttype.'.csv';
-		$filepath = '/tmp/'.$filename;
-		$fp = fopen($filepath, 'w');
+		$filename = sanitize_file_name($posttype) . '.csv';
+		$tmpfile = wp_tempnam($filename);
+		$fp = fopen($tmpfile, 'w');
+		// $filepath = '/tmp/'.$filename;
+		// $fp = fopen($filepath, 'w');
 		if ($fp === FALSE) throw new Exception('failed to export');
 
 		$delimiter = $excel_compati ? ',' : "\t";
@@ -137,10 +150,11 @@ class Csv
 
 		header("HTTP/1.1 200 OK");
 		header('Content-Type: application/octet-stream');
-		header('Content-Length: '.filesize($filepath));
+		header('Content-Length: '.filesize($tmpfile));
 		header('Content-Transfer-Encoding: binary');
 		header('Content-Disposition: attachment; filename='.$filename);
-		readfile($filepath);
+		readfile($tmpfile);
+		@unlink($tmpfile);
 		exit();
 	}
 }

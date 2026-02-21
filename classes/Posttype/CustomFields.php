@@ -363,6 +363,10 @@ class CustomFields
 		// form items
 		if (isset($value['args']['type']))
 		{
+			// ★ options の正規化
+			$options = $value['args']['options'] ?? null;
+			$options = Util::resolveOptions($options);
+
 			$html = '';
 			switch ($value['args']['type'])
 			{
@@ -451,7 +455,7 @@ class CustomFields
 					$html = Field::field_select(
 						$key,
 						$val,
-						$value['args']['options'],
+						$options,
 						$description,
 						$attrs,
 						$template
@@ -462,7 +466,7 @@ class CustomFields
 					$html = Field::field_radio(
 						$key,
 						$val,
-						$value['args']['options'],
+						$options,
 						$description,
 						$attrs,
 						$template
@@ -474,7 +478,7 @@ class CustomFields
 					$html = Field::field_checkbox(
 						$key,
 						$val,
-						$value['args']['options'],
+						$options,
 						$description,
 						$attrs,
 						$template
@@ -491,6 +495,22 @@ class CustomFields
 						$attrs,
 						$template,
 						$is_use_wp_uploader
+					);
+					break;
+
+				case 'file_media':
+					$attrs['id'] = 'upload_field_'.$attrs['id'];
+					$is_image = isset($value['args']['is_image']) ?
+						intval($value['args']['is_image']) :
+						true;
+
+					$html = Field::field_file_media(
+						$key,
+						$val,
+						$description,
+						$attrs,
+						$template,
+						$is_image
 					);
 					break;
 			}

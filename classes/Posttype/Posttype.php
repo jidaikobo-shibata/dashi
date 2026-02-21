@@ -39,7 +39,7 @@ class Posttype
 		static::preload();
 
 		// load posttypes
-		add_action('init', array('\\Dashi\\Core\\Posttype\\Posttype', 'load'));
+		add_action('widgets_init', array('\\Dashi\\Core\\Posttype\\Posttype', 'load'));
 
 		// add_meta_box is must be invoke by admin_menu
 		add_action(
@@ -52,12 +52,24 @@ class Posttype
 			'manage_posts_columns',
 			array('\\Dashi\\Core\\Posttype\\Index', 'addColumn')
 		);
+/*
+		// おそらく不要 20250824 shibata@jidaikobo.com
 		add_action(
 			'manage_posts_custom_column',
 			array('\\Dashi\\Core\\Posttype\\Index', 'addCustomColumn'),
 			10,
 			2
 		);
+*/
+		foreach (static::instances() as $posttypeInstance) {
+			$posttypeName = static::class2posttype($posttypeInstance);
+			add_action(
+				'manage_' . $posttypeName . '_posts_custom_column',
+				array('\\Dashi\\Core\\Posttype\\Index', 'addCustomColumn'),
+				10,
+				2
+			);
+		}
 
 		// 絞り込みを追加
 		add_action(
@@ -355,39 +367,46 @@ class Posttype
 	 */
 	private static function loadPostTypeFiles()
 	{
-		$posttypes_files = array();
-		foreach (glob(get_stylesheet_directory()."/posttype/*.php") as $filename)
-		{
-			include($filename);
-			$posttypes_files[] = $filename;
-		}
+        $dir = get_stylesheet_directory() . '/posttype';
+        $posttypes_files = [];
+        foreach (glob($dir . "/*.php") as $filepath)
+        {
+            $filename = basename($filepath);
+            if (!preg_match('/^[A-Za-z0-9_]+\.php$/', $filename)) {
+                continue;
+            }
+            $real = realpath($filepath);
+            if ($real === false || strpos($real, realpath($dir)) !== 0) {
+                continue;
+            }
+            include_once $real;
 
-/*
-require PHP7:
-		foreach (glob(get_stylesheet_directory()."/posttype/*.php") as $filename)
-		{
-			try {
-				require_once($filename);
-			} catch (\ParseError $e) {
-				trigger_error("cannot include posttype file. '$e'", E_USER_ERROR);
-			}
-			$posttypes_files[] = $filename;
-		}
-*/
+            $posttypes_files[] = $real;
+        }
 
 		// 子テーマを使っているなら、親テーマを読む
 		$pt_check = array_map('basename', $posttypes_files);
 		if (get_stylesheet_directory() != get_template_directory())
 		{
-			foreach (glob(get_template_directory()."/posttype/*.php") as $filename)
+            $dir = get_template_directory() . '/posttype';
+			foreach (glob($dir . "/*.php") as $filepath)
 			{
-				if (in_array(basename($filename), $pt_check)) continue;
-				include($filename);
-				$posttypes_files[] = $filename;
-			}
-		}
-		return $posttypes_files;
-	}
+                $filename = basename($filepath);
+				if (in_array($filename, $pt_check)) continue;
+                if (!preg_match('/^[A-Za-z0-9_]+\.php$/', $filename)) {
+                    continue;
+                }
+                $real = realpath($filepath);
+                if ($real === false || strpos($real, realpath($dir)) !== 0) {
+                    continue;
+                }
+                include_once $real;
+
+                $posttypes_files[] = $real;
+            }
+        }
+        return $posttypes_files;
+    }
 
 	/**
 	 * definePostTypes
@@ -396,15 +415,32 @@ require PHP7:
 	 */
 	private static function definePostTypes($posttypes_files)
 	{
-		$posttypes = array();
+        $posttypes = [];
 
-		foreach ($posttypes_files as $filename)
+		foreach ($posttypes_files as $filepath)
 		{
-			$class = '\\Dashi\\Posttype\\'.ucfirst(substr(basename($filename), 0, -4));
-			if (is_callable($class, '__init'))
-			{
-				$posttypes[] = $class;
-			}
+            $filename = basename($filepath, '.php');
+
+            // クラス名組み立て（明示的に制限）
+            if (!preg_match('/^[A-Za-z0-9_]+$/', $filename)) {
+                continue; // ファイル名不正
+            }
+            $class = '\\Dashi\\Posttype\\' . ucfirst($filename);
+
+            // クラス存在＆ __init メソッドが明示的に定義されているか確認
+            if (!class_exists($class)) {
+                continue;
+            }
+
+            // Reflectionで __init が実際にそのクラスで定義されているかを確認
+            try {
+                $ref = new \ReflectionClass($class);
+                if ($ref->hasMethod('__init')) {
+                    $posttypes[] = $class;
+                }
+            } catch (\ReflectionException $e) {
+                continue; // 不正なクラスがあったらスキップ
+            }
 		}
 
 		// default post type - allow override
@@ -595,16 +631,25 @@ require PHP7:
 		return $adds;
 	}
 
-	/**
-	 * virtual
-	 *
-	 * @return  void
-	 */
-	private static function virtual($posttype)
-	{
-		$posttype = ucfirst($posttype);
-		eval("namespace Dashi\\Posttype;class {$posttype} extends \\Dashi\\Core\\Posttype\\Base {public static function __init (){ static::set('is_dashi', false); } }");
-	}
+    /**
+     * virtual
+     *
+     * @return  void
+     */
+    private static function virtual($posttype)
+    {
+        // 投稿タイプ名に使える文字を制限（a〜z, A〜Z, 0〜9, _）
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $posttype)) {
+            return;
+        }
+
+        $virtual_class = 'Dashi\\Posttype\\' . ucfirst($posttype);
+        $base_class = 'Dashi\\Core\\Posttype\\Virtual';
+
+        if (!class_exists($virtual_class)) {
+            class_alias($base_class, $virtual_class);
+        }
+    }
 
 	/**
 	 * load
@@ -748,20 +793,24 @@ require PHP7:
 		if ( ! $posttype::get('is_dashi')) return;
 		if (in_array($posttype, static::$defaults)) return;
 
-		if (in_array($posttype, static::$banned))
+		$name = $posttype::get('post_type');
+		if (in_array($name, static::$banned))
 		{
 			throw new \Exception (sprintf(__('%s is cannot use as posttype name', 'dashi'), $name));
 		}
 
+        $name = __($posttype::get('name'), 'dashi');
+		$singular_name = $posttype::get('singular_name') ?: $name;
+
 		$labels = array(
-			'name'              => $posttype::get('name'),
-			'singular_name'     => $posttype::get('singular_name') ?: $posttype::get('name'),
-			'menu_name'         => $posttype::get('menu_name') ?: $posttype::get('name'),
-			'add_new'           => sprintf(__('add %s', 'dashi'), $posttype::get('name')),
-			'add_new_item'      => sprintf(__('add %s', 'dashi'), $posttype::get('name')),
-			'edit_item'         => sprintf(__('edit %s', 'dashi'), $posttype::get('name')),
-			'new_item'          => sprintf(__('new %s', 'dashi'), $posttype::get('name')),
-			'view_item'         => sprintf(__('view %s', 'dashi'), $posttype::get('name')),
+			'name'              => $name,
+			'singular_name'     => $singular_name,
+			'menu_name'         => $posttype::get('menu_name') ?: $name,
+			'add_new'           => sprintf(__('add %s', 'dashi'), $singular_name),
+			'add_new_item'      => sprintf(__('add %s', 'dashi'), $singular_name),
+			'edit_item'         => sprintf(__('edit %s', 'dashi'), $singular_name),
+			'new_item'          => sprintf(__('new %s', 'dashi'), $singular_name),
+			'view_item'         => sprintf(__('view %s', 'dashi'), $singular_name),
 			'parent_item_colon' => '',
 		);
 
@@ -802,11 +851,6 @@ require PHP7:
 		$args = self::registerCapabilities($posttype, $args);
 
 		register_post_type($posttype::get('post_type'), $args);
-
-		// flush_rules - argument false is "soft flush"
-		// https://wpdocs.osdn.jp/Rewrite_API/flush_rules
-		global $wp_rewrite;
-		$wp_rewrite->flush_rules(false);
 
 		// taxonomies
 		self::registerTaxonomy($posttype);

@@ -3,339 +3,380 @@ namespace Dashi\Core\Posttype;
 
 class Another
 {
-	static $anothers = array();
+    static $anothers = array();
 
-	/**
-	 * forge
-	 *
-	 * @return  void
-	 */
-	public static function forge ()
-	{
-		// 差し替えのフォールバック
-		add_action(
-			'wp_loaded',
-			array('\\Dashi\\Core\\Posttype\\Another', 'forcePublish')
-		);
+    /**
+     * forge
+     *
+     * @return  void
+     */
+    public static function forge ()
+    {
+        // 差し替えのフォールバック
+        add_action(
+            'wp_loaded',
+            array('\\Dashi\\Core\\Posttype\\Another', 'forcePublish')
+        );
 
-		if ( ! is_admin()) return;
+        if ( ! is_admin()) return;
 
-		$posttypes = array('post', 'page');
-		foreach (P::instances() as $class)
-		{
-			$posttypes[] = P::class2posttype($class);
-		}
+        $posttypes = array('post', 'page');
+        foreach (P::instances() as $class)
+        {
+            $posttypes[] = P::class2posttype($class);
+        }
 
-		// すべてのポストタイプ一覧の各行に「差し替え」を追加する
-		foreach ($posttypes as $posttype)
-		{
-			add_filter(
-				$posttype.'_row_actions',
-				array('\\Dashi\\Core\\Posttype\\Another', 'addEditAnotherVersion'),
-				10,
-				2
-			);
-		}
+        // すべてのポストタイプ一覧の各行に「差し替え」を追加する
+        foreach ($posttypes as $posttype)
+        {
+            add_filter(
+                $posttype.'_row_actions',
+                array('\\Dashi\\Core\\Posttype\\Another', 'addEditAnotherVersion'),
+                10,
+                2
+            );
+        }
 
-		// 一つの記事に対して複数の差し替えを持たないようにリダイレクトする
-		add_filter(
-			'init',
-			array('\\Dashi\\Core\\Posttype\\Another', 'inhibitPluralAnotherVersion')
-		);
+        // 一つの記事に対して複数の差し替えを持たないようにリダイレクトする
+        add_filter(
+            'init',
+            array('\\Dashi\\Core\\Posttype\\Another', 'inhibitPluralAnotherVersion')
+        );
 
-		// 差し替え編集画面を作る
-		add_filter(
-			'admin_head-post-new.php', // hook_suffix
-			array('\\Dashi\\Core\\Posttype\\Another', 'editAnotherVersion')
-		);
+        // 差し替え編集画面を作る
+        add_filter(
+            'admin_head-post-new.php', // hook_suffix
+            array('\\Dashi\\Core\\Posttype\\Another', 'editAnotherVersion')
+        );
 
-		// オリジナルidを保存するためにhiddenを出力する
-		add_action(
-			'edit_form_after_title',
-			array('\\Dashi\\Core\\Posttype\\Another', 'editFormAfterTitle')
-		);
+        // オリジナルidを保存するためにhiddenを出力する
+        add_action(
+            'edit_form_after_title',
+            array('\\Dashi\\Core\\Posttype\\Another', 'editFormAfterTitle')
+        );
 
-		// 保存時にいろいろする
-		add_action(
-			'save_post',
-			array('\\Dashi\\Core\\Posttype\\Another', 'savePost')
-		);
+        // 保存時にいろいろする
+        add_action(
+            'save_post',
+            array('\\Dashi\\Core\\Posttype\\Another', 'savePost')
+        );
 
-		// 差し替えがらみのpre_get_posts
-		add_action(
-			'pre_get_posts',
-			array('\\Dashi\\Core\\Posttype\\Another', 'preGetPosts')
-		);
+        // 差し替えがらみのpre_get_posts
+        add_action(
+            'pre_get_posts',
+            array('\\Dashi\\Core\\Posttype\\Another', 'preGetPosts')
+        );
 
-		// 差し替えるためのフック
-		foreach ($posttypes as $posttype)
-		{
-			add_filter(
-				'publish_'.$posttype,
-				array('\\Dashi\\Core\\Posttype\\Another', 'futureToPublish'),
-				10,
-				2
-			);
-		}
+        // 差し替えるためのフック
+        foreach ($posttypes as $posttype)
+        {
+            add_filter(
+                'publish_'.$posttype,
+                array('\\Dashi\\Core\\Posttype\\Another', 'futureToPublish'),
+                10,
+                2
+            );
+        }
 
-		// 編集画面をいろいろするJavaScript
-		add_action(
-			'admin_head-post.php',
-			array('\\Dashi\\Core\\Posttype\\Another', 'adminHeadPostPhp')
-		);
+        // 編集画面をいろいろするJavaScript
+        add_action(
+            'admin_head-post.php',
+            array('\\Dashi\\Core\\Posttype\\Another', 'adminHeadPostPhp')
+        );
 
-		// 一覧画面の各行が差し替えを持っているかどうか確認する
-		add_filter(
-			'post_date_column_time',
-			array('\\Dashi\\Core\\Posttype\\Another', 'postDateColumnTime'),
-			10,
-			4
-		);
+        // 一覧画面の各行が差し替えを持っているかどうか確認する
+        add_filter(
+            'post_date_column_time',
+            array('\\Dashi\\Core\\Posttype\\Another', 'postDateColumnTime'),
+            10,
+            4
+        );
 
-	}
+    }
 
-	/**
-	 * postDateColumnTime
-	 *
-	 * @return  string
-	 */
-	public static function postDateColumnTime ($t_time, $post)
-	{
-		$str = '';
-		$another = static::getAnother($post->ID);
-		if ($another)
-		{
-			$another_utime = strtotime($another->post_date);
-			$date_format = get_option('date_format').' H:i';
+    /**
+     * postDateColumnTime
+     *
+     * @return  string
+     */
+    public static function postDateColumnTime ($t_time, $post)
+    {
+        $str = '';
+        $another = static::getAnother($post->ID);
+        if ($another)
+        {
+            $another_utime = strtotime($another->post_date);
+            $date_format = get_option('date_format').' H:i';
 
-			// 失敗？
-			if ((int) date_i18n('U') > $another_utime)
-			{
-				$str = __('Replace Another version was failed', 'dashi');
-				$str = '<strong style="color: #f00;display:block;">'.$str.'</strong>';
-			}
-			else
-			{
-				$str = $post->post_status == 'pending' ?
-							 __('Another version is pending (date: %s)', 'dashi') :
-							 __('Another version is exists (date: %s)', 'dashi');
-				$str = '<strong style="display:block;">'.sprintf($str, date($date_format, $another_utime)).'</strong>';
-			}
-		}
-		return $t_time.$str;
-	}
+            // 失敗？
+            if ((int) date_i18n('U') > $another_utime)
+            {
+                $str = __('Replace Another version was failed', 'dashi');
+                $str = '<strong style="color: #f00;display:block;">'.$str.'</strong>';
+            }
+            else
+            {
+                $str = $post->post_status == 'pending' ?
+                             __('Another version is pending (date: %s)', 'dashi') :
+                             __('Another version is exists (date: %s)', 'dashi');
+                $str = '<strong style="display:block;">'.sprintf($str, date($date_format, $another_utime)).'</strong>';
+            }
+        }
+        return $t_time.$str;
+    }
 
-	/**
-	 * preGetPosts
-	 *
-	 * @return  void
-	 */
-	public static function preGetPosts ()
-	{
-		// いつでも有効にするので管理画面だけとしない
-		global $wp_query;
+    /**
+     * preGetPosts
+     *
+     * @return  void
+     */
+    public static function preGetPosts ()
+    {
+        // いつでも有効にするので管理画面だけとしない
+        global $wp_query;
 
-		if (is_null($wp_query)) return;
+        if (is_null($wp_query)) return;
 
-		// 予約投稿などではフィルタを通さない
-		if (
-			isset($wp_query->query['post_status']) &&
-			in_array($wp_query->query['post_status'], array('future', 'draft'))
-		) return;
+        // 予約投稿などではフィルタを通さない
+        if (
+            isset($wp_query->query['post_status']) &&
+            in_array($wp_query->query['post_status'], array('future', 'draft'))
+        ) return;
 
-		$meta_query = $wp_query->get('meta_query');
-		if ( ! is_array($meta_query)) $meta_query = array();
-		$meta_query[] = array(
-			'key'     => 'dashi_original_id',
-			'compare' => 'NOT EXISTS',
-		);
+        $meta_query = $wp_query->get('meta_query');
+        if ( ! is_array($meta_query)) $meta_query = array();
+        $meta_query[] = array(
+            'key'     => 'dashi_original_id',
+            'compare' => 'NOT EXISTS',
+        );
 
-		// 管理画面で一覧を取得するときのみ
-		$wp_query->set('meta_query', $meta_query);
-	}
+        // 管理画面で一覧を取得するときのみ
+        $wp_query->set('meta_query', $meta_query);
+    }
 
-	/**
-	 * adminHeadPostPhp
-	 *
-	 * @return  void
-	 */
-	public static function adminHeadPostPhp ()
-	{
-		global $post;
-		if ( ! isset($post)) return;
+    /**
+     * adminHeadPostPhp
+     *
+     * @return  void
+     */
+    public static function adminHeadPostPhp ()
+    {
+        global $post;
+        if ( ! isset($post)) return;
 
-		// 通常の編集画面でのリンク文字列用
-		$str = static::getAnother($post->ID) ?
-				 'Edit another version' :
-				 'Add another version';
+        // 通常の編集画面でのリンク文字列用
+        $str = static::getAnother($post->ID) ?
+                 'Edit another version' :
+                 'Add another version';
 
-		$script = '';
-		$script.= '<script type="text/javascript">';
-		$script.= 'jQuery (function($){';
+        $script = '';
+        $script.= '<script type="text/javascript">';
+        $script.= 'jQuery (function($){';
+        $str = esc_js(esc_html($str));
 
-		// 差し替えの編集画面の場合
-		if (isset($post->dashi_original_id))
-		{
-			$original_posttype = get_post_type_object($post->post_type);
-			$str = static::getAnother($post->dashi_original_id) ?
-				 sprintf(__('Edit another version of %s', 'dashi'), $original_posttype->label) :
-				 sprintf(__('Add another version of %s', 'dashi'), $original_posttype->label);
-			$script.= '$("title").text("'.$str.'");';
-			$script.= '$("h1.wp-heading-inline").text("'.__($str, 'dashi').'");';
-			$script.= '$("a.page-title-action").hide();';
-		}
-		// 通常の編集画面
-		else
-		{
-			// 差し替えのリンク
-			$script.= '$(".wp-heading-inline").after("<a href=\"'.static::getAnotherLink($post->ID).'\" class=\"page-title-action\">'.__($str, 'dashi').'</a>");';
+        // 差し替えの編集画面の場合
+        if (isset($post->dashi_original_id))
+        {
+            $original_posttype = get_post_type_object($post->post_type);
+            $str = static::getAnother($post->dashi_original_id) ?
+                 sprintf(__('Edit another version of %s', 'dashi'), $original_posttype->label) :
+                 sprintf(__('Add another version of %s', 'dashi'), $original_posttype->label);
+            $str = esc_js(esc_html($str));
+            $script.= '$("title").text("'.$str.'");';
+            $script.= '$("h1.wp-heading-inline").text("'.__($str, 'dashi').'");';
+            $script.= '$("a.page-title-action").hide();';
+        }
+        // 通常の編集画面
+        else
+        {
+            // 差し替えのリンク
+            $script.= '$(".wp-heading-inline").after("<a href=\"'.static::getAnotherLink($post->ID).'\" class=\"page-title-action\">'.__($str, 'dashi').'</a>");';
 
-			// 差し替えが存在する場合はステータスを表示する
-			if (static::getAnother($post->ID))
-			{
-				$str = static::postDateColumnTime('', $post, '', '');
-				$class = strpos($str, 'f00') !== false ? 'error dashi_error' : 'updated';
-				$str = '<div class="message '.$class.'"><p>'.$str.'</p></div>';
-				$str = addslashes($str);
-				$script.= '$("#post-body").prepend("'.$str.'");';
-			}
-		}
+            // 差し替えが存在する場合はステータスを表示する
+            if (static::getAnother($post->ID))
+            {
+                $str = static::postDateColumnTime('', $post, '', '');
+                $class = strpos($str, 'f00') !== false ? 'error dashi_error' : 'updated';
+                $str = '<div class="message '.$class.'"><p>'.$str.'</p></div>';
+                $str = addslashes($str);
+                $script.= '$("#post-body").prepend("'.$str.'");';
+            }
+        }
 
-		$script.= '});';
-		$script.= '</script>';
-		echo $script;
-	}
+        $script.= '});';
+        $script.= '</script>';
+        echo $script;
+    }
 
-	/**
-	 * getAnother
-	 *
-	 * @return  mixed
-	 */
-	public static function getAnother ($original_id)
-	{
-		if (isset(static::$anothers[$original_id])) return static::$anothers[$original_id];
+    /**
+     * getAnother
+     *
+     * @return  mixed
+     */
+    public static function getAnother ($original_id)
+    {
+        if (isset(static::$anothers[$original_id])) return static::$anothers[$original_id];
 
-		$original = get_post($original_id);
-		if ( ! $original) return false;
+        $original = get_post($original_id);
+        if ( ! $original) return false;
 
-		$another = new \WP_Query(array(
-				'post_type' => $original->post_type,
-				'meta_key' => 'dashi_original_id',
-				'meta_value' => $original_id,
-			));
+        $another = new \WP_Query(array(
+                'post_type' => $original->post_type,
+                'meta_key' => 'dashi_original_id',
+                'meta_value' => $original_id,
+            ));
 
-		static::$anothers[$original_id] = isset($another->posts[0]) ?
-																		$another->posts[0] :
-																		false;
+        static::$anothers[$original_id] = isset($another->posts[0])
+            ? $another->posts[0]
+            : false;
 
-		return static::$anothers[$original_id];
-	}
+        return static::$anothers[$original_id];
+    }
 
-	/**
-	 * isAnother
-	 *
-	 * @return  mixed
-	 */
-	public static function isAnother ($post_id)
-	{
-		$original = get_post_meta($post_id, 'dashi_original_id', true);
-		return $original ? true : false;
-	}
+    /**
+     * isAnother
+     *
+     * @return  mixed
+     */
+    public static function isAnother ($post_id)
+    {
+        $original = get_post_meta($post_id, 'dashi_original_id', true);
+        return $original ? true : false;
+    }
 
-	/**
-	 * addEditAnotherVersion
-	 *
-	 * @return  void
-	 */
-	public static function addEditAnotherVersion ($actions, $post)
-	{
-		if ($post->post_status == 'publish' && current_user_can('edit_published_posts'))
-		{
-			$tmps = array();
-			$str = static::getAnother($post->ID) ?
-					 'Edit another version' :
-					 'Add another version';
+    /**
+     * addEditAnotherVersion
+     *
+     * @return  void
+     */
+    public static function addEditAnotherVersion ($actions, $post)
+    {
+        if ($post->post_status == 'publish' && current_user_can('edit_published_posts'))
+        {
+            $tmps = array();
+            $str = static::getAnother($post->ID) ?
+                     'Edit another version' :
+                     'Add another version';
 
-			// order
-			if (isset($actions['edit']))
-			{
-				$tmps['edit'] = $actions['edit'];
-				unset($actions['edit']);
-			}
-			if (isset($actions['inline hide-if-no-js']))
-			{
-				$tmps['inline hide-if-no-js'] = $actions['inline hide-if-no-js'];
-				unset($actions['inline hide-if-no-js']);
-			}
+            // order
+            if (isset($actions['edit']))
+            {
+                $tmps['edit'] = $actions['edit'];
+                unset($actions['edit']);
+            }
+            if (isset($actions['inline hide-if-no-js']))
+            {
+                $tmps['inline hide-if-no-js'] = $actions['inline hide-if-no-js'];
+                unset($actions['inline hide-if-no-js']);
+            }
 
-			$tmps['dashi_edit_another'] = '<a href="post-new.php?post_type='.$post->post_type.'&amp;dashi_original_id='.$post->ID.'" title="'.__('Keep this post until another post will be activated', 'dashi').'">'.__($str, 'dashi').'</a>';
+            $tmps['dashi_edit_another'] = '<a href="post-new.php?post_type='.$post->post_type.'&amp;dashi_original_id='.$post->ID.'" title="'.__('Keep this post until another post will be activated', 'dashi').'">'.__($str, 'dashi').'</a>';
 
-			$actions = $tmps + $actions;
-		}
+            $actions = $tmps + $actions;
+        }
 
-		return $actions;
-	}
+        return $actions;
+    }
 
-	/**
-	 * inhibitPluralAnotherVersion
-	 *
-	 * @return  void
-	 */
-	public static function inhibitPluralAnotherVersion ()
-	{
-		// オリジナルを取得
-		if ( ! isset($_GET['dashi_original_id'])) return;
-		$original_id = $_GET['dashi_original_id'];
+    /**
+     * inhibitPluralAnotherVersion
+     *
+     * @return  void
+     */
+    public static function inhibitPluralAnotherVersion ()
+    {
+        // オリジナルを取得
+        if ( ! isset($_GET['dashi_original_id'])) return;
+        // $original_id = $_GET['dashi_original_id'];
+        $original_id = filter_input(INPUT_GET, 'dashi_original_id', FILTER_VALIDATE_INT);
+        if (!$original_id) return;
 
-		// 差し替えの存在確認
-		$another = static::getAnother($original_id);
+        // 差し替えの存在確認
+        $another = static::getAnother($original_id);
 
-		// 差し替えが存在する場合はリダイレクト
-		if ($another)
-		{
-			wp_redirect(admin_url('post.php?post='.$another->ID.'&action=edit'));
-			exit;
-		}
-	}
+        // 差し替えが存在する場合はリダイレクト
+        if ($another)
+        {
+            wp_redirect(admin_url('post.php?post='.$another->ID.'&action=edit'));
+            exit;
+        }
+    }
 
-	/**
-	 * editAnotherVersion
-	 *
-	 * @return  void
-	 */
-	public static function editAnotherVersion ()
-	{
-		// タクソノミーはjavascriptなので、editFormAfterTitleで
+    /**
+     * editAnotherVersion
+     *
+     * @return  void
+     */
+    public static function editAnotherVersion ()
+    {
+        // タクソノミーはjavascriptなので、editFormAfterTitleで
 
-		// オリジナルを取得
-		if ( ! isset($_GET['dashi_original_id'])) return;
-		$original_id = $_GET['dashi_original_id'];
-		$original = get_post($original_id);
+        // オリジナルを取得
+        if ( ! isset($_GET['dashi_original_id'])) return;
+        // $original_id = $_GET['dashi_original_id'];
+        $original_id = filter_input(INPUT_GET, 'dashi_original_id', FILTER_VALIDATE_INT);
+        if (!$original_id) return;
 
-		global $post;
-		$post->post_title = $original->post_title;
-		$post->post_content = $original->post_content;
-		$post->post_excerpt = $original->post_excerpt;
+        $original = get_post($original_id);
 
-		// カスタムフィールド
-		$class = P::posttype2class($post->post_type);
-		foreach ($class::getCustomFieldsKeys() as $custom_field)
-		{
-			$post->$custom_field = $original->$custom_field;
-		}
+        global $post;
+        $post->post_title = $original->post_title;
+        $post->post_content = $original->post_content;
+        $post->post_excerpt = $original->post_excerpt;
 
-		// 表題をわかりやすく
-		$str = sprintf(__('Add another version of %s', 'dashi'), get_post_type_object($post->post_type)->label);
+        // カスタムフィールド
+        $class = P::posttype2class($post->post_type);
 
-		$script = '';
-		$script.= '<script type="text/javascript">';
-		$script.= 'jQuery (function($){
+        $checkscript = '';
+        $checkscript .= '<script type="text/javascript">';
+        $checkscript .= 'jQuery (function($){';
+
+        foreach ($class::getFlatCustomFields() as $key => $val) {
+            $type = isset($val['type']) ? $val['type'] : null;
+            if (!$type) continue;
+
+            // 値を取得
+            $meta_values = get_post_meta($original->ID, $key, false);
+
+            // type別に処理を分ける
+            if ($type === 'checkbox') {
+                if (!empty($meta_values)) {
+                    foreach ($meta_values as $v) {
+                        $checkscript .= '$("input[name=\'' . esc_js($key) . '[]\'][value=\'' . esc_js($v) . '\']").prop(\'checked\', true);';
+                    }
+                }
+            } elseif ($type === 'radio') {
+                if (!empty($meta_values)) {
+                    // radio は1つだけ
+                    $v = $meta_values[0];
+                    $checkscript .= '$("input[name=\'' . esc_js($key) . '\'][value=\'' . esc_js($v) . '\']").prop(\'checked\', true);';
+                }
+            } elseif ($type === 'select') {
+                if (!empty($meta_values)) {
+                    $v = $meta_values[0];
+                    $checkscript .= '$("select[name=\'' . esc_js($key) . '\']").val("' . esc_js($v) . '");';
+                }
+            }
+
+            // 値のコピー（他のタイプも含めて）
+            $post->$key = $original->$key;
+        }
+        $checkscript.= '});';
+        $checkscript.= '</script>';
+        echo $checkscript;
+
+        // h1をわかりやすく
+        $str = sprintf(__('Add another version of %s', 'dashi'), get_post_type_object($post->post_type)->label);
+
+        $script = '';
+        $script.= '<script type="text/javascript">';
+        $script.= 'jQuery (function($){
 $("title").text("'.$str.' ‹ '.get_bloginfo('site-name').' — WordPress");
 $("h1.wp-heading-inline").text("'.$str.'");
 });';
-		$script.= '</script>';
-		echo $script;
-	}
+        $script.= '</script>';
+        echo $script;
+    }
 
 	/**
 	 * editFormAfterTitle
@@ -346,7 +387,7 @@ $("h1.wp-heading-inline").text("'.$str.'");
 	{
 		global $post;
 		$original_id = isset($_GET['dashi_original_id']) ?
-								 $_GET['dashi_original_id'] :
+								 filter_input(INPUT_GET, 'dashi_original_id', FILTER_VALIDATE_INT) :
 								 $post->dashi_original_id;
 		if ( ! $original_id) return;
 		echo '<input type="hidden" name="dashi_original_id" value="'.intval($original_id).'" />';
@@ -391,7 +432,7 @@ $("h1.wp-heading-inline").text("'.$str.'");
 
 		if (is_string($link))
 		{
-			echo sprintf(__('This post is another version of <a href="%s">%s</a>. If you publish, replace post immediately.', 'dashi'), $link, $original->post_title);
+			echo sprintf(__('This post is another version of <a href="%s">%s</a>. If you publish, replace post immediately.', 'dashi'), $link, esc_html($original->post_title));
 		}
 	}
 
@@ -485,6 +526,8 @@ $("#'.$ul_id.'").find(":input").each(function(){
 	 */
 	public static function forcePublish ()
 	{
+        if (defined('WP_CLI')) return;
+
 		// あまり頻繁に走って欲しくないので、トップページを表示した時か
 		// ダッシュボードを表示した時だけ走るようにする
 		global $pagenow;
@@ -498,24 +541,40 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		if ( ! $is_dashboard && ! $is_toppage) return;
 
 		// 取り残された差し替え記事を探す
-		$args = array(
-			'post_type' => 'any',
-			'post_status' => 'future',
-		);
-		$posts = get_posts($args);
-		if (empty($posts)) return;
+        $now = current_time('mysql'); // 日時フォーマット: Y-m-d H:i:s
 
-		// 差し替え記事のうち、期日を過ぎているものを探してアップデート
-		foreach ($posts as $post)
-		{
-			if (
-				date_i18n('U') > strtotime($post->post_date) &&
-				(isset($post->dashi_original_id) && $post->dashi_original_id)
-			)
-			{
-				static::replacePosts ($post->dashi_original_id, $post->ID);
-			}
-		}
+        $args = [
+            'post_type'      => 'any',
+            'post_status'    => ['publish', 'future'],
+            'meta_query'     => [
+                [
+                    'key'     => 'dashi_original_id',
+                    'compare' => 'EXISTS',
+                ],
+            ],
+            'date_query' => [
+                [
+                    'before' => $now,
+                    'column' => 'post_date',
+                    'inclusive' => true,
+                ],
+            ],
+            'posts_per_page' => -1,
+        ];
+
+        $posts = get_posts($args);
+        if (empty($posts)) return;
+
+        foreach ($posts as $post) {
+            $original_id = get_post_meta($post->ID, 'dashi_original_id', true);
+            if (!$original_id) continue;
+
+            $original = get_post($original_id);
+            if (!$original || $original->post_status === 'trash') continue;
+
+            // 差し替え実行
+            static::replacePosts($original_id, $post->ID);
+        }
 	}
 
 	/**

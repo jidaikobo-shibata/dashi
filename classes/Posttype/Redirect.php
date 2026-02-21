@@ -10,12 +10,12 @@ class Redirect
 	 */
 	public static function redirect ()
 	{
+		global $post;
 		$post_type = '';
 
 		// singular
 		if (is_singular())
 		{
-			global $post;
 			if ( ! isset($post->post_type)) return;
 			$post_type = $post->post_type;
 		}

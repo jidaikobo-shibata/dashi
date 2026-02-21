@@ -1,5 +1,5 @@
 <?php
-	get_header();
+    get_header();
 ?>
 
 <h1><?php echo wp_get_document_title() ?></h1>
@@ -10,15 +10,15 @@
 if (isset($errors[$step]) && is_array($errors[$step]) && $is_visited):
 $html = '';
 foreach ($errors[$step] as $err => $fields):
-	foreach ($fields as $field):
-		if ( ! isset($steps[$step][$field])) continue;
-		$message = sprintf(
-			__(\Dashi\Core\Validation::getMessage($err), 'dashi'),
-			$steps[$step][$field]['label']
-		);
-		$id = \Dashi\Core\Form\Field::getId($field);
-		$html.= '	<li><a href="#'.$id.'">'.$message.'</a></li>'."\n";
-	endforeach;
+    foreach ($fields as $field):
+        if ( ! isset($steps[$step][$field])) continue;
+        $message = sprintf(
+            __(\Dashi\Core\Validation::getMessage($err), 'dashi'),
+            $steps[$step][$field]['label']
+        );
+        $id = \Dashi\Core\Form\Field::getId($field);
+        $html.= '    <li><a href="#'.$id.'">'.$message.'</a></li>'."\n";
+    endforeach;
 endforeach;
 echo '<ul class="dashi_errors">'.$html.'</ul>';
 endif;

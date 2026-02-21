@@ -211,6 +211,12 @@ class PublicForm
 		$retVal = array();
 		$retVal['dashi_uploaded_file'] = true;
 
+		$wp_filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
+		if (!$wp_filetype['ext'] || !$wp_filetype['type']) {
+			$retVal['errors'][] = __('This file type is not allowed.', 'dashi');
+			return $retVal;
+		}
+
 		// 拡張子
 		$ext = substr($file['name'], strrpos($file['name'], '.'), strlen($file['name']));
 		$ext_dotless = substr($ext, 1);
@@ -281,7 +287,7 @@ class PublicForm
 		$retVal['original_name'] = $file['name'];
 
 		// ファイル名を予測が難しいものにする
-		$name = wp_unique_filename( DASHI_TMP_UPLOAD_DIR, $name );
+		$name = wp_unique_filename( DASHI_TMP_UPLOAD_DIR, $file['name']);
 
 		$retVal['name'] = $name;
 		$upload_path = DASHI_TMP_UPLOAD_DIR.$name;
@@ -525,7 +531,7 @@ class PublicForm
 			{
 				foreach ($each_errors as $error)
 				{
-					$html.= '<li><a href="#dashi_'.$k.'">'.$error.'</a></li>';
+					$html.= '<li><a href="#dashi_'.$k.'">'.esc_html($error).'</a></li>';
 				}
 			}
 			$html.= '</ul>';
@@ -556,7 +562,7 @@ class PublicForm
 			$label = $attrs['title'].$required;
 			if (isset($attrs['type']) && ! in_array($attrs['type'], array('checkbox', 'radio')))
 			{
-				$label = '<label for="dashi_'.$field.'">'.$label.'</label>';
+				$label = '<label for="dashi_'.$field.'">'.esc_html($label).'</label>';
 			}
 
 			// 複数フィールドの場合の taxonomy 設定
@@ -714,7 +720,11 @@ class PublicForm
 		{
 			if (isset($v['private_form_only']) && $v['private_form_only'] == true) continue;
 
-			$html.= '<dt>'.$v['label'].'</dt>';
+			if (isset($v['options'])) {
+				$v['options'] = \Dashi\Core\Util::resolveOptions($v['options']);
+			}
+
+			$html.= '<dt>'.esc_html($v['label']).'</dt>';
 			$html.= '<dd>';
 			if (isset($vals->$k))
 			{
@@ -761,7 +771,7 @@ class PublicForm
 						}
 						else
 						{
-							$html.= join(', ', $vals->$k);
+							$html.= join(', ', array_map('esc_html', $vals->$k));
 						}
 					}
 				}
@@ -1052,6 +1062,11 @@ class PublicForm
 			if ( ! isset($fields[$k])) continue;
 			if ($is_admin && isset($fields[$k]['public_form_allow_send_by_mail']) && $fields[$k]['public_form_allow_send_by_mail'] === false) continue;
 
+			$field = $fields[$k];
+			if (isset($field['options'])) {
+				$field['options'] = \Dashi\Core\Util::resolveOptions($field['options']);
+			}
+
 			// taxonomies
 			$terms = array();
 			if (isset($taxonomies[$k]))
@@ -1094,9 +1109,9 @@ class PublicForm
 					$tmps = array();
 					foreach ($v as $vv)
 					{
-						if (isset($fields[$k]['options']) && isset($fields[$k]['options'][$vv]))
+						if (isset($field['options']) && isset($field['options'][$vv]))
 						{
-							$tmps[] = esc_html($fields[$k]['options'][$vv]).'('.esc_html($vv).')';
+							$tmps[] = esc_html($field['options'][$vv]).'('.esc_html($vv).')';
 						}
 						elseif (isset($terms[$vv]))
 						{
@@ -1116,9 +1131,9 @@ class PublicForm
 			// ordinary values
 			else
 			{
-				if (isset($fields[$k]['options']) && isset($fields[$k]['options'][$v]))
+				if (isset($field['options']) && isset($field['options'][$v]))
 				{
-					$body.= esc_html($fields[$k]['options'][$v]).'('.esc_html($v).")\n\n";
+					$body.= esc_html($field['options'][$v]).'('.esc_html($v).")\n\n";
 				}
 				elseif (isset($terms[$v]))
 				{
