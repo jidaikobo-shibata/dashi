@@ -33,6 +33,16 @@ class PublicForm
 		);
 
 		static::createUploadDir();
+
+		add_action(
+			'dashi_public_form_gc_hook',
+			array('\\Dashi\\Core\\Posttype\\PublicForm', 'runGarbageCollection')
+		);
+
+		if ( ! wp_next_scheduled('dashi_public_form_gc_hook'))
+		{
+			wp_schedule_event(time(), 'hourly', 'dashi_public_form_gc_hook');
+		}
 	}
 
 	/**
@@ -47,41 +57,50 @@ class PublicForm
 			$posttypes[] = P::class2posttype($class);
 		}
 
+		$files = array();
+
 		foreach ($posttypes as $post_type)
 		{
-
 			$class = P::posttype2class($post_type);
-			$fields = $class::getFlatCustomFields();
+			if ( ! $class || ! class_exists($class))
+			{
+				continue;
+			}
 
+			$fields = $class::getFlatCustomFields();
 			$pendings = get_posts(array(
-				'post_type'   => $posttypes,
-				'post_status' => 'pending',
+				'post_type'      => $posttypes,
+				'post_status'    => 'pending',
 				'posts_per_page' => -1,
 			));
-
-			$files = array();
 
 			foreach ($pendings as $pending)
 			{
 				foreach ($fields as $field => $attr)
 				{
-					if ($attr['type'] == 'file')
+					if ( ! isset($attr['type']) || $attr['type'] != 'file')
 					{
-						$name = str_replace(static::uploadUrl(), '', $pending->{$field});
+						continue;
+					}
 
-						if ($name && file_exists(DASHI_TMP_UPLOAD_DIR.$name))
-						{
-							$files[] = DASHI_TMP_UPLOAD_DIR.$name;
-						}
+					$name = str_replace(static::uploadUrl(), '', $pending->{$field});
+					if ($name && file_exists(DASHI_TMP_UPLOAD_DIR.$name))
+					{
+						$files[] = DASHI_TMP_UPLOAD_DIR.$name;
 					}
 				}
 			}
 
-			// 安全性の確認
 			if ( ! file_exists(DASHI_TMP_UPLOAD_DIR.'.htaccess'))
 			{
 				file_put_contents(DASHI_TMP_UPLOAD_DIR.'.htaccess', 'deny from all');
 			}
+		}
+
+		$ttl = intval(apply_filters('dashi_public_form_tmp_file_ttl', DAY_IN_SECONDS));
+		if ($ttl < 60)
+		{
+			$ttl = DAY_IN_SECONDS;
 		}
 
 		$files = array_unique($files);
@@ -89,12 +108,16 @@ class PublicForm
 		{
 			if (in_array($filename, $files)) continue;
 
-			// 投稿したてのものを消さないように時間もみる
-			if (filectime($filename) <= time() - 100)//86400)
+			if (filectime($filename) <= time() - $ttl)
 			{
 				unlink($filename);
 			}
 		}
+	}
+
+	public static function runGarbageCollection()
+	{
+		static::garbageCollection();
 	}
 
 	/**

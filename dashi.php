@@ -139,6 +139,13 @@ register_activation_hook(
     }
 );
 
+register_deactivation_hook(
+    DASHI_FILE,
+    function () {
+        wp_clear_scheduled_hook('dashi_public_form_gc_hook');
+    }
+);
+
 // Keep SSL connection
 if (get_option('dashi_keep_ssl_connection'))
 {
