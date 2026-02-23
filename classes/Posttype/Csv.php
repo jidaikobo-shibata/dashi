@@ -144,7 +144,7 @@ class Csv
 
 		foreach($arr as $line){
 //			mb_convert_variables('SJIS', 'UTF-8', $line);
-			fputcsv($fp, $line, $delimiter);
+			fputcsv($fp, self::sanitizeCsvLine($line), $delimiter);
 		}
 		fclose($fp);
 
@@ -156,5 +156,45 @@ class Csv
 		readfile($tmpfile);
 		@unlink($tmpfile);
 		exit();
+	}
+	private static function sanitizeCsvLine($line)
+	{
+		if (!is_array($line))
+		{
+			return array(self::sanitizeCsvCell($line));
+		}
+
+		return array_map(function ($cell)
+		{
+			return self::sanitizeCsvCell($cell);
+		}, $line);
+	}
+
+	private static function sanitizeCsvCell($cell)
+	{
+		if (is_array($cell) || is_object($cell))
+		{
+			$cell = wp_json_encode($cell);
+		}
+		elseif (is_bool($cell))
+		{
+			$cell = $cell ? '1' : '0';
+		}
+		elseif ($cell === null)
+		{
+			$cell = '';
+		}
+		else
+		{
+			$cell = (string) $cell;
+		}
+
+		// Prevent spreadsheet formula execution when a cell starts with a formula marker.
+		if ($cell !== '' && preg_match('/^\s*[=+\-@\t\r\n]/u', $cell))
+		{
+			return "'" . $cell;
+		}
+
+		return $cell;
 	}
 }
