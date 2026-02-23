@@ -245,6 +245,7 @@ class CustomFields
 					'home_url'     => home_url(),
 					'ajax_url'     => admin_url('admin-ajax.php'),
 					'action'       => 'custom_referencer',
+					'nonce'        => wp_create_nonce('dashi_custom_referencer'),
 				)
 			);
 		}
@@ -898,29 +899,43 @@ class CustomFields
 	 */
 	public static function referencer_ajax_handler()
 	{
-		// post_type
-		// page
-		// search
-		$args = array('posts_per_page' => '20',);
-
-		if ($post_type = \Dashi\Core\Input::post('post_type', false))
+		$nonce_ok = check_ajax_referer('dashi_custom_referencer', '_wpnonce', false);
+		if ( ! $nonce_ok)
 		{
+			wp_send_json_error(array('message' => 'invalid nonce'), 403);
+		}
+
+		if ( ! current_user_can('edit_posts'))
+		{
+			wp_send_json_error(array('message' => 'forbidden'), 403);
+		}
+
+		$args = array('posts_per_page' => 20);
+
+		$allowed_post_types = array();
+		foreach (\Dashi\P::instances() as $class)
+		{
+			$allowed_post_types[] = \Dashi\P::class2posttype($class);
+		}
+
+		$post_type = \Dashi\Core\Input::post('post_type', false);
+		if ($post_type)
+		{
+			$post_type = sanitize_key($post_type);
+			if ( ! in_array($post_type, $allowed_post_types, true))
+			{
+				wp_send_json_error(array('message' => 'invalid post_type'), 400);
+			}
 			$args['post_type'] = $post_type;
 		}
 
-		if ($search = \Dashi\Core\Input::post('search', false))
+		$search = \Dashi\Core\Input::post('search', false);
+		if ($search !== false && $search !== null && $search !== '')
 		{
-			$args['s'] = $search;
-			/*
-			$args['meta_query'] = array(
-				// 'relation' => 'OR',
-				array('compare' => 'like', 'key' => 'dashi_search', 'value' => $search),
-			);
-			 */
+			$args['s'] = sanitize_text_field($search);
 		}
 
 		$results = get_posts($args);
-
 		wp_send_json_success($results);
 	}
 

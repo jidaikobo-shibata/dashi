@@ -63,7 +63,8 @@ jQuery(function($)
 
 		var fd = new FormData();
 		fd.append('action', Params.action);
-		fd.append('post_type', post_type);
+			fd.append('_wpnonce', Params.nonce);
+			fd.append('post_type', post_type);
 		fd.append('search', search);
 
 		$.ajax({
