@@ -9,10 +9,35 @@ $base_dir = trailingslashit($upload_dir['basedir']) . 'dashi_uploads/';
 // ファイル名を取得（basename でパストラバーサル防止）
 $filename = basename($_GET['path'] ?? '');
 
-// 許可拡張子をチェック
-$allowed_ext = ['jpg', 'jpeg', 'pdf'];
+// 公開フォームの既定許可拡張子と整合させる
+$allowed_patterns = [
+    'jpg|jpeg|jpe',
+    'gif',
+    'png',
+    'mp4|m4v',
+    'txt|asc|c|cc|h|srt',
+    'csv',
+    'tsv',
+    'wav',
+    'pdf',
+    'zip',
+    'doc',
+    'pot|pps|ppt',
+    'xla|xls|xlt|xlw',
+    'docx',
+    'xlsx',
+    'pptx',
+];
 $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-if (!in_array($ext, $allowed_ext, true)) {
+$is_allowed = false;
+foreach ($allowed_patterns as $pattern) {
+    $re = '/^(?:' . str_replace('\|', '|', preg_quote($pattern, '/')) . ')$/i';
+    if (preg_match($re, $ext)) {
+        $is_allowed = true;
+        break;
+    }
+}
+if (!$is_allowed) {
     status_header(403);
     exit('Forbidden: Invalid file type.');
 }
@@ -29,12 +54,13 @@ if (
 }
 
 // 適切な Content-Type を送信
-$content_types = [
-    'jpg' => 'image/jpeg',
-    'jpeg' => 'image/jpeg',
-    'pdf' => 'application/pdf',
-];
-header('Content-Type: ' . $content_types[$ext]);
+$wp_filetype = wp_check_filetype($filename);
+$content_type = !empty($wp_filetype['type']) ? $wp_filetype['type'] : 'application/octet-stream';
+header('Content-Type: ' . $content_type);
+header('X-Content-Type-Options: nosniff');
+if (!preg_match('/^(image\\/|video\\/|audio\\/|application\\/pdf$)/i', $content_type)) {
+    header('Content-Disposition: attachment; filename="' . rawurlencode($filename) . '"');
+}
 header('Content-Length: ' . filesize($filepath));
 
 // ファイル出力

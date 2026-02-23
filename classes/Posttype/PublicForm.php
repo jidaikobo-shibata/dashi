@@ -117,9 +117,9 @@ class PublicForm
 		// post_id
 		global $post;
 
-		// req_method
-		$req_method = filter_input(INPUT_SERVER, "REQUEST_METHOD");
-		$req_method = $req_method ? $req_method : filter_input(INPUT_ENV, "REQUEST_METHOD");
+			// req_method
+			$req_method = filter_input(INPUT_SERVER, "REQUEST_METHOD");
+			$req_method = $req_method ? $req_method : filter_input(INPUT_ENV, "REQUEST_METHOD");
 
 			// nonce check (public form submit only)
 			$is_public_form_submit = (
@@ -149,9 +149,14 @@ class PublicForm
 					exit();
 				}
 			}
+			elseif ($req_method == 'GET')
+			{
+				// Initial page load should not revive stale upload/session values.
+				Session::remove('dashi_public_form', $form);
+			}
 
-		// set value
-		$vals = self::setValue($class, $form, $req_method);
+			// set value
+			$vals = self::setValue($class, $form, $req_method);
 
 		// posted value
 		$errors = array();
@@ -340,6 +345,11 @@ class PublicForm
 		if (@move_uploaded_file($file['tmp_name'], $upload_path))
 		{
 			chmod($upload_path, 0644);
+		}
+		else
+		{
+			$retVal['errors'][] = __('Failed to store uploaded file.', 'dashi');
+			return $retVal;
 		}
 		return $retVal;
 	}
@@ -546,7 +556,13 @@ class PublicForm
 			$html.= '</section>';
 		}
 
-		$require_str = '&nbsp;<span class="required">'.__('Required', 'dashi').'</span>';
+			$require_str = '&nbsp;<span class="required">'.__('Required', 'dashi').'</span>';
+			$allowed_label_tags = array(
+				'span' => array('class' => true),
+				'strong' => array(),
+				'em' => array(),
+				'br' => array(),
+			);
 
 		// fetch forms from ob
 		$is_file_exist = false;
@@ -567,11 +583,12 @@ class PublicForm
 			}
 
 			// label
-			$label = $attrs['title'].$required;
-			if (isset($attrs['type']) && ! in_array($attrs['type'], array('checkbox', 'radio')))
-			{
-				$label = '<label for="dashi_'.$field.'">'.esc_html($label).'</label>';
-			}
+				$safe_title = wp_kses((string) $attrs['title'], $allowed_label_tags);
+				$label = $safe_title.$required;
+				if (isset($attrs['type']) && ! in_array($attrs['type'], array('checkbox', 'radio')))
+				{
+					$label = '<label for="dashi_'.$field.'">'.$label.'</label>';
+				}
 
 			// 複数フィールドの場合の taxonomy 設定
 			if (isset($attrs['args']['fields']) && is_array($attrs['args']['fields']))
@@ -681,6 +698,8 @@ class PublicForm
 					'ajax_url'     => admin_url('admin-ajax.php'),
 					'upload_url'   => static::uploadUrl(),
 					'action'       => 'public_uploader_ajax',
+					'upload_nonce' => wp_create_nonce('dashi_public_uploader'),
+					'max_upload_size' => wp_max_upload_size(),
 					'form'         => $form,
 					'session'      => Session::show('dashi_public_form') ?: array(),
 				));
@@ -691,16 +710,27 @@ class PublicForm
 
 	public static function uploader_ajax_handler()
 	{
-		$file = $_FILES['file_data'];
+		$nonce_ok = check_ajax_referer('dashi_public_uploader', '_wpnonce', false);
+		if (!$nonce_ok)
+		{
+			wp_send_json_error(array('message' => 'invalid nonce'), 403);
+		}
 
-		$class = \Dashi\P::posttype2class($_POST['form']);
+		$file = $_FILES['file_data'];
+		$form = isset($_POST['form']) ? sanitize_key($_POST['form']) : '';
+
+		$class = \Dashi\P::posttype2class($form);
 
 		if (!$file || !$class)
 		{
-			wp_die();
+			wp_send_json_error(array('message' => 'invalid request'), 400);
 		}
 
 		$result = static::handleUpload($class, $file);
+		if (isset($result['errors']) && is_array($result['errors']) && !empty($result['errors']))
+		{
+			wp_send_json_error($result, 400);
+		}
 		if ($result)
 		{
 			$wp_filetype = wp_check_filetype_and_ext(DASHI_TMP_UPLOAD_DIR.$result['name'],DASHI_TMP_UPLOAD_DIR.$result['name']);

@@ -72,12 +72,21 @@ jQuery(function($)
 				for (var index in files)
 				{
 					var file = files[index];
-					if (file instanceof File)
-					{
-						var fd = new FormData();
-						fd.append('action', DashiUpload.action);
-						fd.append('file_data', file);
-						fd.append('form', DashiUpload.form);
+						if (file instanceof File)
+						{
+							var maxUploadSize = parseInt(DashiUpload.max_upload_size || 0, 10);
+							if (maxUploadSize > 0 && file.size > maxUploadSize)
+							{
+								var maxMb = (maxUploadSize / (1024 * 1024)).toFixed(1);
+								alert('ファイルサイズが大きすぎます。上限は約' + maxMb + 'MBです。');
+								continue;
+							}
+
+							var fd = new FormData();
+							fd.append('action', DashiUpload.action);
+							fd.append('_wpnonce', DashiUpload.upload_nonce);
+							fd.append('file_data', file);
+							fd.append('form', DashiUpload.form);
 						/*
 						 * handle が難しい(over size など)ので
 						 * 個別に ajax を飛ばす
@@ -140,11 +149,24 @@ jQuery(function($)
 								if (result.data['exif']) upload_target_area.append('<input type="hidden" class="filevalue" name="' + field_name + '[exif]" value="' + result.data['exif'].replace(/\"/g, "&quot;") + '">'); // path を保存
 								
 							}
-						}).fail(function( result ){
-							console.log('fail');
+							}).fail(function( result ){
+								console.log('fail');
 								console.log(result);
-							alert ('アップロードに失敗');
-						}).always(function( result ) {
+
+								var message = 'アップロードに失敗';
+								if (result && result.responseJSON && result.responseJSON.data)
+								{
+									if (Array.isArray(result.responseJSON.data.errors) && result.responseJSON.data.errors.length)
+									{
+										message = result.responseJSON.data.errors.join("\n");
+									}
+									else if (result.responseJSON.data.message)
+									{
+										message = result.responseJSON.data.message.toString();
+									}
+								}
+								alert(message);
+							}).always(function( result ) {
 							console.log('always');
 							console.log(result);
 							$('.ajax-uploading').remove()

@@ -30,7 +30,7 @@ class Save
 				if ($v['type'] != 'file') continue;
 
 				$post_values[$k] = $post->{$k};
-				error_log($post->{$k});
+					// error_log($post->{$k});
 			}
 
 			delete_post_meta($post_id, '_dashi_pubic_form_pending_process');
