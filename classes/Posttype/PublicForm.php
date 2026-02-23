@@ -710,6 +710,8 @@ class PublicForm
 
 	public static function uploader_ajax_handler()
 	{
+		static::enforceUploadRateLimit();
+
 		$nonce_ok = check_ajax_referer('dashi_public_uploader', '_wpnonce', false);
 		if (!$nonce_ok)
 		{
@@ -1011,6 +1013,57 @@ class PublicForm
 			{
 				throw new \Exception (__('set "re_subject" when use auto_reply.', 'dashi'));
 			}
+		}
+	}
+
+	/**
+	 * Simple IP-based rate limiting for public uploader.
+	 *
+	 * @return void
+	 */
+	private static function enforceUploadRateLimit()
+	{
+		$limit = 10;
+		$window_seconds = 60;
+
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
+		$key = 'dashi_upl_rate_' . md5($ip);
+		$now = time();
+
+		$state = get_transient($key);
+		if (!is_array($state) || !isset($state['count']) || !isset($state['start']))
+		{
+			$state = array(
+				'count' => 0,
+				'start' => $now,
+			);
+		}
+
+		// Reset the bucket when the window has passed.
+		if (($now - intval($state['start'])) >= $window_seconds)
+		{
+			$state = array(
+				'count' => 0,
+				'start' => $now,
+			);
+		}
+
+		$state['count'] = intval($state['count']) + 1;
+		set_transient($key, $state, $window_seconds);
+
+		if ($state['count'] > $limit)
+		{
+			$retry_after = max(1, $window_seconds - ($now - intval($state['start'])));
+			wp_send_json_error(
+				array(
+					'message' => sprintf(
+						__('Too many upload requests. Please wait %d seconds and try again.', 'dashi'),
+						$retry_after
+					),
+					'retry_after' => $retry_after,
+				),
+				429
+			);
 		}
 	}
 
