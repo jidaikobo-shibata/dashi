@@ -15,6 +15,7 @@ jQuery(function($)
 		// var id = name.replace('[', '_').replace(']', '_');
 		var id = name;
 			var session = DashiUpload.session || {};
+			var sessionUrls = DashiUpload.session_urls || {};
 
 		var uploader_element = $('<div class="__uploader" data-name="' + name + '"></div>');
 		var upload_button_element = $('<a class="__uploader_button button" href="">ファイルをアップロード</a>');
@@ -29,7 +30,8 @@ jQuery(function($)
 		{
 			var filename = session[DashiUpload.form][name].name;
 
-			image_element.append('<img style="max-width:200px; display:block;" src="' + DashiUpload.upload_url + filename + '">');
+			var previewUrl = sessionUrls[name] ? sessionUrls[name] : (DashiUpload.upload_url + filename);
+			image_element.append('<img style="max-width:200px; display:block;" src="' + previewUrl + '">');
 			image_element.append('<input type="hidden" class="filename" name="'  + name + '[name]" value="' + filename + '">'); // path を保存
 			image_element.append('<input type="hidden" class="filevalue" name="' + name + '[dashi_uploaded_file]" value="1">'); // path を保存
 			if (session[DashiUpload.form][name].exif)

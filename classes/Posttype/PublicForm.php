@@ -83,7 +83,7 @@ class PublicForm
 						continue;
 					}
 
-					$name = str_replace(static::uploadUrl(), '', $pending->{$field});
+					$name = static::extractUploadedFilename($pending->{$field});
 					if ($name && file_exists(DASHI_TMP_UPLOAD_DIR.$name))
 					{
 						$files[] = DASHI_TMP_UPLOAD_DIR.$name;
@@ -396,6 +396,79 @@ class PublicForm
 	public static function uploadUrl()
 	{
 		return plugins_url().'/dashi/file.php?path=';
+	}
+
+	private static function signedUploadUrl($filename, $ttl = null)
+	{
+		$filename = sanitize_file_name(wp_basename((string) $filename));
+		if ($filename === '')
+		{
+			return '';
+		}
+
+		if ($ttl === null)
+		{
+			$ttl = intval(apply_filters('dashi_public_upload_url_ttl', 1800));
+		}
+		if ($ttl < 60)
+		{
+			$ttl = 1800;
+		}
+
+		$exp = time() + $ttl;
+		$sig = hash_hmac('sha256', $filename.'|'.$exp, wp_salt('auth'));
+
+		return plugins_url().'/dashi/file.php?path='.rawurlencode($filename).'&exp='.$exp.'&sig='.rawurlencode($sig);
+	}
+
+	private static function extractUploadedFilename($value)
+	{
+		if (!is_string($value) || $value === '')
+		{
+			return '';
+		}
+
+		$query = wp_parse_url($value, PHP_URL_QUERY);
+		if ($query)
+		{
+			$params = array();
+			parse_str($query, $params);
+			if (!empty($params['path']))
+			{
+				return sanitize_file_name(wp_basename(rawurldecode((string) $params['path'])));
+			}
+		}
+
+		if (strpos($value, static::uploadUrl()) === 0)
+		{
+			return sanitize_file_name(wp_basename(substr($value, strlen(static::uploadUrl()))));
+		}
+
+		return sanitize_file_name(wp_basename($value));
+	}
+
+	private static function buildSessionSignedUrls($form)
+	{
+		$all = Session::show('dashi_public_form');
+		if (!is_array($all) || !isset($all[$form]) || !is_array($all[$form]))
+		{
+			return array();
+		}
+
+		$urls = array();
+		foreach ($all[$form] as $field => $item)
+		{
+			if (is_array($item) && !empty($item['name']))
+			{
+				$url = static::signedUploadUrl($item['name']);
+				if ($url)
+				{
+					$urls[$field] = $url;
+				}
+			}
+		}
+
+		return $urls;
 	}
 
 	/**
@@ -720,6 +793,7 @@ class PublicForm
 					'home_url'     => home_url(),
 					'ajax_url'     => admin_url('admin-ajax.php'),
 					'upload_url'   => static::uploadUrl(),
+					'session_urls' => static::buildSessionSignedUrls($form),
 					'action'       => 'public_uploader_ajax',
 					'upload_nonce' => wp_create_nonce('dashi_public_uploader'),
 					'max_upload_size' => wp_max_upload_size(),
@@ -761,7 +835,7 @@ class PublicForm
 			$wp_filetype = wp_check_filetype_and_ext(DASHI_TMP_UPLOAD_DIR.$result['name'],DASHI_TMP_UPLOAD_DIR.$result['name']);
 			$result['ext']  = empty( $wp_filetype['ext'] ) ? '' : $wp_filetype['ext'];
 			$result['type'] = empty( $wp_filetype['type'] ) ? '' : $wp_filetype['type'];
-			$result['path'] = static::uploadUrl().$result['name'];
+			$result['path'] = static::signedUploadUrl($result['name']);
 			wp_send_json_success($result);
 		}
 	}
@@ -799,10 +873,22 @@ class PublicForm
 						$html.= esc_html($vals->{$k}['place']).'<br />';
 						$html.= '<iframe title="Google Map" style="width:100%;min-height:200px;" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.co.jp/maps/place?q='.esc_html($vals->{$k}['lat']).','.esc_html($vals->{$k}['lng']).'&output=embed&t=m&z='.intval($vals->{$k}['zoom']).'"></iframe>';
 					}
-					// 画像の場合
+					// ファイルの場合（画像のみプレビュー、それ以外はリンク）
 					elseif (isset($vals->{$k}['dashi_uploaded_file']))
 					{
-						$html.= '<img width="200" src="'.static::uploadUrl().urlencode(esc_html($vals->{$k}['name'])).'" alt="uploaded file" />';
+						$file_name = isset($vals->{$k}['name']) ? (string) $vals->{$k}['name'] : '';
+						$signed_url = static::signedUploadUrl($file_name);
+						$wp_filetype = wp_check_filetype($file_name);
+						$is_image = !empty($wp_filetype['type']) && strpos($wp_filetype['type'], 'image/') === 0;
+
+						if ($is_image)
+						{
+							$html.= '<img width="200" src="' . esc_url($signed_url) . '" alt="uploaded file" />';
+						}
+						else
+						{
+							$html.= '<a href="' . esc_url($signed_url) . '" target="_blank" rel="noopener noreferrer">' . esc_html($file_name) . '</a>';
+						}
 					}
 					// その他の配列
 					else
@@ -1209,9 +1295,10 @@ class PublicForm
 				{
 					if ($is_admin)
 					{
-						$csv[] = esc_html(static::uploadUrl().$v['name']);
+						$signed_upload_url = static::signedUploadUrl($v['name']);
+						$csv[] = esc_html($signed_upload_url);
 						$csv[] = isset($v['exif']) ? $v['exif'] : '' ;
-						$body.= esc_html(static::uploadUrl().$v['name'])."\n\n";
+						$body.= esc_html($signed_upload_url)."\n\n";
 					}
 					else
 					{
@@ -1300,7 +1387,7 @@ class PublicForm
 			$eyecatched = false;
 
 			// ファイル名
-			$file = substr($post->$k, strripos($post->$k, '=') + 1);
+			$file = static::extractUploadedFilename($post->$k);
 
 			// 年単位のディレクトリに保管する
 			$upload_dirs = wp_upload_dir();
