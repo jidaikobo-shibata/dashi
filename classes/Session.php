@@ -218,7 +218,7 @@ class Session
 			}
 			if (isset(static::$values[$realm]))
 			{
-				$vals = array_replace($vals, static::$values[$realm]);
+				$vals = static::mergeValues($vals, static::$values[$realm]);
 			}
 			if ($is_once) static::remove($realm);
 		}
@@ -234,11 +234,37 @@ class Session
 			}
 			if (isset(static::$values[$realm][$key]))
 			{
-				$vals = array_replace($vals, static::$values[$realm][$key]);
+				$vals = static::mergeValues($vals, static::$values[$realm][$key]);
 			}
 			if ($is_once) static::remove($realm, $key);
 		}
 		return $vals ?: false;
+	}
+
+	/**
+	 * Merge mixed values safely for session fetch.
+	 *
+	 * @param mixed $left
+	 * @param mixed $right
+	 * @return mixed
+	 */
+	private static function mergeValues($left, $right)
+	{
+		// array + array
+		if (is_array($left) && is_array($right))
+		{
+			return array_replace($left, $right);
+		}
+
+		// object/array mixed
+		if ((is_object($left) || is_array($left)) && (is_object($right) || is_array($right)))
+		{
+			$merged = array_replace((array) $left, (array) $right);
+			return (is_object($left) || is_object($right)) ? (object) $merged : $merged;
+		}
+
+		// scalar fallback
+		return $right ?: $left;
 	}
 
 	/**

@@ -109,6 +109,10 @@ class PublicForm
 		if ( ! $form) return 'error: specify valid form';
 		if (is_admin()) return;
 		$class = \Dashi\Core\Posttype\Posttype::posttype2class($form);
+		if ( ! $class || ! class_exists($class))
+		{
+			return 'error: invalid form "' . esc_html($form) . '"';
+		}
 
 		// post_id
 		global $post;
@@ -117,30 +121,34 @@ class PublicForm
 		$req_method = filter_input(INPUT_SERVER, "REQUEST_METHOD");
 		$req_method = $req_method ? $req_method : filter_input(INPUT_ENV, "REQUEST_METHOD");
 
-		// nonce check
-		if ($req_method == 'POST')
-		{
-			$valid_post = false;
-			$wpnonce = filter_input(INPUT_POST, "_wpnonce");
-			if ($wpnonce)
+			// nonce check (public form submit only)
+			$is_public_form_submit = (
+				filter_input(INPUT_POST, "dashi_public_form_do_final") ||
+				filter_input(INPUT_POST, "dashi_public_form_send")
+			);
+			if ($req_method == 'POST' && $is_public_form_submit)
 			{
-				if (filter_input(INPUT_POST, "dashi_public_form_do_final"))
+				$valid_post = false;
+				$wpnonce = filter_input(INPUT_POST, "_wpnonce");
+				if ($wpnonce)
 				{
-					$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form_do_final');
+					if (filter_input(INPUT_POST, "dashi_public_form_do_final"))
+					{
+						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form_do_final');
+					}
+					if (filter_input(INPUT_POST, "dashi_public_form_send"))
+					{
+						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form');
+					}
 				}
-				if (filter_input(INPUT_POST, "dashi_public_form_send"))
-				{
-					$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form');
-				}
-			}
 
-			if ( ! $valid_post)
-			{
-				// タイミング的にリダイレクトできないのでexit()のみ
-				// wp_safe_redirect(home_url());
-				exit();
+				if ( ! $valid_post)
+				{
+					// タイミング的にリダイレクトできないのでexit()のみ
+					// wp_safe_redirect(home_url());
+					exit();
+				}
 			}
-		}
 
 		// set value
 		$vals = self::setValue($class, $form, $req_method);
