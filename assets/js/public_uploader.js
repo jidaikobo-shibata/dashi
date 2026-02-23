@@ -14,7 +14,7 @@ jQuery(function($)
 
 		// var id = name.replace('[', '_').replace(']', '_');
 		var id = name;
-		var session = DashiUpload.session;
+			var session = DashiUpload.session || {};
 
 		var uploader_element = $('<div class="__uploader" data-name="' + name + '"></div>');
 		var upload_button_element = $('<a class="__uploader_button button" href="">ファイルをアップロード</a>');
@@ -113,11 +113,11 @@ jQuery(function($)
 									return;
 								}
 
-								if (result.data.errors.length)
-								{
-									alert(result.data.errors);
-									return;
-								}
+									if (Array.isArray(result.data.errors) && result.data.errors.length)
+									{
+										alert(result.data.errors);
+										return;
+									}
 
 								if (! upload_target_area) return;
 

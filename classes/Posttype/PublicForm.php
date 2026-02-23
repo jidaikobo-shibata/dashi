@@ -302,17 +302,17 @@ class PublicForm
 
 		// EXIFを送信する場合ここで確保
 		$retVal['exif'] = array();
-		if ($class::get('is_send_exif'))
-		{
-			if (function_exists('exif_read_data'))
+			if ($class::get('is_send_exif'))
 			{
-				$retVal['exif'] = $class::get('is_send_exif') ?
-												@exif_read_data($file["tmp_name"], 0, true) : '';
-			}
-			else
-			{
-				if (is_user_logged_in()) die('function exif_read_data is not exist.');
-			}
+				if (function_exists('exif_read_data'))
+				{
+					$retVal['exif'] = $class::get('is_send_exif') ?
+													@exif_read_data($file["tmp_name"], 0, true) : '';
+				}
+				else
+				{
+					$retVal['exif'] = array();
+				}
 
 			// ajax でも処理するので json 形式に
 			if (is_array($retVal['exif']))
@@ -322,19 +322,19 @@ class PublicForm
 		}
 
 		// EXIFを削除
-		if ($class::get('public_form_remove_exif'))
-		{
-			if (class_exists('Imagick'))
+			if ($class::get('public_form_remove_exif'))
 			{
-				$imagick = new \Imagick($file["tmp_name"]);
-				$imagick->stripimage();
-				$imagick->writeimage($file["tmp_name"]);
+				if (class_exists('Imagick'))
+				{
+					$imagick = new \Imagick($file["tmp_name"]);
+					$imagick->stripimage();
+					$imagick->writeimage($file["tmp_name"]);
+				}
+				else
+				{
+					// Skip EXIF stripping when Imagick is unavailable.
+				}
 			}
-			else
-			{
-				if (is_user_logged_in()) die('class Imagick is not exist.');
-			}
-		}
 
 		// uploadする
 		if (@move_uploaded_file($file['tmp_name'], $upload_path))
@@ -676,15 +676,15 @@ class PublicForm
 
 			wp_enqueue_script('dashi_js_pubic_uploader',
 				plugins_url('assets/js/public_uploader.js', DASHI_FILE));
-			wp_localize_script('dashi_js_pubic_uploader', 'DashiUpload', array(
-				'home_url'     => home_url(),
-				'ajax_url'     => admin_url('admin-ajax.php'),
-				'upload_url'   => static::uploadUrl(),
-				'action'       => 'public_uploader_ajax',
-				'form'         => $form,
-				'session'      => Session::show('dashi_public_form'),
-			));
-		}
+				wp_localize_script('dashi_js_pubic_uploader', 'DashiUpload', array(
+					'home_url'     => home_url(),
+					'ajax_url'     => admin_url('admin-ajax.php'),
+					'upload_url'   => static::uploadUrl(),
+					'action'       => 'public_uploader_ajax',
+					'form'         => $form,
+					'session'      => Session::show('dashi_public_form') ?: array(),
+				));
+			}
 
 		return $beg.$html.$end;
 	}
