@@ -69,6 +69,9 @@ class Sample extends \Dashi\Core\Posttype\Base
           'label'       => 'sample field 1',
           'description' => '',
 
+          // <?php echo __('show filter input to narrow down options (select/radio/checkbox)', 'dashi')."\n" ?>
+          'filter' => true,
+
           // <?php echo __('You may create duplicatable meta_box.', 'dashi')."\n" ?>
           'duplicate' => true,
 

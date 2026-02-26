@@ -27,6 +27,7 @@ class CustomFieldsCategories
         {
             $description = isset($custom_field['description']) ? $custom_field['description'] : '';
             $attrs = isset($custom_field['attrs']) ? $custom_field['attrs'] : array();
+            $filterable = ! empty($custom_field['filter']);
             // $options = isset($custom_field['options']) ? $custom_field['options'] : array();
             $options = [];
             if (isset($custom_field['options'])) {
@@ -61,7 +62,7 @@ class CustomFieldsCategories
                         $description,
                         $attrs,
                         '', //template
-                        true
+                        $filterable
                     );
                     break;
                 case 'checkbox':
@@ -72,7 +73,7 @@ class CustomFieldsCategories
                         $description,
                         $attrs,
                         '', //template
-                        true
+                        $filterable
                     );
                     break;
                 case 'text':

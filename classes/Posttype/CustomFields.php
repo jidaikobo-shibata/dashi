@@ -303,6 +303,7 @@ class CustomFields
 		$tmpkey = $key;
 		$description = isset($value['args']['description']) ? $value['args']['description'] : '';
 		$attrs = isset($value['args']['attrs']) ? $value['args']['attrs'] : array();
+		$filterable = ! empty($value['args']['filter']);
 
 		// default or population value
 		$val = isset($value['args']['value']) ? $value['args']['value'] : '';
@@ -459,7 +460,8 @@ class CustomFields
 						$options,
 						$description,
 						$attrs,
-						$template
+						$template,
+						$filterable
 					);
 					break;
 
@@ -470,7 +472,8 @@ class CustomFields
 						$options,
 						$description,
 						$attrs,
-						$template
+						$template,
+						$filterable
 					);
 					$is_label = false;
 					break;
@@ -482,7 +485,8 @@ class CustomFields
 						$options,
 						$description,
 						$attrs,
-						$template
+						$template,
+						$filterable
 					);
 					$is_label = false;
 					break;

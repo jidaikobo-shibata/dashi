@@ -3,6 +3,23 @@ namespace Dashi\Core;
 
 class Field
 {
+    private static $filter_seq = 0;
+
+    private static function next_filter_id()
+    {
+        self::$filter_seq++;
+        return 'dashi_filter_' . self::$filter_seq;
+    }
+
+    private static function build_filter_input($filter_id)
+    {
+        $input_id = $filter_id . '_input';
+        $label = __('Filter options', 'dashi');
+        return '<label class="dashi_filter_label" for="' . esc_attr($input_id) . '">' . esc_html($label) . '</label>' .
+            '<input type="text" class="dashi_filter_input" id="' . esc_attr($input_id) .
+            '" data-dashi-filter-target="' . esc_attr($filter_id) . '" placeholder="' .
+            esc_attr($label) . '" />';
+    }
     /*
      * input_base
      */
@@ -159,7 +176,8 @@ class Field
         $options = array(),
         $description = '',
         $attrs = array(),
-        $template = ''
+        $template = '',
+        $filterable = false
     )
     {
         if ( ! $options)
@@ -178,6 +196,13 @@ class Field
             $template = str_replace('{name}', '{name}[]', $template);
         }
 
+        $filter_id = '';
+        if ($filterable)
+        {
+            $filter_id = self::next_filter_id();
+            $attrs['data-dashi-filter-id'] = $filter_id;
+        }
+
         $options_html = '';
         foreach ($options as $key => $text)
         {
@@ -189,10 +214,11 @@ class Field
             {
                 $selected = $key == $value ? ' selected="selected" ' : '';
             }
-            $options_html .= '<option value="'.esc_html($key).'" '.$selected.'>'.esc_html($text).'</option>';
+            $options_html .= '<option value="'.esc_html($key).'" data-dashi-filter-text="'.
+                esc_attr($text).'" '.$selected.'>'.esc_html($text).'</option>';
         }
 
-        return str_replace(
+        $html = str_replace(
             array(
                 '{name}',
                 '{options}',
@@ -206,6 +232,16 @@ class Field
                 static::array_to_attr($attrs),
             ),
             $template);
+
+        if ($filterable)
+        {
+            $html = '<div class="dashi_filter">' .
+                self::build_filter_input($filter_id) .
+                $html .
+                '</div>';
+        }
+
+        return $html;
     }
 
     /*
@@ -217,15 +253,24 @@ class Field
         $options = array(),
         $description = '',
         $attrs = array(),
-        $template = ''
+        $template = '',
+        $filterable = false
     )
     {
         $options_html = '';
         $name_attr = esc_attr($name);
+
+        $filter_id = '';
+        if ($filterable)
+        {
+            $filter_id = self::next_filter_id();
+        }
+
         foreach ($options as $key => $text) {
             $key_attr = esc_attr($key);
             $checked = $key == $value ? ' checked="checked"' : '';
-            $options_html .= '<label for="'.$name_attr.'_'.$key_attr.'" class="label_fb">';
+            $options_html .= '<label for="'.$name_attr.'_'.$key_attr.'" class="label_fb dashi_filter_item" data-dashi-filter-text="'.
+                esc_attr($text).'">';
             $options_html .= '<input type="radio" name="'.$name_attr.'" value="'.$key_attr.'" id="'.$name_attr.'_'.$key_attr.'"'.$checked.' '.static::array_to_attr($attrs).' />';
             $options_html .= esc_html($text);
             $options_html .= '</label>';
@@ -234,7 +279,7 @@ class Field
         $template = $template ?: '<span class="dashi_description">{description}</span>
 {options}';
 
-        return str_replace(
+        $html = str_replace(
             array(
                 '{name}',
                 '{options}',
@@ -248,6 +293,17 @@ class Field
                 static::array_to_attr($attrs),
             ),
             $template);
+
+        if ($filterable)
+        {
+            $html = '<div class="dashi_filter">' .
+                self::build_filter_input($filter_id) .
+                '<div class="dashi_filter_group" data-dashi-filter-group="' . esc_attr($filter_id) . '">' .
+                $html .
+                '</div></div>';
+        }
+
+        return $html;
     }
 
     public static function field_checkbox(
@@ -256,11 +312,18 @@ class Field
         $options = array(),
         $description = '',
         $attrs = array(),
-        $template = ''
+        $template = '',
+        $filterable = false
     )
     {
         $options_html = '';
         $name_attr = esc_attr($name);
+
+        $filter_id = '';
+        if ($filterable)
+        {
+            $filter_id = self::next_filter_id();
+        }
 
         foreach ($options as $key => $text)
         {
@@ -268,7 +331,8 @@ class Field
             $input_id = $name_attr . '_' . $key_attr;
             $checked = is_array($value) && in_array($key, $value) ? ' checked="checked"' : '';
 
-            $options_html .= '<label for="' . $input_id . '" class="label_fb">';
+            $options_html .= '<label for="' . $input_id . '" class="label_fb dashi_filter_item" data-dashi-filter-text="'.
+                esc_attr($text).'">';
             $options_html .= '<input type="checkbox" name="' . $name_attr . '[]" value="' . $key_attr . '" id="' . $input_id . '"' . $checked . ' ' . static::array_to_attr($attrs) . ' />';
             $options_html .= esc_html($text);
             $options_html .= '</label>';
@@ -277,7 +341,7 @@ class Field
         $template = $template ?: '<span class="dashi_description">{description}</span>
     {options}';
 
-        return str_replace(
+        $html = str_replace(
             array(
                 '{name}',
                 '{options}',
@@ -292,6 +356,17 @@ class Field
             ),
             $template
         );
+
+        if ($filterable)
+        {
+            $html = '<div class="dashi_filter">' .
+                self::build_filter_input($filter_id) .
+                '<div class="dashi_filter_group" data-dashi-filter-group="' . esc_attr($filter_id) . '">' .
+                $html .
+                '</div></div>';
+        }
+
+        return $html;
     }
 
     public static function field_file(

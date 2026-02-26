@@ -24,6 +24,37 @@ jQuery(function($){
 	}
 });
 
+// filter options (select / radio / checkbox)
+jQuery(function($){
+	$('.dashi_filter_input').on('input', function(){
+		var $input = $(this);
+		var query = $.trim($input.val()).toLowerCase();
+		var target = $input.data('dashi-filter-target');
+		if (!target) return;
+
+		var $select = $('[data-dashi-filter-id="' + target + '"]');
+		if ($select.length) {
+			$select.find('option').each(function(){
+				var $opt = $(this);
+				var text = ($opt.data('dashi-filter-text') || $opt.text() || '').toString().toLowerCase();
+				var match = !query || text.indexOf(query) !== -1;
+				$opt.prop('hidden', !match);
+			});
+			return;
+		}
+
+		var $group = $('[data-dashi-filter-group="' + target + '"]');
+		if (!$group.length) return;
+
+		$group.find('.dashi_filter_item').each(function(){
+			var $item = $(this);
+			var text = ($item.data('dashi-filter-text') || $item.text() || '').toString().toLowerCase();
+			var match = !query || text.indexOf(query) !== -1;
+			$item.toggle(match);
+		});
+	});
+});
+
 // date picker
 jQuery(function($){
 	$(".dashi_datepicker").datepicker({

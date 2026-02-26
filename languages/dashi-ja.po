@@ -672,3 +672,9 @@ msgstr "(件名なし)"
 
 msgid "<span title=\"some characters disappear\">Microsoft Excel compatible CSV</span>"
 msgstr "<span title=\"一部文字が表示されなくなります\">Microsoft Excel互換のCSVにする</span>"
+
+msgid "Filter options"
+msgstr "候補絞り込み"
+
+msgid "show filter input to narrow down options (select/radio/checkbox)"
+msgstr "選択肢の絞り込み入力を表示（select/radio/checkbox）"
