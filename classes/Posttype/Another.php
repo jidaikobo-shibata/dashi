@@ -169,24 +169,23 @@ class Another
      *
      * @return  void
      */
-    public static function adminHeadPostPhp ()
-    {
-        global $post;
-        if ( ! isset($post)) return;
+	    public static function adminHeadPostPhp ()
+	    {
+	        global $post;
+	        if ( ! isset($post)) return;
 
         // 通常の編集画面でのリンク文字列用
         $str = static::getAnother($post->ID) ?
                  esc_html__('Edit another version', 'dashi') :
                  esc_html__('Add another version', 'dashi');
 
-        $script = '';
-        $script.= '<script type="text/javascript">';
-        $script.= 'jQuery (function($){';
-        $str = esc_js(esc_html($str));
+	        $script = '';
+	        $script.= '<script type="text/javascript">';
+	        $script.= 'jQuery (function($){';
 
-        // 差し替えの編集画面の場合
-        if (isset($post->dashi_original_id))
-        {
+	        // 差し替えの編集画面の場合
+	        if (isset($post->dashi_original_id))
+	        {
             $original_posttype = get_post_type_object($post->post_type);
             $str = static::getAnother($post->dashi_original_id) ?
                  sprintf(
@@ -194,21 +193,25 @@ class Another
                      __('Edit another version of %s', 'dashi'),
                      $original_posttype->label
                  ) :
-                 sprintf(
-                     /* translators: %s: post type label */
-                     __('Add another version of %s', 'dashi'),
-                     $original_posttype->label
-                 );
-            $str = esc_js(esc_html($str));
-            $script.= '$("title").text("'.$str.'");';
-            $script.= '$("h1.wp-heading-inline").text("'.$str.'");';
-            $script.= '$("a.page-title-action").hide();';
-        }
-        // 通常の編集画面
-        else
-        {
-            // 差し替えのリンク
-            $script.= '$(".wp-heading-inline").after("<a href=\"'.static::getAnotherLink($post->ID).'\" class=\"page-title-action\">'.$str.'</a>");';
+	                 sprintf(
+	                     /* translators: %s: post type label */
+	                     __('Add another version of %s', 'dashi'),
+	                     $original_posttype->label
+	                 );
+	            $script.= '$("title").text('.wp_json_encode($str).');';
+	            $script.= '$("h1.wp-heading-inline").text('.wp_json_encode($str).');';
+	            $script.= '$("a.page-title-action").hide();';
+	        }
+	        // 通常の編集画面
+	        else
+	        {
+	            // 差し替えのリンク
+	            $link_html = sprintf(
+	                '<a href="%s" class="page-title-action">%s</a>',
+	                esc_url(static::getAnotherLink($post->ID)),
+	                esc_html($str)
+	            );
+	            $script.= '$(".wp-heading-inline").after('.wp_json_encode($link_html).');';
 
             // 差し替えが存在する場合はステータスを表示する
             if (static::getAnother($post->ID))
@@ -391,13 +394,13 @@ class Another
             get_post_type_object($post->post_type)->label
         );
 
-        $script = '';
-        $script.= '<script type="text/javascript">';
-        $script.= 'jQuery (function($){
-$("title").text("'.$str.' ‹ '.get_bloginfo('site-name').' — WordPress");
-$("h1.wp-heading-inline").text("'.$str.'");
+	        $script = '';
+	        $script.= '<script type="text/javascript">';
+	        $script.= 'jQuery (function($){
+$("title").text('.wp_json_encode($str.' ‹ '.get_bloginfo('site-name').' — WordPress').');
+$("h1.wp-heading-inline").text('.wp_json_encode($str).');
 });';
-        $script.= '</script>';
+	        $script.= '</script>';
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 管理画面用の既存 inline script 出力
         echo $script;
     }

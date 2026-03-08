@@ -277,13 +277,13 @@ class Posttype
 			function ($enter_title_here, $post)
 			{
 				$post_type = get_post_type_object($post->post_type);
-				if (
-					isset($post_type->labels->enter_title_here) &&
-					$post_type->labels->enter_title_here &&
-					is_string($post_type->labels->enter_title_here))
-				{
-					$enter_title_here = esc_html($post_type->labels->enter_title_here);
-				}
+					if (
+						isset($post_type->labels->enter_title_here) &&
+						$post_type->labels->enter_title_here &&
+						is_string($post_type->labels->enter_title_here))
+					{
+						$enter_title_here = $post_type->labels->enter_title_here;
+					}
 				return $enter_title_here;
 			},
 			10,
@@ -714,15 +714,13 @@ class Posttype
 		if ( ! $posttype::get('is_dashi')) return;
 		if (in_array($posttype, static::$defaults)) return;
 
-			$name = $posttype::get('post_type');
-				if (in_array($name, static::$banned))
-				{
-					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
-					throw new \Exception(
+				$name = $posttype::get('post_type');
+					if (in_array($name, static::$banned))
+					{
 						/* translators: %s: post type name. */
-						sprintf(__('%s is cannot use as posttype name', 'dashi'), $name)
-					);
-				}
+						$message = sprintf(__('%s is cannot use as posttype name', 'dashi'), $name); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+						throw new \Exception($message); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+					}
 
 	        // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 	        $name = __($posttype::get('name'), 'dashi');
@@ -823,16 +821,14 @@ class Posttype
 	private static function registerTaxonomy ($posttype)
 	{
 		$custom_fields_taxonomies = $posttype::get('custom_fields_taxonomies');
-		foreach ($posttype::get('taxonomies') as $name => $val)
-		{
-				if (in_array($name, static::$banned))
-				{
-					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
-					throw new \Exception(
+			foreach ($posttype::get('taxonomies') as $name => $val)
+			{
+					if (in_array($name, static::$banned))
+					{
 						/* translators: %s: taxonomy name. */
-						sprintf(__('%s is cannot use as taxonomy name', 'dashi'), $name)
-					);
-				}
+						$message = sprintf(__('%s is cannot use as taxonomy name', 'dashi'), $name); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+						throw new \Exception($message); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+					}
 			register_taxonomy($name, $posttype::get('post_type'), $val);
 
 			if ( ! array_key_exists($name, $custom_fields_taxonomies)) continue;

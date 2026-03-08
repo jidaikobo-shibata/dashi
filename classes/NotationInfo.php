@@ -118,8 +118,8 @@ trait NotationInfo
 			$status_label = isset($status_label_map[$v->post_status]) ? $status_label_map[$v->post_status] : $v->post_status;
 			$html.= '<td class="nowrap">'.esc_html($status_label).'</td>';
 			$html.= '</tr>';
+			}
+			$html.= '</table>';
+			echo wp_kses_post($html);
 		}
-		$html.= '</table>';
-		echo $html;
 	}
-}

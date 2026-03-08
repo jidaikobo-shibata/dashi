@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Pagepart extends \Dashi\Core\Posttype\Base
 {
     /*

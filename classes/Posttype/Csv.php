@@ -59,10 +59,10 @@ class Csv
 		}
 		$html.= '</select>';
 		$html.= '<label style="display: block; padding: 10px 0;"><input type="checkbox" name="excel_compati" value="1"><span title="'.esc_attr__('some characters disappear', 'dashi').'">'.esc_html__('Microsoft Excel compatible CSV', 'dashi').'</span></label>';
-		$html.= '<input type="submit" class="button button-primary" value="'.__('Export', 'dashi').'">';
-		$html .= wp_nonce_field('dashi_csv_export_action', '_wpnonce', true, false);
-		$html.= '</form>';
-		echo $html;
+			$html.= '<input type="submit" class="button button-primary" value="'.esc_attr__('Export', 'dashi').'">';
+			$html .= wp_nonce_field('dashi_csv_export_action', '_wpnonce', true, false);
+			$html.= '</form>';
+			echo wp_kses_post($html);
 	}
 
 	/**
@@ -78,9 +78,9 @@ class Csv
 			['\Dashi\Core\Posttype\Posttype', 'class2posttype'],
 			\Dashi\Core\Posttype\Posttype::instances()
 		);
-		if (!in_array($posttype, $allowed_posttypes, true)) {
-			wp_die(__('Invalid post type', 'dashi'), 403);
-		}
+			if (!in_array($posttype, $allowed_posttypes, true)) {
+				wp_die(esc_html__('Invalid post type', 'dashi'), 403);
+			}
 
 		$class = \Dashi\Core\Posttype\Posttype::posttype2class($posttype);
 		$excel_compati = filter_input(INPUT_POST, 'excel_compati');
@@ -140,7 +140,8 @@ class Csv
 
 		$filename = sanitize_file_name($posttype) . '.csv';
 		$tmpfile = wp_tempnam($filename);
-		$fp = fopen($tmpfile, 'w');
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV を一時ファイルに書き出す。
+			$fp = fopen($tmpfile, 'w');
 		// $filepath = '/tmp/'.$filename;
 		// $fp = fopen($filepath, 'w');
 		if ($fp === FALSE) throw new Exception('failed to export');
@@ -151,15 +152,17 @@ class Csv
 //			mb_convert_variables('SJIS', 'UTF-8', $line);
 			fputcsv($fp, self::sanitizeCsvLine($line), $delimiter);
 		}
-		fclose($fp);
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- fopen したハンドルを明示的に閉じる。
+			fclose($fp);
 
 		header("HTTP/1.1 200 OK");
 		header('Content-Type: application/octet-stream');
 		header('Content-Length: '.filesize($tmpfile));
 		header('Content-Transfer-Encoding: binary');
 		header('Content-Disposition: attachment; filename='.$filename);
-		readfile($tmpfile);
-		@unlink($tmpfile);
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- ダウンロード応答としてストリーム出力する。
+			readfile($tmpfile);
+			wp_delete_file($tmpfile);
 		exit();
 	}
 	private static function sanitizeCsvLine($line)

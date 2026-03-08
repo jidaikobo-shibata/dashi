@@ -1,14 +1,18 @@
 <?php
+if (!defined('ABSPATH')) exit;
     global $wp_query, $post;
     get_header();
 ?>
 
 <!-- entry -->
 <section class="entry-list">
-<h1><?php echo wp_get_document_title() ?></h1>
+<h1><?php echo esc_html(wp_get_document_title()); ?></h1>
 <p><?php
     /* translators: %s: number of matched pages. */
-    echo sprintf(__('Found %s pages.', 'dashi'), have_posts() ? $wp_query->found_posts : 0);
+    $found_pages_message = __('Found %s pages.', 'dashi');
+    echo esc_html(
+        sprintf($found_pages_message, have_posts() ? (int) $wp_query->found_posts : 0)
+    );
 ?></p>
 
 <?php
@@ -34,7 +38,9 @@ if ( ! in_array($post_type, array('post', 'page')))
         {
             if ( ! $class::get('is_redirect') && substr($post_type, 0, 1) != '_')
             {
-                $additional_information = ' <span class="link2archive">(<a href="'.get_post_type_archive_link($post_type).'">'.$post_type_obj->label.'</a>)</span>';
+                $additional_information = ' <span class="link2archive">(<a href="'.
+                    esc_url(get_post_type_archive_link($post_type)).'">'.
+                    esc_html($post_type_obj->label).'</a>)</span>';
             }
         }
     }
@@ -45,9 +51,9 @@ $summary = $post->post_excerpt ?: apply_filters('the_content', $post->post_conte
 $summary = trim($summary);
 ?>
 
-<dt><a href="<?php echo get_permalink($post->ID); ?>"><?php echo $post->post_title ?: __('(No Subject)', 'dashi'); ?></a><?php echo $additional_information ?></dt>
+<dt><a href="<?php echo esc_url(get_permalink($post->ID)); ?>"><?php echo esc_html($post->post_title ?: __('(No Subject)', 'dashi')); ?></a><?php echo wp_kses_post($additional_information); ?></dt>
 <?php if ($summary): ?>
-<dd><?php echo wp_trim_words($summary); ?></dd>
+<dd><?php echo esc_html(wp_trim_words($summary)); ?></dd>
 <?php
 endif;
 endwhile;
@@ -56,8 +62,8 @@ endwhile;
 
 <?php
 the_posts_pagination(array(
-    'prev_text' => __('Previous'),
-    'next_text' => __('Next'),
+    'prev_text' => __('Previous', 'dashi'),
+    'next_text' => __('Next', 'dashi'),
 ));
 
 endif;

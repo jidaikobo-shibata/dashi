@@ -308,7 +308,8 @@ class Util
 		{
 			header('Content-Type: text/plain; charset=UTF-8', true, 403);
 		}
-		die(Util::s($message));
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- text/plain のエラーメッセージとして終了する。
+			die(Util::s($message));
 	}
 
 	/**

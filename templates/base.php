@@ -1,8 +1,9 @@
 <?php
+if (!defined('ABSPATH')) exit;
     get_header();
 ?>
 
-<h1><?php echo wp_get_document_title() ?></h1>
+<h1><?php echo esc_html(wp_get_document_title()); ?></h1>
 
 <?php
 // errors
@@ -20,10 +21,10 @@ foreach ($errors[$step] as $err => $fields):
         $html.= '    <li><a href="#'.$id.'">'.$message.'</a></li>'."\n";
     endforeach;
 endforeach;
-echo '<ul class="dashi_errors">'.$html.'</ul>';
+echo '<ul class="dashi_errors">'.wp_kses_post($html).'</ul>';
 endif;
 
 // form or messages
-echo $dashi_body;
+echo wp_kses_post($dashi_body);
 
 get_footer();

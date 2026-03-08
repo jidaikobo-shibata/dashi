@@ -192,8 +192,8 @@ class Option
 		$html.= '<a href="?page=dashi_options&amp;help=hooks#help_area">Hooks</a> | ';
 		$html.= '</div>';
 
-		$html.= '<div class="inside">';
-		echo $html;
+			$html.= '<div class="inside">';
+			echo wp_kses_post($html);
 ?>
 <textarea style="width: 100%;height: 500px;border: 1px #aaa solid;padding: 10px;font-family: monospace;">
 <?php
@@ -215,13 +215,13 @@ elseif (input::get('help') == 'shortcode')
 }
 elseif (input::get('help') == 'seo')
 {
-	echo '1. '.__('Prepare sitemap.xml.', 'dashi')."\n";
-	echo '2. '.__('Prepare Gmail account.', 'dashi')."\n";
-	echo '3. '.__('Create Google Analytics account by Gmail account.', 'dashi')."\n";
-	echo '4. '.__('Set Google Analytics JavaScript in the head of html.', 'dashi')."\n";
-	echo '5. '.__('Manage -> Properties -> setting -> Search Console', 'dashi')."\n";
-	echo '6. '.__('Create account at Search Console and add site and confirm it.', 'dashi')."\n";
-	echo '7. '.__('Create Microsoft account by Gmail account.', 'dashi')."\n";
+		echo '1. '.esc_html__('Prepare sitemap.xml.', 'dashi')."\n";
+		echo '2. '.esc_html__('Prepare Gmail account.', 'dashi')."\n";
+		echo '3. '.esc_html__('Create Google Analytics account by Gmail account.', 'dashi')."\n";
+		echo '4. '.esc_html__('Set Google Analytics JavaScript in the head of html.', 'dashi')."\n";
+		echo '5. '.esc_html__('Manage -> Properties -> setting -> Search Console', 'dashi')."\n";
+		echo '6. '.esc_html__('Create account at Search Console and add site and confirm it.', 'dashi')."\n";
+		echo '7. '.esc_html__('Create Microsoft account by Gmail account.', 'dashi')."\n";
 }
 elseif (input::get('help') == 'hooks')
 {
@@ -239,6 +239,6 @@ else
 		$html.= '</div><!--/.postbox-->';
 		$html.= '</div><!--/.wrap-->';
 
-		echo $html;
+			echo wp_kses_post($html);
+		}
 	}
-}

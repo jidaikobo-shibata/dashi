@@ -42,14 +42,14 @@ class Preview
 		$class = P::post2class($post);
 		if ( ! $class) return;
 
-		foreach ($class::getCustomFieldsKeys() as $key)
-		{
-			printf(
-				'<input type="hidden" name="%1$s" value="%1$s" />',
-				$key . '_debug-preview'
-			);
+			foreach ($class::getCustomFieldsKeys() as $key)
+			{
+				printf(
+					'<input type="hidden" name="%1$s" value="%1$s" />',
+					esc_attr($key . '_debug-preview')
+				);
+			}
 		}
-	}
 
 	/**
 	 * getPostMetadata
@@ -102,8 +102,13 @@ class Preview
 		if (wp_is_post_revision($post_id))
 		{
 			// プレビューの既存値を削除
-			$sql = $wpdb->prepare("DELETE FROM ".$wpdb->postmeta." WHERE post_id = %d", $post_id);
-			$wpdb->query($sql);
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- プレビュー用リビジョンのメタを明示削除。
+				$wpdb->query(
+					$wpdb->prepare(
+						"DELETE FROM {$wpdb->postmeta} WHERE post_id = %d",
+						$post_id
+					)
+				);
 
 			// fieldの確保
 			$post = get_post($post_id);

@@ -56,13 +56,13 @@ trait NotationHeavey
 				substr(sprintf('%o', fileperms(ABSPATH.$dir)), -4) == '666'
 			)
 			{
-				add_action('admin_notices', function () use ($dir)
-				{
-					/* translators: %s: directory name. */
-					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('directory "%s" permission too open. 705 or 755 is better.', 'dashi'), $dir).'</strong></p></div>';
-				});
+					add_action('admin_notices', function () use ($dir)
+					{
+						/* translators: %s: directory name. */
+						echo '<div class="message error dashi_error"><p><strong>'.esc_html(sprintf(__('directory "%s" permission too open. 705 or 755 is better.', 'dashi'), $dir)).'</strong></p></div>';
+					});
+				}
 			}
-		}
 	}
 
 	/**
@@ -85,10 +85,10 @@ trait NotationHeavey
 			! (isset($xmlsf_sitemaps['sitemap']) && $xmlsf_sitemaps['sitemap'] == 'sitemap.xml')
 		)
 		{
-			add_action('admin_notices', function ()
-			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('sitemap.xml is not exist.', 'dashi').'</strong></p></div>';
-			});
+				add_action('admin_notices', function ()
+				{
+					echo '<div class="message error dashi_error"><p><strong>'.esc_html__('sitemap.xml is not exist.', 'dashi').'</strong></p></div>';
+				});
 			return;
 		}
 
@@ -117,11 +117,16 @@ trait NotationHeavey
 
 			if (strpos($res['body'], 'get_header') !== false)
 			{
-				add_action('admin_notices', function ()
-				{
-					/* translators: %s: theme index.php URL. */
-					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('PHP error reporting is on. check <a href="%s">themes file</a>', 'dashi'), get_stylesheet_directory_uri().'/index.php').'</strong></p></div>';
-				});
+					add_action('admin_notices', function ()
+					{
+						/* translators: %s: theme index.php URL. */
+						$link = sprintf(
+							/* translators: %s: theme index.php URL. */
+							__('PHP error reporting is on. check <a href="%s">themes file</a>', 'dashi'),
+							esc_url(get_stylesheet_directory_uri().'/index.php')
+						);
+						echo '<div class="message error dashi_error"><p><strong>'.wp_kses_post($link).'</strong></p></div>';
+					});
 				return;
 			}
 
@@ -140,10 +145,10 @@ trait NotationHeavey
 		{
 			if (Util::is_url_exists(site_url('xmlrpc.php'), 'post'))
 			{
-				add_action('admin_notices', function ()
-				{
-					echo '<div class="message error dashi_error"><p><strong>'.__('Disallow xmlrpc.php', 'dashi').'</strong></p></div>';
-				});
+					add_action('admin_notices', function ()
+					{
+						echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Disallow xmlrpc.php', 'dashi').'</strong></p></div>';
+					});
 			}
 			else
 			{
@@ -163,10 +168,10 @@ trait NotationHeavey
 		{
 			if (Util::is_url_exists(site_url('wp-admin/includes')))
 			{
-				add_action('admin_notices', function ()
-				{
-					echo '<div class="message error dashi_error"><p><strong>'.__('Disallow directory listing.', 'dashi').'</strong></p></div>';
-				});
+					add_action('admin_notices', function ()
+					{
+						echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Disallow directory listing.', 'dashi').'</strong></p></div>';
+					});
 			}
 			else
 			{
@@ -186,10 +191,10 @@ trait NotationHeavey
 		{
 			if (Util::is_url_exists(site_url('wp-config.php')))
 			{
-				add_action('admin_notices', function ()
-				{
-					echo '<div class="message error dashi_error"><p><strong>'.__('Disallow wp-config.php', 'dashi').'</strong></p></div>';
-				});
+					add_action('admin_notices', function ()
+					{
+						echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Disallow wp-config.php', 'dashi').'</strong></p></div>';
+					});
 			}
 			else
 			{
@@ -221,11 +226,16 @@ trait NotationHeavey
 				strpos($res['body'], 'www.googletagmanager.com/gtag/js?id=UA-') === false
 			)
 			{
-				add_action('admin_notices', function ()
-				{
-					/* translators: %s: help page URL. */
-					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('Google Analytics is not implemented. <a href="%s">See How to.</a>', 'dashi'), site_url('/wp-admin/options-general.php?page=dashi_options&help=seo#help_area')).'</strong></p></div>';
-				});
+					add_action('admin_notices', function ()
+					{
+						/* translators: %s: help page URL. */
+						$link = sprintf(
+							/* translators: %s: help page URL. */
+							__('Google Analytics is not implemented. <a href="%s">See How to.</a>', 'dashi'),
+							esc_url(site_url('/wp-admin/options-general.php?page=dashi_options&help=seo#help_area'))
+						);
+						echo '<div class="message error dashi_error"><p><strong>'.wp_kses_post($link).'</strong></p></div>';
+					});
 				return;
 			}
 

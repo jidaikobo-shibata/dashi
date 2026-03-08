@@ -3,6 +3,48 @@ namespace Dashi\Core\Posttype;
 
 class Validation extends \Dashi\Core\Validation
 {
+	private static function translatedMessage($key)
+	{
+			switch ($key)
+			{
+				case 'isMailaddress':
+					/* translators: %s: field label. */
+					return __('%s is not a valid mail address format', 'dashi');
+				case 'isSb':
+					/* translators: %s: field label. */
+					return __('%s contains multi byte character', 'dashi');
+				case 'isNum':
+					/* translators: %s: field label. */
+					return __('%s is must be composed by numbers', 'dashi');
+				case 'isAlnum':
+					/* translators: %s: field label. */
+					return __('%s is must be composed by single byte alphabetic and numbers', 'dashi');
+				case 'isAlnumplus':
+					/* translators: %s: field label. */
+					return __('%s is must be composed by single byte alphabetic, numbers, hyphen and underbar', 'dashi');
+				case 'isAlnumfilename':
+					/* translators: %s: field label. */
+					return __('%s is must be composed by single byte alphabetic, numbers, period, hyphen and underbar', 'dashi');
+				case 'isImage':
+					/* translators: %s: field label. */
+					return __('%s is not a image', 'dashi');
+				case 'isKatakana':
+					/* translators: %s: field label. */
+					return __('%s is must be composed by Katakana', 'dashi');
+				case 'isHiragana':
+					/* translators: %s: field label. */
+					return __('%s is must be composed by Hiragana', 'dashi');
+				case 'isUploadable':
+					/* translators: %s: field label. */
+					return __('%s cannot be uploaded', 'dashi');
+				case 'isUrl':
+					/* translators: %s: field label. */
+					return __('%s is suspicious url', 'dashi');
+			default:
+				return '';
+		}
+	}
+
 	/**
 	 * validate mailaddress
 	 * @return Mixed|Bool|String
@@ -10,7 +52,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateMailaddress ($val)
 	{
 		$is_valid = static::isMailaddress($val);
-		return $is_valid ? true : static::$messages['isMailaddress'];
+		return $is_valid ? true : static::translatedMessage('isMailaddress');
 	}
 
 	/**
@@ -20,7 +62,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateSb ($val)
 	{
 		$is_valid = static::isSb($val);
-		return $is_valid ? true : static::$messages['isSb'];
+		return $is_valid ? true : static::translatedMessage('isSb');
 	}
 
 	/**
@@ -30,7 +72,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateAlnum ($val)
 	{
 		$is_valid = static::isAlnum($val);
-		return $is_valid ? true : static::$messages['isAlnum'];
+		return $is_valid ? true : static::translatedMessage('isAlnum');
 	}
 
 	/**
@@ -40,7 +82,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateAlnumplus ($val)
 	{
 		$is_valid = static::isAlnumplus($val);
-		return $is_valid ? true : static::$messages['isAlnumplus'];
+		return $is_valid ? true : static::translatedMessage('isAlnumplus');
 	}
 
 	/**
@@ -50,7 +92,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateAlnumfilename ($val)
 	{
 		$is_valid = static::isAlnumfilename($val);
-		return $is_valid ? true : static::$messages['isAlnumfilename'];
+		return $is_valid ? true : static::translatedMessage('isAlnumfilename');
 	}
 
 	/**
@@ -60,7 +102,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateKatakana ($val)
 	{
 		$is_valid = static::isKatakana($val);
-		return $is_valid ? true : static::$messages['isKatakana'];
+		return $is_valid ? true : static::translatedMessage('isKatakana');
 	}
 
 	/**
@@ -70,7 +112,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateHiragana ($val)
 	{
 		$is_valid = static::isHiragana($val);
-		return $is_valid ? true : static::$messages['isHiragana'];
+		return $is_valid ? true : static::translatedMessage('isHiragana');
 	}
 
 	/**
@@ -80,7 +122,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateImage ($val)
 	{
 		$is_valid = static::isImage($val);
-		return $is_valid ? true : static::$messages['isImage'];
+		return $is_valid ? true : static::translatedMessage('isImage');
 	}
 
 	/**
@@ -90,7 +132,7 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateUrl ($val)
 	{
 		$is_valid = static::isUrl($val);
-		return $is_valid ? true : static::$messages['isUrl'];
+		return $is_valid ? true : static::translatedMessage('isUrl');
 	}
 
 	/**
@@ -100,6 +142,6 @@ class Validation extends \Dashi\Core\Validation
 	public static function validateUploadable ($val)
 	{
 		$is_valid = static::isUploadable($val);
-		return $is_valid ? true : static::$messages['isUploadable'];
+		return $is_valid ? true : static::translatedMessage('isUploadable');
 	}
 }

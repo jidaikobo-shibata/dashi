@@ -1,6 +1,10 @@
 <?php
 // WordPress のルートパスを指定して読み込む
-require_once dirname(__FILE__, 4) . '/wp-load.php';
+if (!defined('ABSPATH'))
+{
+	require_once dirname(__FILE__, 4) . '/wp-load.php';
+}
+if (!defined('ABSPATH')) exit;
 
 // アップロードディレクトリのパスを取得（WordPressの /uploads/dashi_uploads/ 配下に限定）
 $upload_dir = wp_upload_dir();
@@ -86,5 +90,6 @@ if (!preg_match('/^(image\/|video\/|audio\/|application\/pdf$)/i', $content_type
 header('Content-Length: ' . filesize($filepath));
 
 // ファイル出力
+// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- ダウンロード応答としてストリーム出力する。
 readfile($filepath);
 exit;

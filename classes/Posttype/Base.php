@@ -391,9 +391,8 @@ abstract class Base
 			// ここまで見つかっていないということは、妥当でない値を尋ねているか、設定値が妥当でないので、例外をスローする
 			if (!is_array($opts))
 			{
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-				/* translators: 1: custom field key, 2: class name. */
-				throw new \Exception (sprintf(__('%1$s is incorrect argument or setting of custom_fields of %2$s is wrong.', 'dashi'), $key, get_called_class()));
-			}
+					/* translators: 1: custom field key, 2: class name. */
+					throw new \Exception (sprintf(__('%1$s is incorrect argument or setting of custom_fields of %2$s is wrong.', 'dashi'), $key, get_called_class())); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				}
 		}
 	}
