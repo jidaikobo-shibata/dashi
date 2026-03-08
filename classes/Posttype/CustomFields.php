@@ -37,12 +37,6 @@ class CustomFields
 			if ( ! $post) return;
 			$post_type = $post->post_type;
 		}
-		// non edit page
-		elseif ( ! $post_type)
-		{
-			return;
-		}
-
 		foreach (P::instances() as $class)
 		{
 			// remove from menu
@@ -58,6 +52,12 @@ class CustomFields
 					'get_user_option_meta-box-order_'.P::class2posttype($class),
 					'__return_false'
 				);
+			}
+
+			// non edit page
+			if ( ! $post_type)
+			{
+				continue;
 			}
 
 			// カスタムフィールドは当該ポストタイプのときだけ設定すれば良い
@@ -166,15 +166,25 @@ class CustomFields
 			}
 
 			// in context?
-			if ($current_post_type == $posttype::get('post_type'))
-			{
-				add_action('edit_form_after_title', function () use($key, $value)
+				if ($current_post_type == $posttype::get('post_type'))
 				{
-					echo \Dashi\Core\Field::field_hidden($key, $value);
-				});
+					add_action('edit_form_after_title', function () use($key, $value)
+					{
+						// 管理画面に hidden input を差し込むため、許可タグを限定して出力する。
+						$allowed_hidden_input = array(
+							'input' => array(
+								'type'  => true,
+								'name'  => true,
+								'id'    => true,
+								'value' => true,
+								'class' => true,
+							),
+						);
+						echo wp_kses(\Dashi\Core\Field::field_hidden($key, $value), $allowed_hidden_input);
+					});
+				}
 			}
 		}
-	}
 
 	/**
 	 * add meta fields
@@ -279,11 +289,12 @@ class CustomFields
 		$is_label_hide = true,
 		$is_use_wp_uploader = true
 	)
-	{
-		global $pagenow;
-		if ( ! in_array($pagenow, array('post-new.php', 'post.php'))) return; // 編集ページのみで動作
-		echo static::_addMetaFieldsCallback($object, $value, $is_label_hide, $is_use_wp_uploader);
-	}
+		{
+			global $pagenow;
+			if ( ! in_array($pagenow, array('post-new.php', 'post.php'))) return; // 編集ページのみで動作
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 管理画面用の整形済みHTMLを返す。
+			echo static::_addMetaFieldsCallback($object, $value, $is_label_hide, $is_use_wp_uploader);
+		}
 
 	public static function _addMetaFieldsCallback(
 		$object,
@@ -579,22 +590,25 @@ class CustomFields
 		}
 
 		// すべてのカスタムフィールド候補を取得
-		$sql = 'SELECT meta_key FROM '.$wpdb->postmeta.' GROUP BY `meta_key`;';
-		$meta_keys = $wpdb->get_results($sql);
+		$meta_keys = $wpdb->get_col(
+			"SELECT DISTINCT meta_key FROM {$wpdb->postmeta}"
+		);
         $post_ids_by_meta_key = array();
         $classes_by_post_id = array();
         $is_dashi_by_class = array();
 
 		// ひとつpost_idを取り出し代表とする
-		foreach ($meta_keys as $v)
+		foreach ($meta_keys as $meta_key)
 		{
-			if ($v->meta_key[0] == '_') continue;
-			$sql = $wpdb->prepare(
-				'SELECT post_id FROM '.$wpdb->postmeta.' WHERE `meta_key` = %s LIMIT 1;',
-				$v->meta_key
+			if (!is_string($meta_key) || $meta_key === '') continue;
+			if ($meta_key[0] == '_') continue;
+			$post_ids_by_meta_key[$meta_key] = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s LIMIT 1",
+					$meta_key
+				)
 			);
-            $post_ids_by_meta_key[$v->meta_key] = $wpdb->get_var($sql);
-        }
+	        }
 
         foreach ($post_ids_by_meta_key as $meta_key => $post_id)
         {
@@ -689,7 +703,7 @@ class CustomFields
 		{
 			var taxonomies = [];
 	<?php foreach (static::$taxonomy_to_radios[$post_type] as $radio): ?>
-			taxonomies.push("<?php echo $radio ?>");
+			taxonomies.push("<?php echo esc_js($radio); ?>");
 	<?php endforeach; ?>
 			for (var key in taxonomies)
 			{

@@ -110,12 +110,12 @@ class PublicForm
 		{
 			if (in_array($filename, $files)) continue;
 
-			if (filectime($filename) <= time() - $ttl)
-			{
-				unlink($filename);
+				if (filectime($filename) <= time() - $ttl)
+				{
+					wp_delete_file($filename);
+				}
 			}
 		}
-	}
 
 	public static function runGarbageCollection()
 	{
@@ -221,18 +221,18 @@ class PublicForm
 		// 最終段階ではセッションを返す
 		if (filter_input(INPUT_POST, "dashi_public_form_do_final")) return $val;
 
-		// 途中段階では$_FILESの内容を確認する
-		if ( ! isset($_FILES[$key]) || empty($_FILES)) return array();
+		if (!static::isPublicFormNonceValid()) return array();
+
+			// 途中段階では$_FILESの内容を確認する
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 直前で isPublicFormNonceValid() を検証済み。
+			if (empty($_FILES) || !isset($_FILES[$key]) || !is_array($_FILES[$key])) return array();
+
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 直前で isPublicFormNonceValid() を検証済み。
+				$file = wp_unslash($_FILES[$key]);
+		if (!is_array($file) || empty($file['name'])) return array();
 
 		// ファイルをDASHI_TMP_UPLOAD_DIRにアップする
-		$val = array();
-		foreach ($_FILES as $k => $v)
-		{
-			if ($k != $key) continue;
-			if (empty($v['name'])) continue;
-
-			$val = static::handleUpload($class, $v);
-		}
+		$val = static::handleUpload($class, $file);
 
 		return $val;
 	}
@@ -249,11 +249,15 @@ class PublicForm
 		$retVal = array();
 		$retVal['dashi_uploaded_file'] = true;
 
-		$wp_filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
-		if (!$wp_filetype['ext'] || !$wp_filetype['type']) {
-			$retVal['errors'][] = __('This file type is not allowed.', 'dashi');
-			return $retVal;
-		}
+			$tmp_name = isset($file['tmp_name']) ? (string) $file['tmp_name'] : '';
+			$file_name = isset($file['name']) ? sanitize_file_name((string) $file['name']) : '';
+			$wp_filetype = wp_check_filetype_and_ext($tmp_name, $file_name);
+			if (!$wp_filetype['ext'] || !$wp_filetype['type']) {
+				$retVal['errors'][] = __('This file type is not allowed.', 'dashi');
+				return $retVal;
+			}
+			$file['tmp_name'] = $tmp_name;
+			$file['name'] = $file_name;
 
 		// 拡張子
 		$ext = substr($file['name'], strrpos($file['name'], '.'), strlen($file['name']));
@@ -373,10 +377,12 @@ class PublicForm
 			}
 
 		// uploadする
-		if (@move_uploaded_file($file['tmp_name'], $upload_path))
-		{
-			chmod($upload_path, 0644);
-		}
+			// phpcs:ignore Generic.PHP.ForbiddenFunctions.Found -- PHP upload temp からの移動には move_uploaded_file が必要。
+			if (@move_uploaded_file($file['tmp_name'], $upload_path))
+			{
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- アップロード後の最小権限を強制。
+				chmod($upload_path, 0644);
+			}
 		else
 		{
 			$retVal['errors'][] = __('Failed to store uploaded file.', 'dashi');
@@ -392,14 +398,14 @@ class PublicForm
 	 */
 	public static function uploadDir()
 	{
-		$upload_dirs = wp_upload_dir();
-		$upload_path = dirname($upload_dirs['path']).'/files/';
-		if ( ! file_exists($upload_path))
-		{
-			mkdir($upload_path);
+			$upload_dirs = wp_upload_dir();
+			$upload_path = dirname($upload_dirs['path']).'/files/';
+			if ( ! file_exists($upload_path))
+			{
+				wp_mkdir_p($upload_path);
+			}
+			return $upload_path;
 		}
-		return $upload_path;
-	}
 
 	public static function uploadUrl()
 	{
@@ -524,10 +530,16 @@ class PublicForm
 			}
 
 			// ファイルの場合
-			if (isset($v['type']) && $v['type'] == 'file' && isset($_FILES[$k]))
-			{
-				$vals->$k = self::upload($class, $form, $vals->$k, $k);
-			}
+					if (
+						isset($v['type']) &&
+						$v['type'] == 'file' &&
+						// phpcs:ignore WordPress.Security.NonceVerification.Missing -- 条件式内で isPublicFormNonceValid() を検証。
+						isset($_FILES[$k]) &&
+						static::isPublicFormNonceValid()
+					)
+				{
+					$vals->$k = self::upload($class, $form, $vals->$k, $k);
+				}
 		}
 
 		// set back to session
@@ -702,12 +714,13 @@ class PublicForm
 				{
 					// taxonomy だったら option 追加する
 					if ($attrs['args']['fields'][$a_key]['type'] != 'taxonomy') continue;
-					$options = get_terms($a_key, array(
-						'hide_empty' => false,
-						'fields' => 'id=>name',
-						'orderby' => 'slug',
-						'order' => 'ASC',
-					));
+						$options = get_terms(array(
+							'taxonomy' => $a_key,
+							'hide_empty' => false,
+							'fields' => 'id=>name',
+							'orderby' => 'slug',
+							'order' => 'ASC',
+						));
 
 					$attrs['args']['fields'][$a_key]['options'] = $options; // 階層が違う TODO
 					if (isset($vals->{$a_key})) $attrs['args']['fields'][$a_key]['value'] = $vals->{$a_key}; // 階層が違う TODO
@@ -722,12 +735,13 @@ class PublicForm
 			if (isset($attrs['type']) && $attrs['type'] == 'taxonomy')
 			{
 				// taxonomy だったら option 追加する
-				$options = get_terms($field, array(
-					'hide_empty' => false,
-					'fields' => 'id=>name',
-					'orderby' => 'slug',
-					'order' => 'ASC',
-				));
+					$options = get_terms(array(
+						'taxonomy' => $field,
+						'hide_empty' => false,
+						'fields' => 'id=>name',
+						'orderby' => 'slug',
+						'order' => 'ASC',
+					));
 				$attrs['args']['options'] = $options;
 				if (isset($vals->{$field})) $attrs['args']['value'] = $vals->{$field};
 				if (isset($attrs['radio']) && $attrs['radio']) {
@@ -796,9 +810,14 @@ class PublicForm
 		if ($is_file_exist)
 		{
 
-			wp_enqueue_script('dashi_js_pubic_uploader',
-				plugins_url('assets/js/public_uploader.js', DASHI_FILE));
-				wp_localize_script('dashi_js_pubic_uploader', 'DashiUpload', array(
+				wp_enqueue_script(
+					'dashi_js_pubic_uploader',
+					plugins_url('assets/js/public_uploader.js', DASHI_FILE),
+					array(),
+					defined('DASHI_VERSION') ? DASHI_VERSION : false,
+					true
+				);
+					wp_localize_script('dashi_js_pubic_uploader', 'DashiUpload', array(
 					'home_url'     => home_url(),
 					'ajax_url'     => admin_url('admin-ajax.php'),
 					'upload_url'   => static::uploadUrl(),
@@ -824,12 +843,29 @@ class PublicForm
 			wp_send_json_error(array('message' => 'invalid nonce'), 403);
 		}
 
-		$file = $_FILES['file_data'];
-		$form = isset($_POST['form']) ? sanitize_key($_POST['form']) : '';
+		if (!isset($_FILES['file_data']) || !is_array($_FILES['file_data']))
+		{
+			wp_send_json_error(array('message' => 'invalid request'), 400);
+		}
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 直後に各要素を個別サニタイズする。
+			$file_raw = wp_unslash($_FILES['file_data']);
+		$file = array(
+			'name'     => isset($file_raw['name']) ? sanitize_file_name((string) $file_raw['name']) : '',
+			'type'     => isset($file_raw['type']) ? sanitize_mime_type((string) $file_raw['type']) : '',
+			'tmp_name' => isset($file_raw['tmp_name']) ? (string) $file_raw['tmp_name'] : '',
+			'error'    => isset($file_raw['error']) ? absint($file_raw['error']) : UPLOAD_ERR_NO_FILE,
+			'size'     => isset($file_raw['size']) ? absint($file_raw['size']) : 0,
+		);
+		$form = filter_input(INPUT_POST, 'form', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		if (!is_string($form) && isset($_POST['form']))
+		{
+			$form = sanitize_text_field(wp_unslash((string) $_POST['form']));
+		}
+		$form = is_string($form) ? sanitize_key($form) : '';
 
 		$class = \Dashi\Core\Posttype\Posttype::posttype2class($form);
 
-		if (!$file || !$class)
+		if (empty($file['name']) || !$class)
 		{
 			wp_send_json_error(array('message' => 'invalid request'), 400);
 		}
@@ -918,13 +954,14 @@ class PublicForm
 						else if ($v['type'] == 'taxonomy')
 						{
 							// taxonomy
-							$options = get_terms($k, array(
-								'hide_empty' => false,
-								'fields' => 'id=>name',
-								'orderby' => 'slug',
-								'order' => 'ASC',
-								'include' => $vals->$k,
-							));
+								$options = get_terms(array(
+									'taxonomy' => $k,
+									'hide_empty' => false,
+									'fields' => 'id=>name',
+									'orderby' => 'slug',
+									'order' => 'ASC',
+									'include' => $vals->$k,
+								));
 							$html.= join(', ', $options);
 						}
 						else
@@ -946,13 +983,14 @@ class PublicForm
 					}
 					else if ($v['type'] == 'taxonomy') // taxonomy radio
 					{
-						$options = get_terms($k, array(
-							'hide_empty' => false,
-							'fields' => 'id=>name',
-							'orderby' => 'slug',
-							'order' => 'ASC',
-							'include' => array($vals->$k),
-						));
+							$options = get_terms(array(
+								'taxonomy' => $k,
+								'hide_empty' => false,
+								'fields' => 'id=>name',
+								'orderby' => 'slug',
+								'order' => 'ASC',
+								'include' => array($vals->$k),
+							));
 						$html.= join(', ', $options);
 					}
 					else
@@ -1099,25 +1137,29 @@ class PublicForm
 		// mail address check. sendto is allowed comma separated value
 		if ( ! $class::get('sendto') || ! Validation::multi('isMailaddress', $class::get('sendto')))
 		{
-			throw new \Exception (__('Mail form require valid "send to mailaddress".', 'dashi'));
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+				throw new \Exception(__('Mail form require valid "send to mailaddress".', 'dashi'));
 		}
 
 		// mail address check. sendto is allowed comma separated value
 		if ( ! $class::get('sendto') || ! Validation::multi('isMailaddress', $class::get('sendto')))
 		{
-			throw new \Exception (__('Mail form require valid "send to mailaddress".', 'dashi'));
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+				throw new \Exception(__('Mail form require valid "send to mailaddress".', 'dashi'));
 		}
 
 		// reply to
 		if ($class::get('replyto') && ! Validation::isMailaddress($class::get('sendto')))
 		{
-			throw new \Exception (__('Mail form require valid "reply to mailaddress".', 'dashi'));
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+				throw new \Exception(__('Mail form require valid "reply to mailaddress".', 'dashi'));
 		}
 
 		// subjectless
 		if ( ! $class::get('subject'))
 		{
-			throw new \Exception (__('set "subject".', 'dashi'));
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+				throw new \Exception(__('set "subject".', 'dashi'));
 		}
 
 		// auto reply?
@@ -1125,11 +1167,13 @@ class PublicForm
 		{
 			if ( ! $class::get('auto_reply_field'))
 			{
-				throw new \Exception (__('set "auto_reply_field" when use auto_reply.', 'dashi'));
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+					throw new \Exception(__('set "auto_reply_field" when use auto_reply.', 'dashi'));
 			}
 			if ( ! $class::get('re_subject'))
 			{
-				throw new \Exception (__('set "re_subject" when use auto_reply.', 'dashi'));
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+					throw new \Exception(__('set "re_subject" when use auto_reply.', 'dashi'));
 			}
 		}
 	}
@@ -1144,7 +1188,8 @@ class PublicForm
 		$limit = 10;
 		$window_seconds = 60;
 
-		$ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
+		$remote_addr = filter_input(INPUT_SERVER, 'REMOTE_ADDR', FILTER_VALIDATE_IP);
+		$ip = is_string($remote_addr) && $remote_addr !== '' ? $remote_addr : 'unknown';
 		$key = 'dashi_upl_rate_' . md5($ip);
 		$now = time();
 
@@ -1184,6 +1229,21 @@ class PublicForm
 				429
 			);
 		}
+	}
+
+	private static function isPublicFormNonceValid()
+	{
+		$wpnonce = filter_input(INPUT_POST, '_wpnonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		if (!is_string($wpnonce) && isset($_POST['_wpnonce']))
+		{
+			$wpnonce = sanitize_text_field(wp_unslash((string) $_POST['_wpnonce']));
+		}
+		if (!is_string($wpnonce) || $wpnonce === '') return false;
+
+		return (bool) (
+			wp_verify_nonce($wpnonce, 'dashi_public_form') ||
+			wp_verify_nonce($wpnonce, 'dashi_public_form_do_final')
+		);
 	}
 
 	/**
@@ -1409,7 +1469,8 @@ class PublicForm
 			if ( ! file_exists($tmp_path)) continue;
 
 			// 移動
-			rename($tmp_path, $upload_path.$file);
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- 同一ホスト内の一時領域から確定領域へ原子的に移動する。
+				rename($tmp_path, $upload_path.$file);
 
 			// あたらしいURL
 			$newurl = dirname($upload_dirs['url']).'/files/'.$file;
@@ -1450,7 +1511,7 @@ class PublicForm
 	private static function createUploadDir()
 	{
 		// do nothing
-		if ( ! file_exists(DASHI_TMP_UPLOAD_DIR)) mkdir(DASHI_TMP_UPLOAD_DIR);
+			if ( ! file_exists(DASHI_TMP_UPLOAD_DIR)) wp_mkdir_p(DASHI_TMP_UPLOAD_DIR);
 
 		if ( ! file_exists(DASHI_TMP_UPLOAD_DIR.'.htaccess'))
 		{

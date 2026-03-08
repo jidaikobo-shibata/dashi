@@ -6,7 +6,7 @@ Description: Useful classes for creating a custom post type. When you install it
 Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
-Version: 3.4.2
+Version: 3.4.3
 Author URI: http://www.jidaikobo.com/
 thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
 License: GPL2
@@ -153,17 +153,38 @@ if (get_option('dashi_keep_ssl_connection'))
         'template_redirect',
         function()
         {
+            $https = filter_input(INPUT_SERVER, 'HTTPS', FILTER_UNSAFE_RAW);
+            if (!is_string($https) && isset($_SERVER['HTTPS'])) {
+                $https = wp_unslash((string) $_SERVER['HTTPS']);
+            }
+            $https = is_string($https) ? strtolower(sanitize_text_field($https)) : '';
+
+            $user_agent = filter_input(INPUT_SERVER, 'HTTP_USER_AGENT', FILTER_UNSAFE_RAW);
+            if (!is_string($user_agent) && isset($_SERVER['HTTP_USER_AGENT'])) {
+                $user_agent = wp_unslash((string) $_SERVER['HTTP_USER_AGENT']);
+            }
+            $user_agent = is_string($user_agent) ? sanitize_text_field($user_agent) : '';
+
+            $host = filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_UNSAFE_RAW);
+            if (!is_string($host) && isset($_SERVER['HTTP_HOST'])) {
+                $host = wp_unslash((string) $_SERVER['HTTP_HOST']);
+            }
+            $host = is_string($host) ? sanitize_text_field($host) : '';
+
+            $request_uri = filter_input(INPUT_SERVER, 'REQUEST_URI', FILTER_UNSAFE_RAW);
+            if (!is_string($request_uri) && isset($_SERVER['REQUEST_URI'])) {
+                $request_uri = wp_unslash((string) $_SERVER['REQUEST_URI']);
+            }
+            $request_uri = is_string($request_uri) ? sanitize_text_field($request_uri) : '';
+
             // HTTPS
-            if (isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == "on") return;
+            if ($https === 'on') return;
 
             // GuzzleHttp
-            if (
-                isset($_SERVER['HTTP_USER_AGENT']) &&
-                strpos($_SERVER['HTTP_USER_AGENT'], 'GuzzleHttp') !== false
-            ) return;
+            if (strpos($user_agent, 'GuzzleHttp') !== false) return;
 
             // redirect
-            $location = esc_url_raw("https://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+            $location = esc_url_raw("https://" . $host . $request_uri);
             wp_safe_redirect($location, '301'); //Moved Permanently
             exit;
         }

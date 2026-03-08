@@ -392,11 +392,16 @@ class Posttype
         $posttypes = PosttypeClassResolver::collect($posttypes_files);
         $posttypes = array_merge($posttypes, PosttypeDefaultLoader::load($posttypes));
 
-		// 出汁由来でないポストタイプの取得
-		global $wpdb;
-		$sql = 'SELECT `post_type` FROM '.$wpdb->posts.' GROUP BY `post_type`;';
-        $virtuals = PosttypeVirtualRegistry::collect($wpdb->get_results($sql), $posttypes);
-        $posttypes = array_merge($posttypes, $virtuals['classes']);
+			// 出汁由来でないポストタイプの取得
+			global $wpdb;
+			$post_type_rows = array_map(
+				static function ($post_type) {
+					return (object) array('post_type' => $post_type);
+				},
+				(array) $wpdb->get_col("SELECT DISTINCT post_type FROM {$wpdb->posts}")
+			);
+	        $virtuals = PosttypeVirtualRegistry::collect($post_type_rows, $posttypes);
+	        $posttypes = array_merge($posttypes, $virtuals['classes']);
 
         foreach ($virtuals['posttypes'] as $posttype)
         {
@@ -710,11 +715,14 @@ class Posttype
 		if (in_array($posttype, static::$defaults)) return;
 
 			$name = $posttype::get('post_type');
-			if (in_array($name, static::$banned))
-			{
-				/* translators: %s: post type name. */
-				throw new \Exception (sprintf(__('%s is cannot use as posttype name', 'dashi'), $name));
-			}
+				if (in_array($name, static::$banned))
+				{
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+					throw new \Exception(
+						/* translators: %s: post type name. */
+						sprintf(__('%s is cannot use as posttype name', 'dashi'), $name)
+					);
+				}
 
 	        // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 	        $name = __($posttype::get('name'), 'dashi');
@@ -817,11 +825,14 @@ class Posttype
 		$custom_fields_taxonomies = $posttype::get('custom_fields_taxonomies');
 		foreach ($posttype::get('taxonomies') as $name => $val)
 		{
-			if (in_array($name, static::$banned))
-			{
-				/* translators: %s: taxonomy name. */
-				throw new \Exception (sprintf(__('%s is cannot use as taxonomy name', 'dashi'), $name));
-			}
+				if (in_array($name, static::$banned))
+				{
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+					throw new \Exception(
+						/* translators: %s: taxonomy name. */
+						sprintf(__('%s is cannot use as taxonomy name', 'dashi'), $name)
+					);
+				}
 			register_taxonomy($name, $posttype::get('post_type'), $val);
 
 			if ( ! array_key_exists($name, $custom_fields_taxonomies)) continue;

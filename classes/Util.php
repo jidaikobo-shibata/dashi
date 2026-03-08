@@ -37,7 +37,7 @@ class Util
 	public static function uri()
 	{
 		$uri = static::is_ssl() ? 'https' : 'http';
-		$uri.= '://'.$_SERVER["HTTP_HOST"].rtrim($_SERVER["REQUEST_URI"], '/');
+		$uri.= '://'.static::serverValue('HTTP_HOST').rtrim(static::serverValue('REQUEST_URI'), '/');
 		return static::s($uri);
 	}
 
@@ -48,7 +48,7 @@ class Util
 	 */
 	public static function rootRelative()
 	{
-		$host = $_SERVER["HTTP_HOST"];
+		$host = static::serverValue('HTTP_HOST');
 		$offset = strpos(home_url(), $host) + strlen($host);
 		return substr(home_url(), 0, $offset);
 	}
@@ -84,8 +84,9 @@ class Util
 	{
 		if (strpos($uri, '?') !== false)
 		{
-			// all query strings
-			$query_strings = $query_strings ?: array_keys($_GET);
+				// all query strings
+				$get_params = filter_input_array(INPUT_GET, FILTER_DEFAULT);
+				$query_strings = $query_strings ?: array_keys(is_array($get_params) ? $get_params : array());
 
 			// replace
 			$uri = str_replace('&amp;', '&', $uri);
@@ -114,8 +115,24 @@ class Util
 	 */
 	public static function isSsl()
 	{
-		return isset($_SERVER['HTTP_X_SAKURA_FORWARDED_FOR']) ||
-			(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']);
+		return static::serverValue('HTTP_X_SAKURA_FORWARDED_FOR') !== '' ||
+			static::serverValue('HTTPS') !== '';
+	}
+
+	private static function serverValue($key)
+	{
+		$value = filter_input(INPUT_SERVER, $key, FILTER_UNSAFE_RAW);
+		if (!is_string($value) && isset($_SERVER[$key]))
+		{
+			$value = wp_unslash((string) $_SERVER[$key]);
+		}
+
+		if (!is_string($value))
+		{
+			return '';
+		}
+
+		return sanitize_text_field($value);
 	}
 
 	/**

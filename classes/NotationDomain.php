@@ -65,17 +65,18 @@ trait NotationDomain
 	 *
 	 * @return Void
 	 */
-	public static function wpcf7ChkDomain()
-	{
-		$wpcf7s = get_posts('post_type=wpcf7_contact_form');
-		$host = isset($_SERVER['HTTP_HOST']) ? esc_html($_SERVER['HTTP_HOST']) : '';
+		public static function wpcf7ChkDomain()
+		{
+			$wpcf7s = get_posts('post_type=wpcf7_contact_form');
+			$host = filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_UNSAFE_RAW);
+			$host = is_string($host) ? sanitize_text_field($host) : '';
 
 		foreach ($wpcf7s as $wpcf7)
 		{
 			$mails = array();
 			$mails[1] = get_post_meta($wpcf7->ID, '_mail', TRUE);
 			$mails[2] = get_post_meta($wpcf7->ID, '_mail_2', TRUE);
-			$post_title = '<a href="'.site_url('/wp-admin/admin.php?page=wpcf7&post='.$wpcf7->ID.'&action=edit').'">'.esc_html($wpcf7->post_title).'</a>';
+				$post_title = esc_html($wpcf7->post_title);
 
 			// attrs
 			foreach ($mails as $mailnum => $mail)
@@ -114,11 +115,11 @@ trait NotationDomain
 			($mailnum == 1 && $k == 'recipient' && strpos($host, $v) === false)
 		)
 		{
-			add_action('admin_notices', function () use ($v, $post_title)
-			{
-				/* translators: 1: recipient setting, 2: CF7 post title. */
-				echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('recipient of mail1 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), $v, $post_title).'</strong></p></div>';
-			});
+				add_action('admin_notices', function () use ($v, $post_title)
+				{
+					/* translators: 1: recipient setting, 2: CF7 post title. */
+					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(esc_html__('recipient of mail1 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), esc_html($v), esc_html($post_title)).'</strong></p></div>';
+				});
 		}
 	}
 
@@ -142,21 +143,21 @@ trait NotationDomain
 			// mail2の送信元のドメインが異なっていたら警告を出す
 			if (strpos($host, $v) === false)
 			{
-				add_action('admin_notices', function () use ($v, $post_title)
-				{
-					/* translators: 1: sender setting, 2: CF7 post title. */
-					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), $v, $post_title).'</strong></p></div>';
-				});
+					add_action('admin_notices', function () use ($v, $post_title)
+					{
+						/* translators: 1: sender setting, 2: CF7 post title. */
+						echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(esc_html__('sender of mail2 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), esc_html($v), esc_html($post_title)).'</strong></p></div>';
+					});
 			}
 
 			// mail2の送信元のにwordpress@を使っていたら警告を出す
 			if (strpos($v, 'wordpress@') !== false)
 			{
-				add_action('admin_notices', function () use ($v, $post_title)
-				{
-					/* translators: 1: sender setting, 2: CF7 post title. */
-					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is using wordpress@. check please: %1$s [%2$s]', 'dashi'), $v, $post_title).'</strong></p></div>';
-				});
+					add_action('admin_notices', function () use ($v, $post_title)
+					{
+						/* translators: 1: sender setting, 2: CF7 post title. */
+						echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(esc_html__('sender of mail2 of Contact Form 7 is using wordpress@. check please: %1$s [%2$s]', 'dashi'), esc_html($v), esc_html($post_title)).'</strong></p></div>';
+					});
 			}
 		}
 	}
@@ -206,7 +207,7 @@ trait NotationDomain
 		}
 		$html.= '</dl>';
 
-		echo $html;
+			echo wp_kses_post($html);
 	}
 
 	/**
@@ -242,6 +243,6 @@ trait NotationDomain
 		}
 
 		$html.= '</dl>';
-		echo $html;
-	}
+			echo wp_kses_post($html);
+		}
 }
