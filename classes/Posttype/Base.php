@@ -5,6 +5,56 @@ if (!defined('ABSPATH')) exit;
 
 abstract class Base
 {
+	/**
+	 * 遅延翻訳値を作る
+	 *
+	 * @param string $key
+	 * @param string $domain
+	 * @return DeferredTranslation
+	 */
+	protected static function t($key, $domain = 'dashi')
+	{
+		return new DeferredTranslation($key, $domain);
+	}
+
+	/**
+	 * 遅延翻訳キーを、表示時に翻訳文字列へ解決する
+	 *
+	 * @param DeferredTranslation $value
+	 * @return string
+	 */
+	private static function resolveDeferredTranslationKey(DeferredTranslation $value)
+	{
+		switch ($value->key())
+		{
+			case 'posttype.editablehelp.name':
+				return __('Help', 'dashi');
+			case 'posttype.pagepart.description':
+				return __(
+					'Page Part can not be displayed by itself.<br />If you describe <code>[get_pagepart slug=slug_name]</code>, page part is called to that place.<br />you can not change the slug created from the shortcode.',
+					'dashi'
+				);
+			default:
+				return $value->key();
+		}
+	}
+
+	/**
+	 * 遅延翻訳値を表示時に解決する
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	private static function resolveDeferredTranslation($value)
+	{
+		if ($value instanceof DeferredTranslation)
+		{
+			return static::resolveDeferredTranslationKey($value);
+		}
+
+		return $value;
+	}
+
 	// basic values
 	protected $post_type;
 	protected $is_dashi = true;
@@ -220,10 +270,7 @@ abstract class Base
 
 			if (property_exists($instance, $name))
 			{
-				if ($name == 'description') {
-					return $instance->$name;
-				}
-				return $instance->$name;
+				return static::resolveDeferredTranslation($instance->$name);
 			}
 	}
 

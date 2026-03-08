@@ -224,7 +224,6 @@ class Option
 		$html.= '<h2>'.__("Help", 'dashi').'</h2>';
 		$html.= '<div><a href="?page=dashi_options&amp;help=posttype#help_area">Post Type</a> | ';
 		$html.= '<a href="?page=dashi_options&amp;help=shortcode#help_area">shortcode</a> | ';
-		$html.= '<a href="?page=dashi_options&amp;help=seo#help_area">SEO</a> | ';
 		$html.= '<a href="?page=dashi_options&amp;help=hooks#help_area">Hooks</a> | ';
 		$html.= '</div>';
 
@@ -248,16 +247,6 @@ elseif (input::get('help') == 'form_to')
 elseif (input::get('help') == 'shortcode')
 {
 	Shortcode::option();
-}
-elseif (input::get('help') == 'seo')
-{
-		echo '1. '.esc_html__('Prepare sitemap.xml.', 'dashi')."\n";
-		echo '2. '.esc_html__('Prepare Gmail account.', 'dashi')."\n";
-		echo '3. '.esc_html__('Create Google Analytics account by Gmail account.', 'dashi')."\n";
-		echo '4. '.esc_html__('Set Google Analytics JavaScript in the head of html.', 'dashi')."\n";
-		echo '5. '.esc_html__('Manage -> Properties -> setting -> Search Console', 'dashi')."\n";
-		echo '6. '.esc_html__('Create account at Search Console and add site and confirm it.', 'dashi')."\n";
-		echo '7. '.esc_html__('Create Microsoft account by Gmail account.', 'dashi')."\n";
 }
 elseif (input::get('help') == 'hooks')
 {

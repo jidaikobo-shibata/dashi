@@ -6,7 +6,7 @@ Description: Useful classes for creating a custom post type. When you install it
 Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
-Version: 3.4.3
+Version: 3.4.4
 Author URI: http://www.jidaikobo.com/
 thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
 License: GPL2
@@ -154,27 +154,21 @@ if (get_option('dashi_keep_ssl_connection'))
         'template_redirect',
 	        function()
 	        {
-	            $https = filter_input(INPUT_SERVER, 'HTTPS', FILTER_UNSAFE_RAW);
-	            $https = is_string($https) ? strtolower(sanitize_text_field($https)) : '';
+            if (is_ssl()) return;
 
 	            $user_agent = filter_input(INPUT_SERVER, 'HTTP_USER_AGENT', FILTER_UNSAFE_RAW);
 	            $user_agent = is_string($user_agent) ? sanitize_text_field($user_agent) : '';
-
-	            $host = filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_UNSAFE_RAW);
-	            $host = is_string($host) ? sanitize_text_field($host) : '';
-
-	            $request_uri = filter_input(INPUT_SERVER, 'REQUEST_URI', FILTER_UNSAFE_RAW);
-	            $request_uri = is_string($request_uri) ? sanitize_text_field($request_uri) : '';
-
-            // HTTPS
-            if ($https === 'on') return;
-
-            // GuzzleHttp
             if (strpos($user_agent, 'GuzzleHttp') !== false) return;
 
-            // redirect
-            $location = esc_url_raw("https://" . $host . $request_uri);
-            wp_safe_redirect($location, '301'); //Moved Permanently
+	            $request_uri = filter_input(INPUT_SERVER, 'REQUEST_URI', FILTER_UNSAFE_RAW);
+            $request_uri = is_string($request_uri) ? wp_sanitize_redirect($request_uri) : '/';
+            if ($request_uri === '') $request_uri = '/';
+            if ($request_uri[0] !== '/') $request_uri = '/'.ltrim($request_uri, '/');
+
+            $location = home_url($request_uri, 'https');
+            if (!is_string($location) || !wp_http_validate_url($location)) return;
+
+            wp_safe_redirect($location, 301); //Moved Permanently
             exit;
         }
     );

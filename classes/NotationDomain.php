@@ -8,6 +8,86 @@ trait NotationDomain
 	static $dashi_mails = array();
 
 	/**
+	 * @param string $hash
+	 * @return bool
+	 */
+	private static function isCf7WarningAcknowledged($hash)
+	{
+		if (!NotationCf7WarningAcknowledger::isValidHash($hash))
+		{
+			return false;
+		}
+
+		$key = NotationCf7WarningAcknowledger::transientKeyFromHash($hash);
+		return (bool) get_transient($key);
+	}
+
+	/**
+	 * @param string $hash
+	 * @return string
+	 */
+	private static function getCf7WarningAcknowledgeLink($hash)
+	{
+		if (!NotationCf7WarningAcknowledger::isValidHash($hash))
+		{
+			return '';
+		}
+
+		$url = add_query_arg(
+			array(
+				'action' => 'dashi_cf7_ack_warning',
+				'hash' => $hash,
+			),
+			admin_url('admin-post.php')
+		);
+		$url = wp_nonce_url($url, 'dashi_cf7_ack_'.$hash);
+
+		return '<a href="'.esc_url($url).'">'.esc_html__('Confirmed (hide for 30 days)', 'dashi').'</a>';
+	}
+
+	/**
+	 * @param int $postId
+	 * @param string $postTitle
+	 * @return string
+	 */
+	private static function getCf7EditLink($postId, $postTitle)
+	{
+		$url = site_url('/wp-admin/admin.php?page=wpcf7&post='.$postId.'&action=edit');
+		return '<a href="'.esc_url($url).'">'.esc_html($postTitle).'</a>';
+	}
+
+	/**
+	 * @return void
+	 */
+	public static function handleCf7WarningAcknowledge()
+	{
+		if (!current_user_can('manage_options'))
+		{
+			wp_die(esc_html__('You are not allowed to do this action.', 'dashi'), 403);
+		}
+
+		$hash = filter_input(INPUT_GET, 'hash', FILTER_UNSAFE_RAW);
+		$hash = is_string($hash) ? sanitize_text_field($hash) : '';
+		if (!NotationCf7WarningAcknowledger::isValidHash($hash))
+		{
+			wp_die(esc_html__('Invalid acknowledge token.', 'dashi'), 400);
+		}
+
+		check_admin_referer('dashi_cf7_ack_'.$hash);
+		$key = NotationCf7WarningAcknowledger::transientKeyFromHash($hash);
+		set_transient($key, 1, NotationCf7WarningAcknowledger::ttl());
+
+		$redirect = wp_get_referer();
+		if (!$redirect)
+		{
+			$redirect = admin_url();
+		}
+
+		wp_safe_redirect($redirect);
+		exit;
+	}
+
+	/**
 	 * chkDomains
 	 *
 	 * @return Void
@@ -31,6 +111,7 @@ trait NotationDomain
 				'admin_init',
 				array('\\Dashi\\Core\\Notation', 'wpcf7ChkDomain')
 			);
+
 		}
 
 		// dashi_public_formが宛先を持っている場合は表示する
@@ -65,100 +146,161 @@ trait NotationDomain
 	 *
 	 * @return Void
 	 */
-		public static function wpcf7ChkDomain()
-		{
-			$wpcf7s = get_posts('post_type=wpcf7_contact_form');
-			$host = filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_UNSAFE_RAW);
-			$host = is_string($host) ? sanitize_text_field($host) : '';
+			public static function wpcf7ChkDomain()
+			{
+				$wpcf7s = get_posts('post_type=wpcf7_contact_form');
+				$http_host = filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_UNSAFE_RAW);
+				$http_host = is_string($http_host) ? sanitize_text_field($http_host) : '';
+				$host = NotationDomainValidator::resolveComparisonHost(home_url(), $http_host);
 
-		foreach ($wpcf7s as $wpcf7)
+			foreach ($wpcf7s as $wpcf7)
 		{
 			$mails = array();
 			$mails[1] = get_post_meta($wpcf7->ID, '_mail', TRUE);
 			$mails[2] = get_post_meta($wpcf7->ID, '_mail_2', TRUE);
-				$post_title = esc_html($wpcf7->post_title);
+				$post_title = (string) $wpcf7->post_title;
+				$post_link = self::getCf7EditLink((int) $wpcf7->ID, $post_title);
 
-			// attrs
-			foreach ($mails as $mailnum => $mail)
+			// mail1 の recipient
+			$mail1 = isset($mails[1]) && is_array($mails[1]) ? $mails[1] : array();
+			if (isset($mail1['active']) && $mail1['active'] && isset($mail1['recipient']))
 			{
-				if ( ! is_array($mail)) continue;
-				if ( ! isset($mail['active']) || ! $mail['active']) continue;
-				foreach ($mail as $k => $v)
+				$mail1Recipient = (string) $mail1['recipient'];
+			}
+			else
+			{
+				$mail1Recipient = '';
+			}
+
+			// mail2 の sender
+			$mail2 = isset($mails[2]) && is_array($mails[2]) ? $mails[2] : array();
+			if (isset($mail2['active']) && $mail2['active'] && isset($mail2['sender']))
+			{
+				$mail2Sender = (string) $mail2['sender'];
+			}
+			else
+			{
+				$mail2Sender = '';
+			}
+
+			$ackHash = NotationCf7WarningAcknowledger::buildHash(
+				(int) $wpcf7->ID,
+				$mail1Recipient,
+				$mail2Sender
+			);
+			if (self::isCf7WarningAcknowledged($ackHash))
+			{
+				continue;
+			}
+
+			if ($mail1Recipient !== '')
+			{
+					self::chkMail1($host, $mail1Recipient, $post_link, $ackHash);
+				}
+				if ($mail2Sender !== '')
 				{
-					$v = trim(substr($v, strpos($v, '@') + 1), '>');
-
-					// mail1の送信先、mail2の送信元のドメインが異なっていたら警告を出す
-					self::chkMail1($mailnum, $k, $host, $v, $post_title);
-
-					// mail2
-					self::chkMail2($mailnum, $k, $host, $v, $post_title);
+					self::chkMail2($host, $mail2Sender, $post_link, $ackHash);
 				}
 			}
 		}
-	}
 
 	/**
 	 * chkMail1
 	 *
-	 * @param $mailnum integer
-	 * @param $k string
 	 * @param $host string
-	 * @param $v string
-	 * @param $post_title string
+	 * @param $recipient string
+	 * @param $post_link string
+	 * @param $ackHash string
 	 * @return Void
 	 */
-	private static function chkMail1($mailnum, $k, $host, $v, $post_title)
+	private static function chkMail1($host, $recipient, $post_link, $ackHash)
 	{
-		if ($mailnum == 1 && $k == 'recipient' && $v == '_site_admin_email]') return;
-		if (
-			($mailnum == 1 && $k == 'recipient' && empty($v)) ||
-			($mailnum == 1 && $k == 'recipient' && strpos($host, $v) === false)
-		)
+		$recipient = trim($recipient);
+		if ($recipient === '' || $recipient === '[_site_admin_email]')
 		{
-				add_action('admin_notices', function () use ($v, $post_title)
-				{
-					/* translators: 1: recipient setting, 2: CF7 post title. */
-					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(esc_html__('recipient of mail1 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), esc_html($v), esc_html($post_title)).'</strong></p></div>';
-				});
+			return;
+		}
+
+		$domains = NotationDomainValidator::extractDomainsFromRecipients($recipient);
+		if (!$domains)
+		{
+			return;
+		}
+
+		$mismatches = array();
+		foreach ($domains as $domain)
+		{
+			if (!NotationDomainValidator::hostMatchesDomain($host, $domain))
+			{
+				$mismatches[] = $domain;
+			}
+		}
+
+		if ($mismatches)
+		{
+			$detail = implode(', ', $mismatches);
+			$ackLink = self::getCf7WarningAcknowledgeLink($ackHash);
+			add_action('admin_notices', function () use ($detail, $post_link, $ackLink)
+			{
+				echo '<div class="message notice notice-warning dashi_error"><p><strong>';
+				$message = esc_html__('recipient of mail1 of Contact Form 7 is different from this host. check please:', 'dashi');
+				$message .= ' '.esc_html($detail).' ['.$post_link.']';
+				echo wp_kses($message, array('a' => array('href' => true)));
+				echo '</strong>';
+				if ($ackLink) echo ' '.wp_kses_post($ackLink);
+				echo '</p></div>';
+			});
 		}
 	}
 
 	/**
 	 * chkMail2
 	 *
-	 * @param $mailnum integer
-	 * @param $k string
 	 * @param $host string
-	 * @param $v string
-	 * @param $post_title string
+	 * @param $sender string
+	 * @param $post_link string
+	 * @param $ackHash string
 	 * @return Void
 	 */
-	private static function chkMail2($mailnum, $k, $host, $v, $post_title)
+	private static function chkMail2($host, $sender, $post_link, $ackHash)
 	{
+		$sender = trim($sender);
+		$senderDomainList = NotationDomainValidator::extractDomainsFromRecipients($sender);
+		$senderDomain = $senderDomainList ? $senderDomainList[0] : '';
+
+		// mail2の送信元のドメインが異なっていたら警告を出す
 		if (
-			$mailnum == 2 &&
-			$k == 'sender'
+			$senderDomain !== '' &&
+			!NotationDomainValidator::hostMatchesDomain($host, $senderDomain)
 		)
 		{
-			// mail2の送信元のドメインが異なっていたら警告を出す
-			if (strpos($host, $v) === false)
+			$ackLink = self::getCf7WarningAcknowledgeLink($ackHash);
+			add_action('admin_notices', function () use ($senderDomain, $post_link, $ackLink)
 			{
-					add_action('admin_notices', function () use ($v, $post_title)
-					{
-						/* translators: 1: sender setting, 2: CF7 post title. */
-						echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(esc_html__('sender of mail2 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), esc_html($v), esc_html($post_title)).'</strong></p></div>';
-					});
-			}
+				echo '<div class="message notice notice-warning dashi_error"><p><strong>';
+				$message = esc_html__('sender of mail2 of Contact Form 7 is different from this host. check please:', 'dashi');
+				$message .= ' '.esc_html($senderDomain).' ['.$post_link.']';
+				echo wp_kses($message, array('a' => array('href' => true)));
+				echo '</strong>';
+				if ($ackLink) echo ' '.wp_kses_post($ackLink);
+				echo '</p></div>';
+			});
+		}
 
-			// mail2の送信元のにwordpress@を使っていたら警告を出す
-			if (strpos($v, 'wordpress@') !== false)
+		// mail2の送信元のにwordpress@を使っていたら警告を出す
+		if (NotationDomainValidator::isWordpressSender($sender))
+		{
+			$ackLink = self::getCf7WarningAcknowledgeLink($ackHash);
+			add_action('admin_notices', function () use ($sender, $post_link, $ackLink)
 			{
-					add_action('admin_notices', function () use ($v, $post_title)
-					{
-						/* translators: 1: sender setting, 2: CF7 post title. */
-						echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(esc_html__('sender of mail2 of Contact Form 7 is using wordpress@. check please: %1$s [%2$s]', 'dashi'), esc_html($v), esc_html($post_title)).'</strong></p></div>';
-					});
-			}
+				echo '<div class="message notice notice-warning dashi_error"><p><strong>';
+				$message = esc_html__('sender of mail2 of Contact Form 7 is using wordpress@. check please:', 'dashi');
+				$message .= ' '.esc_html($sender).' ['.$post_link.']';
+				echo wp_kses($message, array('a' => array('href' => true)));
+				echo '</strong>';
+				if ($ackLink) echo ' '.wp_kses_post($ackLink);
+				echo '</p></div>';
+			});
 		}
 	}
 

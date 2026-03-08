@@ -12,7 +12,7 @@ class Pagepart extends \Dashi\Core\Posttype\Base
     {
         // settings
         static::set('name', 'Page Part');
-	        static::set('description', __('Page Part can not be displayed by itself.<br />If you describe <code>[get_pagepart slug=slug_name]</code>, page part is called to that place.<br />you can not change the slug created from the shortcode.', 'dashi'));
+        static::set('description', static::t('posttype.pagepart.description'));
         static::set('order', 2);
         static::set('is_searchable', true);
         static::set('is_redirect', true);

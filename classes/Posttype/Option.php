@@ -25,6 +25,13 @@ class Sample extends \Dashi\Core\Posttype\Base
     // <?php echo __('display name of post type. You may use multibyte character', 'dashi')."\n" ?>
     static::set('name', 'Sample');
 
+    // 遅延翻訳 / Deferred translation
+    // __init() で __() を呼ばず、static::t() で翻訳キーを保持します。
+    // Do not call __() in __init(); keep a translation key via static::t().
+    // 翻訳は表示時に Base 側で解決されます。
+    // Translation is resolved later by Base when rendering.
+    // static::set('name', static::t('posttype.editablehelp.name'));
+
     // supports
     static::set('supports', array(
         'title',

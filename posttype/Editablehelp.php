@@ -5,7 +5,7 @@ class Editablehelp extends \Dashi\Core\Posttype\Base
 {
     public static function __init ()
     {
-        static::set('name', 'Help');
+        static::set('name', static::t('posttype.editablehelp.name'));
         static::set('is_searchable', false);
         static::set('is_redirect', true);
         static::set('show_ui', true);

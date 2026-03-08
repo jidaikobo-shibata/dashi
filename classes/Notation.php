@@ -16,9 +16,20 @@ class Notation
 	 */
 	public static function forge()
 		{
-			// ダッシュボード判定 - pagenowではマルチサイトで判定できないため
+			// 「確認済み（30日間非表示）」の受付は admin-post.php でも動くよう常時登録
+			add_action(
+				'admin_post_dashi_cf7_ack_warning',
+				array('\\Dashi\\Core\\Notation', 'handleCf7WarningAcknowledge')
+			);
+
+			// ダッシュボードでのみ環境チェックを表示する
 			if ( ! is_admin()) return;
 			if ( ! get_option('dashi_do_environmental_check')) return;
+			global $pagenow;
+			if ($pagenow !== 'index.php')
+			{
+				return;
+			}
 			$script_name = filter_input(INPUT_SERVER, 'SCRIPT_NAME', FILTER_UNSAFE_RAW);
 			$script_name = is_string($script_name) ? sanitize_text_field(wp_unslash($script_name)) : '';
 			if ($script_name !== '' && substr($script_name, -19) != '/wp-admin/index.php') return;
