@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 trait NotationDomain
 {
 	static $dashi_mails = array();
@@ -114,7 +116,8 @@ trait NotationDomain
 		{
 			add_action('admin_notices', function () use ($v, $post_title)
 			{
-				echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('recipient of mail1 of Contact Form 7 is different from this host. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
+				/* translators: 1: recipient setting, 2: CF7 post title. */
+				echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('recipient of mail1 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), $v, $post_title).'</strong></p></div>';
 			});
 		}
 	}
@@ -141,7 +144,8 @@ trait NotationDomain
 			{
 				add_action('admin_notices', function () use ($v, $post_title)
 				{
-					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is different from this host. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
+					/* translators: 1: sender setting, 2: CF7 post title. */
+					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is different from this host. check please: %1$s [%2$s]', 'dashi'), $v, $post_title).'</strong></p></div>';
 				});
 			}
 
@@ -150,7 +154,8 @@ trait NotationDomain
 			{
 				add_action('admin_notices', function () use ($v, $post_title)
 				{
-					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is using wordpress@. check please: %s [%s]', 'dashi'), $v, $post_title).'</strong></p></div>';
+					/* translators: 1: sender setting, 2: CF7 post title. */
+					echo '<div class="message notice notice-warning dashi_error"><p><strong>'.sprintf(__('sender of mail2 of Contact Form 7 is using wordpress@. check please: %1$s [%2$s]', 'dashi'), $v, $post_title).'</strong></p></div>';
 				});
 			}
 		}
@@ -162,9 +167,15 @@ trait NotationDomain
 	 *
 	 * @return Void
 	 */
-	public static function wpcf7ContactList()
-	{
-		$wpcf7s = get_posts('post_type=wpcf7_contact_form');
+		public static function wpcf7ContactList()
+		{
+			$mail_item_labels = array(
+				'subject'            => __('subject', 'dashi'),
+				'sender'             => __('sender', 'dashi'),
+				'recipient'          => __('recipient', 'dashi'),
+				'additional_headers' => __('additional_headers', 'dashi'),
+			);
+			$wpcf7s = get_posts('post_type=wpcf7_contact_form');
 		$html = '';
 		$html.= '<dl>';
 		foreach ($wpcf7s as $wpcf7)
@@ -186,9 +197,10 @@ trait NotationDomain
 				$html.= '<caption>mail '.$mailnum.'</caption>';
 				foreach ($mail as $k => $v)
 				{
-					if ( ! in_array($k, array('subject', 'sender', 'recipient', 'additional_headers'))) continue;
-					$html.= '<tr><th style="white-space: nowrap;">'.__($k, 'dashi').'</th><td>'.esc_html($v).'</td></tr>';
-				}
+						if ( ! in_array($k, array('subject', 'sender', 'recipient', 'additional_headers'))) continue;
+						$label = isset($mail_item_labels[$k]) ? $mail_item_labels[$k] : $k;
+						$html.= '<tr><th style="white-space: nowrap;">'.esc_html($label).'</th><td>'.esc_html($v).'</td></tr>';
+					}
 				$html.= '</table></dd>';
 			}
 		}
@@ -203,9 +215,14 @@ trait NotationDomain
 	 *
 	 * @return Void
 	 */
-	public static function dashiContactList()
-	{
-		$html = '';
+		public static function dashiContactList()
+		{
+			$mail_item_labels = array(
+				'subject'    => __('subject', 'dashi'),
+				're_subject' => __('re_subject', 'dashi'),
+				'recipient'  => __('recipient', 'dashi'),
+			);
+			$html = '';
 		$html.= '<dl>';
 		foreach (static::$dashi_mails as $posttype_name => $mails)
 		{
@@ -217,9 +234,10 @@ trait NotationDomain
 			$html.= '<dd style="margin:0;"><table class="dashi_tbl">';
 			foreach ($mails as $k => $v)
 			{
-				if ( ! in_array($k, array('subject', 're_subject', 'recipient'))) continue;
-				$html.= '<tr><th style="white-space: nowrap;">'.__($k, 'dashi').'</th><td>'.esc_html($v).'</td></tr>';
-			}
+					if ( ! in_array($k, array('subject', 're_subject', 'recipient'))) continue;
+					$label = isset($mail_item_labels[$k]) ? $mail_item_labels[$k] : $k;
+					$html.= '<tr><th style="white-space: nowrap;">'.esc_html($label).'</th><td>'.esc_html($v).'</td></tr>';
+				}
 			$html.= '</table></dd>';
 		}
 

@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 class Notation
 {
 	use NotationDomain;
@@ -91,10 +93,10 @@ class Notation
 	{
 		if (get_option('blog_public')) return;
 
-		add_action('admin_notices', function ()
-		{
-			echo '<div class="message error dashi_error"><p><strong>'.__('Now avoid to index search engines.', 'dashi').'</strong></p></div>';
-		});
+			add_action('admin_notices', function ()
+			{
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Now avoid to index search engines.', 'dashi').'</strong></p></div>';
+			});
 	}
 
 	/**
@@ -106,10 +108,10 @@ class Notation
 	{
 		if (get_option('dashi_alert_acl')) return;
 
-		add_action('admin_notices', function ()
-		{
-			echo '<div class="message error dashi_error"><p><strong>'.__('Confirmed the existence and validity of login-required content for content managed by WordPress.', 'dashi').'</strong></p></div>';
-		});
+			add_action('admin_notices', function ()
+			{
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Confirmed the existence and validity of login-required content for content managed by WordPress.', 'dashi').'</strong></p></div>';
+			});
 	}
 
 	/**
@@ -121,10 +123,10 @@ class Notation
 	{
 		if (get_option('dashi_alert_fileacl')) return;
 
-		add_action('admin_notices', function ()
-		{
-			echo '<div class="message error dashi_error"><p><strong>'.__('Confirmed the existence and validity of login-required File (direct access).', 'dashi').'</strong></p></div>';
-		});
+			add_action('admin_notices', function ()
+			{
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Confirmed the existence and validity of login-required File (direct access).', 'dashi').'</strong></p></div>';
+			});
 	}
 
 	/**
@@ -136,10 +138,10 @@ class Notation
 	{
 		if ( ! get_option('dashi_development_diable_field_cache')) return;
 
-		add_action('admin_notices', function ()
-		{
-			echo '<div class="message notice notice-warning dashi_error"><p><strong>'.__('now development mode. cache is disabled', 'dashi').'</strong></p></div>';
-		});
+			add_action('admin_notices', function ()
+			{
+				echo '<div class="message notice notice-warning dashi_error"><p><strong>'.esc_html__('now development mode. cache is disabled', 'dashi').'</strong></p></div>';
+			});
 	}
 
 	/**
@@ -149,13 +151,14 @@ class Notation
 	 */
 	private static function disallowFileEdit()
 	{
-		if ( ! defined('DISALLOW_FILE_EDIT') || DISALLOW_FILE_EDIT == false)
-		{
-			add_action('admin_notices', function ()
+			if ( ! defined('DISALLOW_FILE_EDIT') || DISALLOW_FILE_EDIT == false)
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('Disallow file edit by WordPress. add wp-config.php to <code>define(\'DISALLOW_FILE_EDIT\', true);</code>', 'dashi').'</strong></p></div>';
-			});
-		}
+				add_action('admin_notices', function ()
+				{
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					echo '<div class="message error dashi_error"><p><strong>'.__('Disallow file edit by WordPress. add wp-config.php to <code>define(\'DISALLOW_FILE_EDIT\', true);</code>', 'dashi').'</strong></p></div>';
+				});
+			}
 	}
 
 	/**
@@ -166,11 +169,11 @@ class Notation
 	private static function checkPermissionOfWpconfig()
 	{
 		$wp_config_path = ABSPATH.'wp-config.php';
-		if (file_exists($wp_config_path) && is_writable($wp_config_path))
+		if (file_exists($wp_config_path) && wp_is_writable($wp_config_path))
 		{
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('wp-config.php is writable.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('wp-config.php is writable.', 'dashi').'</strong></p></div>';
 			});
 		}
 	}
@@ -186,7 +189,7 @@ class Notation
 		{
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('Now suppose to be using "Just another WordPress site" as a description.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Now suppose to be using "Just another WordPress site" as a description.', 'dashi').'</strong></p></div>';
 			});
 		}
 	}
@@ -202,7 +205,7 @@ class Notation
 		{
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('head html is not checked.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('head html is not checked.', 'dashi').'</strong></p></div>';
 			});
 		}
 	}
@@ -218,7 +221,7 @@ class Notation
 		{
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('utility pages are not checked.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('utility pages are not checked.', 'dashi').'</strong></p></div>';
 			});
 		}
 	}
@@ -234,7 +237,7 @@ class Notation
 		{
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('backup availability is not checked.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('backup availability is not checked.', 'dashi').'</strong></p></div>';
 			});
 		}
 	}
@@ -250,7 +253,7 @@ class Notation
 		{
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('access log availability is not checked.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('access log availability is not checked.', 'dashi').'</strong></p></div>';
 			});
 		}
 	}
@@ -267,10 +270,11 @@ class Notation
 			! get_option('dashi_no_need_acc_plugin')
 		)
 		{
-			add_action('admin_notices', function ()
-			{
-				echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('install %s plugin ex: %s', 'dashi'), 'Accessibility', 'jwp-a11y').'</strong></p></div>';
-			});
+				add_action('admin_notices', function ()
+				{
+					/* translators: 1: plugin category, 2: plugin slug example. */
+					echo '<div class="message error dashi_error"><p><strong>'.sprintf(esc_html__('install %1$s plugin ex: %2$s', 'dashi'), 'Accessibility', 'jwp-a11y').'</strong></p></div>';
+				});
 		}
 	}
 
@@ -286,10 +290,11 @@ class Notation
 			! is_plugin_active('query-monitor/query-monitor.php')
 		)
 		{
-			add_action('admin_notices', function ()
-			{
-				echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('install %s plugin ex: %s', 'dashi'), 'development', 'query monitor').'</strong></p></div>';
-			});
+				add_action('admin_notices', function ()
+				{
+					/* translators: 1: plugin category, 2: plugin slug example. */
+					echo '<div class="message error dashi_error"><p><strong>'.sprintf(esc_html__('install %1$s plugin ex: %2$s', 'dashi'), 'development', 'query monitor').'</strong></p></div>';
+				});
 		}
 	}
 
@@ -305,10 +310,11 @@ class Notation
 			! is_plugin_active('siteguard/siteguard.php')
 		)
 		{
-			add_action('admin_notices', function ()
-			{
-				echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('install %s plugin ex: %s', 'dashi'), 'security', 'siteguard').'</strong></p></div>';
-			});
+				add_action('admin_notices', function ()
+				{
+					/* translators: 1: plugin category, 2: plugin slug example. */
+					echo '<div class="message error dashi_error"><p><strong>'.sprintf(esc_html__('install %1$s plugin ex: %2$s', 'dashi'), 'security', 'siteguard').'</strong></p></div>';
+				});
 		}
 	}
 
@@ -329,7 +335,7 @@ class Notation
 		{
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.__('If this site is not allowed comments. check please.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('If this site is not allowed comments. check please.', 'dashi').'</strong></p></div>';
 			});
 		}
 	}
@@ -365,10 +371,10 @@ class Notation
 			$is_hello->post_title == 'Hello world!'
 		)
 		{
-			add_action('admin_notices', function ()
-			{
-				echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('Delete "Hello World!".', 'dashi'), 'jwp-a11y').'</strong></p></div>';
-			});
-		}
+				add_action('admin_notices', function ()
+				{
+					echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Delete "Hello World!".', 'dashi').'</strong></p></div>';
+				});
+			}
 	}
 }

@@ -1,8 +1,13 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Copy
 {
+	private const COPY_NONCE_ACTION = 'dashi_copy_post';
+	private const COPY_NONCE_NAME = '_dashi_copy_nonce';
+
 	/**
 	 * forge
 	 *
@@ -61,19 +66,30 @@ class Copy
 		global $post;
 		if ( ! isset($post)) return;
 
-		$script = '';
-		$script.= '<script type="text/javascript">';
-		$script.= 'jQuery (function($){';
-
 		// コピーのリンク
-		$post_type = esc_js(esc_attr($post->post_type));
-		$post_id = intval($post->ID);
-		$link_label = esc_js(__('Copy', 'dashi'));
-		$script.= '$(".wp-heading-inline").after("<a href=\"post-new.php?post_type='.$post_type.'&amp;dashi_copy_original_id='.$post_id.'\" class=\"page-title-action\">'.$link_label.'</a>");';
-
-		$script.= '});';
-		$script.= '</script>';
-		echo $script;
+		$copy_url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'post_type' => (string) $post->post_type,
+					'dashi_copy_original_id' => (int) $post->ID,
+				),
+				admin_url('post-new.php')
+			),
+			self::COPY_NONCE_ACTION,
+			self::COPY_NONCE_NAME
+		);
+		$link_html = sprintf(
+			'<a href="%s" class="page-title-action">%s</a>',
+			esc_url($copy_url),
+			esc_html__('Copy', 'dashi')
+		);
+		?>
+<script type="text/javascript">
+jQuery(function($){
+	$(".wp-heading-inline").after(<?php echo wp_json_encode($link_html); ?>);
+});
+</script>
+		<?php
 	}
 
 	/**
@@ -99,7 +115,23 @@ class Copy
 				unset($actions['inline hide-if-no-js']);
 			}
 
-			$tmps['dashi_edit_Copy'] = '<a href="post-new.php?post_type='.$post->post_type.'&amp;dashi_copy_original_id='.$post->ID.'" title="'.__('Create Copy', 'dashi').'">'.__('Copy', 'dashi').'</a>';
+			$copy_url = wp_nonce_url(
+				add_query_arg(
+					array(
+						'post_type' => (string) $post->post_type,
+						'dashi_copy_original_id' => (int) $post->ID,
+					),
+					admin_url('post-new.php')
+				),
+				self::COPY_NONCE_ACTION,
+				self::COPY_NONCE_NAME
+			);
+			$tmps['dashi_edit_Copy'] = sprintf(
+				'<a href="%1$s" title="%2$s">%3$s</a>',
+				esc_url($copy_url),
+				esc_attr__('Create Copy', 'dashi'),
+				esc_html__('Copy', 'dashi')
+			);
 
 			$actions = $tmps + $actions;
 		}
@@ -116,12 +148,26 @@ class Copy
 	public static function modCopyTitle ($post_title)
 	{
 		global $wpdb;
-		$sql = 'SELECT count(ID) as num FROM '.$wpdb->posts.' WHERE `post_title` LIKE %s AND `post_status` = "publish";';
-		$sql = $wpdb->prepare($sql, '%'.sprintf(__('%s\'s Copy%s', 'dashi'), $post_title, '').'%');
-		$num = $wpdb->get_var($sql);
-		$num = intval($num);
-		$num++;
-		return sprintf(__('%s\'s Copy%s', 'dashi'), $post_title, $num);
+		$copy_title_base = sprintf(
+			/* translators: 1: original post title, 2: copy number */
+			__('%1$s\'s Copy%2$s', 'dashi'),
+			$post_title,
+			''
+		);
+		$num = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(ID) FROM '.$wpdb->posts.' WHERE post_title LIKE %s AND post_status = %s',
+				'%' . $wpdb->esc_like($copy_title_base) . '%',
+				'publish'
+			)
+		);
+
+		return sprintf(
+			/* translators: 1: original post title, 2: copy number */
+			__('%1$s\'s Copy%2$s', 'dashi'),
+			$post_title,
+			$num + 1
+		);
 	}
 
 	/**
@@ -135,8 +181,14 @@ class Copy
 
 		// オリジナルを取得
 		if ( ! isset($_GET['dashi_copy_original_id'])) return;
-		$original_id = $_GET['dashi_copy_original_id'];
+		if ( ! isset($_GET[self::COPY_NONCE_NAME])) return;
+		$nonce = sanitize_text_field(wp_unslash($_GET[self::COPY_NONCE_NAME]));
+		if (!wp_verify_nonce($nonce, self::COPY_NONCE_ACTION)) return;
+
+		$original_id = absint(wp_unslash($_GET['dashi_copy_original_id']));
+		if (!$original_id) return;
 		$original = get_post($original_id);
+		if (!$original) return;
 
 		global $post;
 		$post->post_title = self::modCopyTitle($original->post_title);
@@ -152,16 +204,20 @@ class Copy
 		}
 
 		// 表題をわかりやすく
-		$str = sprintf(__('Create Copy of %s', 'dashi'), get_post_type_object($post->post_type)->label);
-
-		$script = '';
-		$script.= '<script type="text/javascript">';
-		$script.= 'jQuery (function($){
-$("title").text("'.$str.' ‹ '.get_bloginfo('site-name').' — WordPress");
-$("h1.wp-heading-inline").text("'.$str.'");
-});';
-		$script.= '</script>';
-		echo $script;
+		$str = sprintf(
+			/* translators: %s: post type label */
+			__('Create Copy of %s', 'dashi'),
+			get_post_type_object($post->post_type)->label
+		);
+		$page_title = $str . ' ‹ ' . get_bloginfo('site-name') . ' — WordPress';
+		?>
+<script type="text/javascript">
+jQuery(function($){
+	$("title").text(<?php echo wp_json_encode($page_title); ?>);
+	$("h1.wp-heading-inline").text(<?php echo wp_json_encode($str); ?>);
+});
+</script>
+		<?php
 	}
 
 	/**
@@ -172,20 +228,23 @@ $("h1.wp-heading-inline").text("'.$str.'");
 	{
 		global $post;
 		$original_id = isset($_GET['dashi_copy_original_id']) ?
-								 $_GET['dashi_copy_original_id'] :
+								 absint(wp_unslash($_GET['dashi_copy_original_id'])) :
 								 0;
 		if ( ! $original_id) return;
+		if ( ! isset($_GET[self::COPY_NONCE_NAME])) return;
+		$nonce = sanitize_text_field(wp_unslash($_GET[self::COPY_NONCE_NAME]));
+		if (!wp_verify_nonce($nonce, self::COPY_NONCE_ACTION)) return;
 		echo '<input type="hidden" name="dashi_copy_original_id" value="'.intval($original_id).'" />';
+		wp_nonce_field(self::COPY_NONCE_ACTION, self::COPY_NONCE_NAME);
 
 		$original = get_post($original_id);
+		if (!$original) return;
 
 		// taxonomy
 		// 作成時のみ
 		$class = P::post2class($original);
 		if ($class && isset($_GET['dashi_copy_original_id']))
 		{
-			$script = '';
-			$script.= '<script type="text/javascript">';
 			foreach ($class::get('taxonomies') as $taxonomy_name => $taxonomy)
 			{
 				// update taxonomy
@@ -198,26 +257,21 @@ $("h1.wp-heading-inline").text("'.$str.'");
 				{
 					$checks[] = $tax->term_id;
 				}
-				$checkstr = '['.join(',',$checks).']';
-
-			$script.= 'jQuery (function($){
-var checkstr = '.$checkstr.';
-
-$("#'.$ul_id.'").find(":input").each(function(){
-	if (checkstr.indexOf(parseInt($(this).val())) == -1)
-	{
-		$(this).prop("checked", false);
-	}
-	else
-	{
-		$(this).prop("checked", true);
-	}
+				?>
+<script type="text/javascript">
+jQuery(function($){
+	var checkstr = <?php echo wp_json_encode($checks); ?>;
+	$("#<?php echo esc_js($ul_id); ?>").find(":input").each(function(){
+		if (checkstr.indexOf(parseInt($(this).val(), 10)) === -1) {
+			$(this).prop("checked", false);
+		} else {
+			$(this).prop("checked", true);
+		}
+	});
 });
-
-});';
+</script>
+				<?php
 			}
-			$script.= '</script>';
-			echo $script;
 		}
 	}
 
@@ -231,10 +285,12 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		// 適用するページのみ
 		global $pagenow;
 		$dashi_original_id = Input::post('dashi_copy_original_id');
+		$nonce = Input::post(self::COPY_NONCE_NAME);
 
         if (is_null($dashi_original_id)) return $post_id;
 		if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return $post_id;
 		if ( ! $dashi_original_id || $pagenow != 'post.php') return $post_id;
+		if (is_null($nonce) || !wp_verify_nonce((string) $nonce, self::COPY_NONCE_ACTION)) return $post_id;
 
 		if (!current_user_can('edit_post', $post_id)) {
 			return $post_id;

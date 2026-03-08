@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Sticky
 {
 	/**
@@ -22,10 +24,10 @@ class Sticky
 		{
 			$editable = true;
 		}
-		$disable = $editable ? '' : ' disabled="disabled"';
+		$is_disabled = !$editable;
 
 		?>
-			<input id="dashi_sticky_chk"<?php echo $disable ?> name="sticky" type="checkbox" value="sticky" <?php checked(is_sticky()); ?> /> <label for="dashi_sticky_chk" class="selectit"><?php _e('Stick this to the front page', 'dashi') ?></label><?php
+			<input id="dashi_sticky_chk" <?php disabled($is_disabled); ?> name="sticky" type="checkbox" value="sticky" <?php checked(is_sticky()); ?> /> <label for="dashi_sticky_chk" class="selectit"><?php esc_html_e('Stick this to the front page', 'dashi'); ?></label><?php
 	}
 
 	/**
@@ -38,6 +40,6 @@ class Sticky
 		if ($post->post_type == 'post') return;
 
 		$val = intval(is_sticky($post->ID));
-		echo '<span id="dashi_sticky-'.$post->ID.'" style="display:none;">'.$val.'</span>';
+		echo '<span id="dashi_sticky-'.intval($post->ID).'" style="display:none;">'.esc_html($val).'</span>';
 	}
 }

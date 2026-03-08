@@ -63,7 +63,7 @@ class Pagepart extends \Dashi\Core\Posttype\Base
 
         // musts
         $musts = array(
-            'slug' => __('slug'),
+            'slug' => __('slug', 'dashi'),
         );
 
         // error

@@ -27,7 +27,11 @@ class CustomFieldNoticeBuilder
             in_array($tmpkey, array_map(array('\\Dashi\\P', 'class2posttype'), Posttype::instances()))
         ) {
             $output .= '<strong class="dashi_err_msg">Notice: '.
-                sprintf(__('"%s" is cannot use as custom field name.', 'dashi'), $key).
+                sprintf(
+                    /* translators: %s: custom field key */
+                    __('"%s" is cannot use as custom field name.', 'dashi'),
+                    $key
+                ).
                 '</strong>';
         }
 
@@ -40,6 +44,7 @@ class CustomFieldNoticeBuilder
             ) {
                 $output .= '<strong class="dashi_err_msg">Notice: '.
                     sprintf(
+                        /* translators: %s: custom field key */
                         __('"%s" is already used other custom post type. This field cannot use "add_column" attribute at administration screen.', 'dashi'),
                         $key
                     ).

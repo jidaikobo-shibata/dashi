@@ -2,6 +2,8 @@
 
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 use Dashi\Core\Field;
 
 class CustomFieldTextareaRenderer
@@ -39,7 +41,9 @@ class CustomFieldTextareaRenderer
 
         if (!preg_match('/^[a-zA-Z_]+$/', $key))
         {
-            throw new \Exception(__('You can use alphabet and underscore only when use wysiwyg.', 'dashi'));
+            throw new \Exception(
+                esc_html__('You can use alphabet and underscore only when use wysiwyg.', 'dashi')
+            );
         }
 
         $output .= '<span class="dashi_description">'.$description.'</span>';

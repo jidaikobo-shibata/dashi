@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Sitemap
 {
 	/**
@@ -131,7 +133,7 @@ class Sitemap
 		if (isset($items['page']))
 		{
 			// 固定ページに見出しをつける
-			$home_str = get_option('dashi_sitemap_home_string') ?: __('Home');
+				$home_str = get_option('dashi_sitemap_home_string') ?: __('Home', 'dashi');
 			$items['page']['link'] = '<a href="'.home_url().'">'.$home_str.'</a>';
 		}
 

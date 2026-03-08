@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 trait NotationInfo
 {
 	/**
@@ -74,9 +76,9 @@ trait NotationInfo
 		$html.= '<table class="dashi_tbl">';
 		$html.= '<thead>';
 		$html.= '<tr>';
-		$html.= '<th class="nowrap">'.__('Title').'</th>';
-		$html.= '<th class="nowrap">'.__('Post Type').'</th>';
-		$html.= '<th class="nowrap">'.__('Status').'</th>';
+		$html.= '<th class="nowrap">'.__('Title', 'dashi').'</th>';
+		$html.= '<th class="nowrap">'.__('Post Type', 'dashi').'</th>';
+		$html.= '<th class="nowrap">'.__('Status', 'dashi').'</th>';
 		$html.= '</tr>';
 		$html.= '</thead>';
 		foreach ($posts as $v)
@@ -85,23 +87,36 @@ trait NotationInfo
 			if ( ! class_exists($class)) continue;
 
 			$html.= '<tr>';
-			$edit_str = $v->post_title ? esc_html($v->post_title) : __('(no title)');
+			$edit_str = $v->post_title ? esc_html($v->post_title) : __('(no title)', 'dashi');
 			$html.= '<th><a href="'.get_edit_post_link($v->ID).'">'.$edit_str.'</a></th>';
 
 			if (in_array($v->post_type, array('post', 'page')))
 			{
+				$post_type_obj = get_post_type_object($v->post_type);
+				$post_type_label = $v->post_type;
+				if (is_object($post_type_obj) && isset($post_type_obj->labels->singular_name)) {
+					$post_type_label = $post_type_obj->labels->singular_name;
+				}
+
 				$link =
 							$v->post_type == 'post' ?
 							admin_url('edit.php') :
 							admin_url('edit.php?post_type=page') ;
 
-				$html.= '<td class="nowrap"><a href="'.$link.'">'.__(ucfirst($v->post_type)).'</a></td>';
+				$html.= '<td class="nowrap"><a href="'.$link.'">'.esc_html($post_type_label).'</a></td>';
 			}
 			else
 			{
 				$html.= '<td class="nowrap"><a href="'.admin_url('edit.php?post_type='.$v->post_type).'">'.$class::get('name').'</a></td>';
 			}
-			$html.= '<td class="nowrap">'.__($v->post_status.' item', 'dashi').'</td>';
+			$status_label_map = array(
+				'future'  => __('Scheduled item', 'dashi'),
+				'pending' => __('Pending item', 'dashi'),
+				'draft'   => __('Draft item', 'dashi'),
+				'private' => __('Private item', 'dashi'),
+			);
+			$status_label = isset($status_label_map[$v->post_status]) ? $status_label_map[$v->post_status] : $v->post_status;
+			$html.= '<td class="nowrap">'.esc_html($status_label).'</td>';
 			$html.= '</tr>';
 		}
 		$html.= '</table>';

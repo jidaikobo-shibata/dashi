@@ -6,7 +6,7 @@ Description: Useful classes for creating a custom post type. When you install it
 Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
-Version: 3.4.0
+Version: 3.4.2
 Author URI: http://www.jidaikobo.com/
 thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
 License: GPL2
@@ -27,24 +27,11 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
-// Do nothing
+if (!defined('ABSPATH')) exit;
 
 if (defined('WP_INSTALLING') && WP_INSTALLING) return;
 if (defined('REST_REQUEST') && REST_REQUEST) return;
 if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) return;
-
-// language
-add_action(
-    'init',
-    function () {
-        load_plugin_textdomain(
-            'dashi',
-            FALSE,
-            plugin_basename(__DIR__).'/languages'
-        );
-    },
-    0
-);
 
 // Composer のオートローダーを前提にする。
 $composer_autoload = __DIR__.'/vendor/autoload.php';

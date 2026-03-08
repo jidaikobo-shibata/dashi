@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Csv
 {
 	/**
@@ -18,7 +20,7 @@ class Csv
 
 			wp_add_dashboard_widget(
 				'dashi_list_posttype_to_gen_csv',
-				'CSV'.__('Export'),
+				'CSV'.__('Export', 'dashi'),
 				array('\\Dashi\\Core\\Posttype\\Csv', 'posttypeList')
 			);
 		});
@@ -56,8 +58,8 @@ class Csv
 			$html.= '<option value="'.$obj->name.'">'.$obj->label.'</option>';
 		}
 		$html.= '</select>';
-		$html.= '<label style="display: block; padding: 10px 0;"><input type="checkbox" name="excel_compati" value="1">'.__('<span title="some characters disappear">Microsoft Excel compatible CSV</span>', 'dashi').'</label>';
-		$html.= '<input type="submit" class="button button-primary" value="'.__('Export').'">';
+		$html.= '<label style="display: block; padding: 10px 0;"><input type="checkbox" name="excel_compati" value="1"><span title="'.esc_attr__('some characters disappear', 'dashi').'">'.esc_html__('Microsoft Excel compatible CSV', 'dashi').'</span></label>';
+		$html.= '<input type="submit" class="button button-primary" value="'.__('Export', 'dashi').'">';
 		$html .= wp_nonce_field('dashi_csv_export_action', '_wpnonce', true, false);
 		$html.= '</form>';
 		echo $html;

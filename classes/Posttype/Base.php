@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 abstract class Base
 {
 	// basic values
@@ -216,13 +218,13 @@ abstract class Base
 		$instance = Posttype::instance(get_called_class());
 		if ( ! $instance) return;
 
-		if (property_exists($instance, $name))
-		{
-			if ($name == 'description') {
-				return __($instance->$name, 'dashi');
+			if (property_exists($instance, $name))
+			{
+				if ($name == 'description') {
+					return $instance->$name;
+				}
+				return $instance->$name;
 			}
-			return $instance->$name;
-		}
 	}
 
 	/**
@@ -386,10 +388,12 @@ abstract class Base
 			}
 		}
 
-		// ここまで見つかっていないということは、妥当でない値を尋ねているか、設定値が妥当でないので、例外をスローする
-		if (!is_array($opts))
-		{
-			throw new \Exception (sprintf(__('%s is incorrect argument or setting of custom_fields of %s is wrong.', 'dashi'), $key, get_called_class()));
+			// ここまで見つかっていないということは、妥当でない値を尋ねているか、設定値が妥当でないので、例外をスローする
+			if (!is_array($opts))
+			{
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				/* translators: 1: custom field key, 2: class name. */
+				throw new \Exception (sprintf(__('%1$s is incorrect argument or setting of custom_fields of %2$s is wrong.', 'dashi'), $key, get_called_class()));
+			}
 		}
 	}
-}

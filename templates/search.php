@@ -6,7 +6,10 @@
 <!-- entry -->
 <section class="entry-list">
 <h1><?php echo wp_get_document_title() ?></h1>
-<p><?php echo sprintf(__('Found %s pages.', 'dashi'), have_posts() ? $wp_query->found_posts : 0); ?></p>
+<p><?php
+    /* translators: %s: number of matched pages. */
+    echo sprintf(__('Found %s pages.', 'dashi'), have_posts() ? $wp_query->found_posts : 0);
+?></p>
 
 <?php
 // have_posts start here

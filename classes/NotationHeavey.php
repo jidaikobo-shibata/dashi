@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 trait NotationHeavey
 {
 	/**
@@ -56,6 +58,7 @@ trait NotationHeavey
 			{
 				add_action('admin_notices', function () use ($dir)
 				{
+					/* translators: %s: directory name. */
 					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('directory "%s" permission too open. 705 or 755 is better.', 'dashi'), $dir).'</strong></p></div>';
 				});
 			}
@@ -116,6 +119,7 @@ trait NotationHeavey
 			{
 				add_action('admin_notices', function ()
 				{
+					/* translators: %s: theme index.php URL. */
 					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('PHP error reporting is on. check <a href="%s">themes file</a>', 'dashi'), get_stylesheet_directory_uri().'/index.php').'</strong></p></div>';
 				});
 				return;
@@ -219,6 +223,7 @@ trait NotationHeavey
 			{
 				add_action('admin_notices', function ()
 				{
+					/* translators: %s: help page URL. */
 					echo '<div class="message error dashi_error"><p><strong>'.sprintf(__('Google Analytics is not implemented. <a href="%s">See How to.</a>', 'dashi'), site_url('/wp-admin/options-general.php?page=dashi_options&help=seo#help_area')).'</strong></p></div>';
 				});
 				return;

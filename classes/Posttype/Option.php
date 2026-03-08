@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Option
 {
 	/*
@@ -8,7 +10,9 @@ class Option
 	 */
 	public static function help()
 	{
-?>
+		// このメソッドはコード例をそのまま表示する用途のため、WPCS の一部指摘を抑止する。
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.EscapeOutput.ExceptionNotEscaped,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound,WordPress.WP.I18n.NonSingularStringLiteralText
+	?>
 &lt;?php
 namespace Dashi\Posttype;
 
@@ -302,14 +306,17 @@ class Sample extends \Dashi\Core\Posttype\Base
   }
 }
 <?php
-	}
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.EscapeOutput.ExceptionNotEscaped,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound,WordPress.WP.I18n.NonSingularStringLiteralText
+		}
 
 	/*
 	 * helpHooks
 	 */
 	public static function helpHooks()
 	{
-?>
+		// このメソッドはコード例をそのまま表示する用途のため、WPCS の一部指摘を抑止する。
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.EscapeOutput.ExceptionNotEscaped,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound,WordPress.WP.I18n.NonSingularStringLiteralText
+	?>
 
 // <?php echo __('\'dashi_mod_custom_fields\' Hook can modify dashi default custom fields. ex: Pagepart', 'dashi')."\n" ?>
 (array) dashi_mod_custom_fields ($post_type, $custom_fields)
@@ -382,5 +389,6 @@ add_filter('dashi_public_form_mail_hook',
   2
 );
 <?php
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.EscapeOutput.ExceptionNotEscaped,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound,WordPress.WP.I18n.NonSingularStringLiteralText
+		}
 	}
-}

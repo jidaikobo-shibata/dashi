@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Save
 {
 	private static $duplicateds = array();
@@ -152,7 +154,8 @@ class Save
             $media_url = $dashi_file_media_metas[$media_id];
 
             // ファイルの種類の判定
-            $ext = strtolower(pathinfo(parse_url($media_url, PHP_URL_PATH), PATHINFO_EXTENSION));
+            $media_url_path = wp_parse_url($media_url, PHP_URL_PATH);
+            $ext = strtolower(pathinfo((string) $media_url_path, PATHINFO_EXTENSION));
             $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
 
             $safe_value = sanitize_text_field($v);
@@ -379,7 +382,7 @@ class Save
 					{
 						$is_err = true;
 						$idx = $k+1;
-						$e->add('errors', sprintf(__($err, 'dashi'), $label.' ('.$idx.')'));
+							$e->add('errors', sprintf($err, $label.' ('.$idx.')'));
 					}
 				}
 			}
@@ -390,7 +393,7 @@ class Save
 				if ($err !== true)
 				{
 					$is_err = true;
-					$e->add('errors', sprintf(__($err, 'dashi'), $label));
+						$e->add('errors', sprintf($err, $label));
 				}
 			}
 		}
@@ -458,7 +461,8 @@ class Save
 				)
 			)
 			{
-				$e->add('errors', sprintf(__("%s is required", 'dashi'), $label));
+					/* translators: %s: required field label. */
+					$e->add('errors', sprintf(__("%s is required", 'dashi'), $label));
 			}
 		}
 	}
@@ -618,7 +622,7 @@ class Save
 				$html.= '<li>'.$message.'</li>';
 			}
 			$html.= '</ul></section></div>';
-			echo $html;
+				echo wp_kses_post($html);
 			delete_transient('dashi_errors');
 		}
 	}

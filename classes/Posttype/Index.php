@@ -102,7 +102,7 @@ class Index
 			(is_array($v) && isset($v[0]) && strlen($v[0]) === 0)
 		)
 		{
-			echo __('None');
+				echo esc_html__('None', 'dashi');
 		}
 		// そのまま表示
 		elseif ( ! isset($options) && $v)
@@ -171,8 +171,8 @@ class Index
 			$selected_html = $selected == $term->slug ? 'selected="selected"' : '';
 			$html .= '<option value="'.$term->slug.'" '.$selected_html.'>'.$term->name.'</option>';
 		}
-		$html.= '</select>';
-		echo $html;
+			$html.= '</select>';
+			echo wp_kses_post($html);
 	}
 
 	/**
@@ -193,30 +193,39 @@ class Index
 		}
 		else
 		{
-			$sql = 'SELECT '.$wpdb->postmeta.'.`meta_value` FROM '.$wpdb->postmeta.'
-JOIN '.$wpdb->posts.' ON '.$wpdb->postmeta.'.`post_id` = '.$wpdb->posts.'.`ID`
-WHERE '.$wpdb->postmeta.'.`meta_key` = "handle"
-AND '.$wpdb->posts.'.`post_status` IN ("publish", "draft", "future", "private")
-GROUP BY '.$wpdb->postmeta.'.`meta_value`';
-
-			foreach ($wpdb->get_results($sql) as $v)
-			{
-				$options[$v->meta_value] = $v->meta_value;
+				foreach (
+					(array) $wpdb->get_col(
+						$wpdb->prepare(
+							'SELECT '.$wpdb->postmeta.'.meta_value FROM '.$wpdb->postmeta.'
+JOIN '.$wpdb->posts.' ON '.$wpdb->postmeta.'.post_id = '.$wpdb->posts.'.ID
+WHERE '.$wpdb->postmeta.'.meta_key = %s
+AND '.$wpdb->posts.'.post_status IN ("publish", "draft", "future", "private")
+GROUP BY '.$wpdb->postmeta.'.meta_value',
+							'handle'
+						)
+					) as $meta_value
+				)
+				{
+					$options[(string) $meta_value] = (string) $meta_value;
+				}
 			}
-		}
 
 		$selected = filter_input(INPUT_GET, $key);
 		$html = '';
 		$html .= '<select name="' . esc_attr($key) . '">';
-		$html .= '<option value="">'.sprintf(__("All of %s", 'dashi'), isset($field['label']) ? $field['label'] : $key).'</option>';
+			$html .= '<option value="">'.sprintf(
+				/* translators: %s: field label */
+				__("All of %s", 'dashi'),
+				isset($field['label']) ? $field['label'] : $key
+			).'</option>';
 		foreach ($options as $value => $text)
 		{
 			if ($value === '') continue;
 			$selected_html = selected($selected, $value, false);
 			$html .= '<option value="'.esc_attr($value).'"'.$selected_html.'>'.esc_html($text).'</option>';
 		}
-		$html .= '</select>';
-		echo $html;
+			$html .= '</select>';
+			echo wp_kses_post($html);
 	}
 
 	/**

@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 class Field
 {
     private static $filter_seq = 0;
@@ -441,7 +443,8 @@ class Field
         $mediaTitle = $mediaValues ? $mediaValues->post_title : '';
 
         // ファイルの種類の判定
-        $ext = strtolower(pathinfo(parse_url($media_url, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $media_path = wp_parse_url($media_url, PHP_URL_PATH);
+        $ext = strtolower(pathinfo((string) $media_path, PATHINFO_EXTENSION));
         $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
 
         // 画像の場合の代替テキスト
@@ -487,6 +490,7 @@ class Field
             $field_file_media_js_written = true;
 
  			$postId = get_the_ID() ?: 0;
+ // phpcs:ignore PluginCheck.CodeAnalysis.Heredoc.NotAllowed -- 可読性のためテンプレートJSを保持
  $html .= <<<EOD
 <script>
 jQuery(document).ready(function($) {

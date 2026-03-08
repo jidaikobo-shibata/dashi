@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 class Filter
 {
 	/**
@@ -72,7 +74,7 @@ class Filter
 	public static function date($val)
 	{
 		if (is_array($val)) return array_map(array('\\Dashi\\Core\\Filter', 'date'), $val);
-		return $val ? date('Y-m-d', strtotime($val)) : '';
+		return $val ? wp_date('Y-m-d', strtotime($val)) : '';
 	}
 
 	/**
@@ -84,6 +86,6 @@ class Filter
 	public static function datetime($val)
 	{
 		if (is_array($val)) return array_map(array('\\Dashi\\Core\\Filter', 'datetime'), $val);
-		return $val ? date('Y-m-d H:i:s', strtotime($val)) : '';
+		return $val ? wp_date('Y-m-d H:i:s', strtotime($val)) : '';
 	}
 }

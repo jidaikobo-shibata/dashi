@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class PublicForm
 {
 	/**
@@ -279,12 +281,14 @@ class PublicForm
 		},
 			$mime_keys);
 		$retVal['errors'] = array();
-		if ( ! $is_uploadable)
-		{
-			$retVal['errors'][] = sprintf(
-				__('This file type is not allowed. (allowed: %s)', 'dashi'),
-				join(', ', $mime_keys)
-			);
+			if ( ! $is_uploadable)
+			{
+				/* translators: %s: comma-separated allowed mime extensions. */
+				$retVal['errors'][] = sprintf(
+					/* translators: %s: comma-separated allowed mime extensions. */
+					__('This file type is not allowed. (allowed: %s)', 'dashi'),
+					join(', ', $mime_keys)
+				);
 		}
 
 		// 何かエラーがある
@@ -295,11 +299,13 @@ class PublicForm
 				break;
 
 			// ファイルサイズが大きい
-			case 1:
-				$retVal['errors'][] = sprintf(
-					__('This file is too large. (allowed: %s)', 'dashi'),
-					ini_get('upload_max_filesize')
-				);
+				case 1:
+					/* translators: %s: php.ini upload_max_filesize value. */
+					$retVal['errors'][] = sprintf(
+						/* translators: %s: php.ini upload_max_filesize value. */
+						__('This file is too large. (allowed: %s)', 'dashi'),
+						ini_get('upload_max_filesize')
+					);
 				$is_uploadable = false;
 				break;
 
@@ -310,12 +316,14 @@ class PublicForm
 		}
 
 		// not upload
-		if ( ! $is_uploadable)
-		{
-			$retVal['errors'][] = sprintf(
-				__('%s cannot be uploaded', 'dashi'),
-				esc_html($file['name'])
-			);
+			if ( ! $is_uploadable)
+			{
+				/* translators: %s: uploaded file name. */
+				$retVal['errors'][] = sprintf(
+					/* translators: %s: uploaded file name. */
+					__('%s cannot be uploaded', 'dashi'),
+					esc_html($file['name'])
+				);
 			return $retVal;
 		}
 
@@ -575,10 +583,11 @@ class PublicForm
 
 			// checkbox, multiple select
 			$tmp = is_array($v) ? $v : trim($v);
-			if ((is_array($tmp) && empty($tmp)) || ( ! is_array($tmp) && strlen($tmp) == 0))
-			{
-				$errors[$k][] = sprintf(__("%s is required", 'dashi'), $fields[$k]['label']);
-			}
+				if ((is_array($tmp) && empty($tmp)) || ( ! is_array($tmp) && strlen($tmp) == 0))
+				{
+					/* translators: %s: required field label. */
+					$errors[$k][] = sprintf(__("%s is required", 'dashi'), $fields[$k]['label']);
+				}
 		}
 
 		// validate
@@ -592,10 +601,10 @@ class PublicForm
 				$method = 'validate'.ucfirst($validator);
 				$err = Validation::$method($v);
 
-				if ($err !== true)
-				{
-					$errors[$k][] = sprintf(__($err, 'dashi'), $fields[$k]['label']);
-				}
+					if ($err !== true)
+					{
+						$errors[$k][] = sprintf($err, $fields[$k]['label']);
+					}
 			}
 		}
 
@@ -1163,12 +1172,13 @@ class PublicForm
 		if ($state['count'] > $limit)
 		{
 			$retry_after = max(1, $window_seconds - ($now - intval($state['start'])));
-			wp_send_json_error(
-				array(
-					'message' => sprintf(
-						__('Too many upload requests. Please wait %d seconds and try again.', 'dashi'),
-						$retry_after
-					),
+				wp_send_json_error(
+					array(
+						'message' => sprintf(
+							/* translators: %d: retry-after seconds. */
+							__('Too many upload requests. Please wait %d seconds and try again.', 'dashi'),
+							$retry_after
+						),
 					'retry_after' => $retry_after,
 				),
 				429

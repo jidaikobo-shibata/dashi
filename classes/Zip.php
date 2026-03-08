@@ -3,6 +3,8 @@
 // thx https://github.com/ninton/jquery.jpostal.js
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 class Zip
 {
 	/**
@@ -44,8 +46,7 @@ class Zip
 		add_action('wp_enqueue_scripts', $wp_enqueue_script);
 
 		// js
-		$js = "<script>\n";
-		$js.= "jQuery( function($) {\n";
+		$js = "jQuery( function($) {\n";
 		foreach ($zips as $zip)
 		{
 			// まず郵便番号
@@ -81,18 +82,18 @@ class Zip
 			$js.= join(',', $ids);
 			$js.= "\n}\n";
 		}
-		$js.= "});\n});\n</script>\n";
+		$js.= "});\n});\n";
 
 		// 管理画面用
 		add_action('admin_print_footer_scripts', function () use ($js)
 		{
-			echo $js;
+			wp_add_inline_script('dashi_jquery_jpostal_js', $js);
 		});
 
 		// フォーム用
 		add_action('wp_print_footer_scripts', function () use ($js)
 		{
-			echo $js;
+			wp_add_inline_script('dashi_jquery_jpostal_js', $js);
 		});
 	}
 }

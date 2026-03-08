@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 class Option
 {
 	private static $opts = array(
@@ -105,10 +107,10 @@ class Option
 		$html = '';
 		$html.= '<div class="wrap">';
 		$html.= '<div id="icon-themes" class="icon32"><br /></div>';
-		$html.= '<h1>'.__('Dashi Framework', 'dashi').' '.__("Settings").'</h1>';
+		$html.= '<h1>'.__('Dashi Framework', 'dashi').' '.__("Settings", 'dashi').'</h1>';
 		$html.= '<div class="postbox" style="margin-top: 15px;">';
 		$html.= '<div class="inside">';
-		$html.= '<h2>'.__("Settings").'</h2>';
+		$html.= '<h2>'.__("Settings", 'dashi').'</h2>';
 
 		$html.= '<form action="" method="POST">';
 
@@ -123,25 +125,29 @@ class Option
 			if (substr($k, 0, 17) == 'dashi_auto_update') continue;
 			$opt = get_option($k);
 			$checked = $opt ? ' checked="checked"' : '';
-			$html.= '<p><label><input type="checkbox" name="'.$k.'" value="1"'.$checked.' />'.__($v, 'dashi').'</label></p>';
+				// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+				$html.= '<p><label><input type="checkbox" name="'.$k.'" value="1"'.$checked.' />'.__($v, 'dashi').'</label></p>';
 		}
 
 		// Google Map
 		$k = 'dashi_google_map_api_key';
 		$html.= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 0;margin:0 0 10px;"><legend><label for="'.$k.'">Google Map API Key</label></legend>';
 		$html.= '<input type="text" name="'.$k.'" id="'.$k.'" size="40" value="'.get_option($k).'" />';
-		$html.= '<p>'.__(static::$opts[$k], 'dashi').'</p></fieldset>';
+			// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+			$html.= '<p>'.__(static::$opts[$k], 'dashi').'</p></fieldset>';
 
 		// sitemap depth
 		$k = 'dashi_sitemap_depth_of_page';
-		$html.= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 10px;"><legend><label for="'.$k.'">'.__(static::$opts[$k], 'dashi').'</label></legend>';
+			// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+			$html.= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 10px;"><legend><label for="'.$k.'">'.__(static::$opts[$k], 'dashi').'</label></legend>';
 		$html.= '<input type="text" name="'.$k.'" id="'.$k.'" size="5" value="'.get_option($k).'" />';
 		$html.= '</fieldset>';
 
 		// sitemap depth
 		$k = 'dashi_sitemap_home_string';
-		$html.= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 10px;"><legend><label for="'.$k.'">'.__(static::$opts[$k], 'dashi').'</label></legend>';
-		$value = get_option($k) ?: __('Home');
+			// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+			$html.= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 10px;"><legend><label for="'.$k.'">'.__(static::$opts[$k], 'dashi').'</label></legend>';
+		$value = get_option($k) ?: __('Home', 'dashi');
 		$html.= '<input type="text" name="'.$k.'" id="'.$k.'" size="20" value="'.$value.'" />';
 		$html.= '</fieldset>';
 
@@ -157,17 +163,19 @@ class Option
 		foreach ($updates as $update)
 		{
 			$checked = get_option($update) ? ' checked="checked"' : '';
-			$html.= '<p><label><input type="checkbox" name="'.$update.'" id="'.$update.'" size="20" value="1"'.$checked.' />'.__(static::$opts[$update], 'dashi').'</label></p>';
+				// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+				$html.= '<p><label><input type="checkbox" name="'.$update.'" id="'.$update.'" size="20" value="1"'.$checked.' />'.__(static::$opts[$update], 'dashi').'</label></p>';
 		}
 		$html.= '</fieldset>';
 
 		// specify search index url
 		$k = 'dashi_specify_search_index';
-		$html.= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 10px;"><legend><label for="'.$k.'">'.__(static::$opts[$k], 'dashi').'</label></legend>';
+			// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+			$html.= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 10px;"><legend><label for="'.$k.'">'.__(static::$opts[$k], 'dashi').'</label></legend>';
 		$html.= '<textarea style="width: 100%;min-height:6em" name="'.$k.'" id="'.$k.'">'.get_option($k).'</textarea>';
 		$html.= '</fieldset>';
 
-		$html.= '<p><input type="submit" value="'.__('Submit').'" class="button button-primary button-large" /></p>';
+		$html.= '<p><input type="submit" value="'.__('Submit', 'dashi').'" class="button button-primary button-large" /></p>';
 		$html.= '</form>';
 		$html.= '</div><!--/.inside-->';
 		$html.= '</div><!--/.postbox-->';
@@ -177,7 +185,7 @@ class Option
 		$html.= '<div id="icon-themes" class="icon32"><br /></div>';
 		$html.= '<div class="postbox" style="margin-top: 15px;">';
 		$html.= '<div class="inside" id="help_area">';
-		$html.= '<h2>'.__("Help").'</h2>';
+		$html.= '<h2>'.__("Help", 'dashi').'</h2>';
 		$html.= '<div><a href="?page=dashi_options&amp;help=posttype#help_area">Post Type</a> | ';
 		$html.= '<a href="?page=dashi_options&amp;help=shortcode#help_area">shortcode</a> | ';
 		$html.= '<a href="?page=dashi_options&amp;help=seo#help_area">SEO</a> | ';

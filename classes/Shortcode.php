@@ -4,6 +4,8 @@
  */
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 class Shortcode
 {
 	protected static $values = array();
@@ -39,12 +41,12 @@ class Shortcode
 
 *show sitemap
 [dashi_sitemap[h=h2]]
-<?php echo __('You may use \\Dashi\\Core\\Posttype\\Sitemap::generate() in your script.', 'dashi') ?>
+<?php echo esc_html__('You may use \\Dashi\\Core\\Posttype\\Sitemap::generate() in your script.', 'dashi') ?>
 
 
 *public form
 [dashi_public_form form=[posttype]]
-<?php echo __('dashi_public_form provides adding content form to guests.', 'dashi') ?>
+<?php echo esc_html__('dashi_public_form provides adding content form to guests.', 'dashi') ?>
 
 <?php
 	}

@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class CustomFields
 {
 	protected static $expected_keys = array();
@@ -81,12 +83,12 @@ class CustomFields
 			)
 			{
 				$arr = $class::get('custom_fields');
-				$arr['dashi_sticky'] = array(
-					'label'    => __('Sticky'),
-					'callback' => array('\\Dashi\\Core\\Posttype\\Sticky', 'metaBox'),
-					'context'  => 'side',
-					'priority' => 'high',
-				);
+					$arr['dashi_sticky'] = array(
+						'label'    => __('Sticky', 'dashi'),
+						'callback' => array('\\Dashi\\Core\\Posttype\\Sticky', 'metaBox'),
+						'context'  => 'side',
+						'priority' => 'high',
+					);
 				$arr = $class::set('custom_fields', $arr);
 			}
 

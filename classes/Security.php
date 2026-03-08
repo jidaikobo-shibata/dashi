@@ -4,6 +4,8 @@
  */
 namespace Dashi\Core;
 
+if (!defined('ABSPATH')) exit;
+
 class Security
 {
     /**

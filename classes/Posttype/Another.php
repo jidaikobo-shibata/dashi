@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Another
 {
     static $anothers = array();
@@ -114,12 +116,20 @@ class Another
                 $str = __('Replace Another version was failed', 'dashi');
                 $str = '<strong style="color: #f00;display:block;">'.$str.'</strong>';
             }
-            else
-            {
-                $str = $post->post_status == 'pending' ?
-                             __('Another version is pending (date: %s)', 'dashi') :
-                             __('Another version is exists (date: %s)', 'dashi');
-                $str = '<strong style="display:block;">'.sprintf($str, date($date_format, $another_utime)).'</strong>';
+	            else
+	            {
+                    if ($post->post_status == 'pending') {
+                        /* translators: %s: date and time */
+                        $str = __('Another version is pending (date: %s)', 'dashi');
+                    } else {
+                        /* translators: %s: date and time */
+                        $str = __('Another version is exists (date: %s)', 'dashi');
+                    }
+                $str = '<strong style="display:block;">'.sprintf(
+                    /* translators: %s: date and time */
+                    $str,
+                    wp_date($date_format, $another_utime)
+                ).'</strong>';
             }
         }
         return $t_time.$str;
@@ -166,8 +176,8 @@ class Another
 
         // 通常の編集画面でのリンク文字列用
         $str = static::getAnother($post->ID) ?
-                 'Edit another version' :
-                 'Add another version';
+                 esc_html__('Edit another version', 'dashi') :
+                 esc_html__('Add another version', 'dashi');
 
         $script = '';
         $script.= '<script type="text/javascript">';
@@ -179,18 +189,26 @@ class Another
         {
             $original_posttype = get_post_type_object($post->post_type);
             $str = static::getAnother($post->dashi_original_id) ?
-                 sprintf(__('Edit another version of %s', 'dashi'), $original_posttype->label) :
-                 sprintf(__('Add another version of %s', 'dashi'), $original_posttype->label);
+                 sprintf(
+                     /* translators: %s: post type label */
+                     __('Edit another version of %s', 'dashi'),
+                     $original_posttype->label
+                 ) :
+                 sprintf(
+                     /* translators: %s: post type label */
+                     __('Add another version of %s', 'dashi'),
+                     $original_posttype->label
+                 );
             $str = esc_js(esc_html($str));
             $script.= '$("title").text("'.$str.'");';
-            $script.= '$("h1.wp-heading-inline").text("'.__($str, 'dashi').'");';
+            $script.= '$("h1.wp-heading-inline").text("'.$str.'");';
             $script.= '$("a.page-title-action").hide();';
         }
         // 通常の編集画面
         else
         {
             // 差し替えのリンク
-            $script.= '$(".wp-heading-inline").after("<a href=\"'.static::getAnotherLink($post->ID).'\" class=\"page-title-action\">'.__($str, 'dashi').'</a>");';
+            $script.= '$(".wp-heading-inline").after("<a href=\"'.static::getAnotherLink($post->ID).'\" class=\"page-title-action\">'.$str.'</a>");';
 
             // 差し替えが存在する場合はステータスを表示する
             if (static::getAnother($post->ID))
@@ -205,6 +223,7 @@ class Another
 
         $script.= '});';
         $script.= '</script>';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 管理画面用の既存 inline script 出力
         echo $script;
     }
 
@@ -254,9 +273,9 @@ class Another
         if ($post->post_status == 'publish' && current_user_can('edit_published_posts'))
         {
             $tmps = array();
-            $str = static::getAnother($post->ID) ?
-                     'Edit another version' :
-                     'Add another version';
+	            $str = static::getAnother($post->ID) ?
+	                     esc_html__('Edit another version', 'dashi') :
+	                     esc_html__('Add another version', 'dashi');
 
             // order
             if (isset($actions['edit']))
@@ -270,7 +289,7 @@ class Another
                 unset($actions['inline hide-if-no-js']);
             }
 
-            $tmps['dashi_edit_another'] = '<a href="post-new.php?post_type='.$post->post_type.'&amp;dashi_original_id='.$post->ID.'" title="'.__('Keep this post until another post will be activated', 'dashi').'">'.__($str, 'dashi').'</a>';
+	            $tmps['dashi_edit_another'] = '<a href="post-new.php?post_type='.$post->post_type.'&amp;dashi_original_id='.$post->ID.'" title="'.esc_attr__('Keep this post until another post will be activated', 'dashi').'">'.$str.'</a>';
 
             $actions = $tmps + $actions;
         }
@@ -363,10 +382,14 @@ class Another
         }
         $checkscript.= '});';
         $checkscript.= '</script>';
-        echo $checkscript;
+        wp_add_inline_script('jquery-core', $checkscript);
 
         // h1をわかりやすく
-        $str = sprintf(__('Add another version of %s', 'dashi'), get_post_type_object($post->post_type)->label);
+        $str = sprintf(
+            /* translators: %s: post type label */
+            __('Add another version of %s', 'dashi'),
+            get_post_type_object($post->post_type)->label
+        );
 
         $script = '';
         $script.= '<script type="text/javascript">';
@@ -375,6 +398,7 @@ $("title").text("'.$str.' ‹ '.get_bloginfo('site-name').' — WordPress");
 $("h1.wp-heading-inline").text("'.$str.'");
 });';
         $script.= '</script>';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 管理画面用の既存 inline script 出力
         echo $script;
     }
 
@@ -432,9 +456,16 @@ $("h1.wp-heading-inline").text("'.$str.'");
 
 		if (is_string($link))
 		{
-			echo sprintf(__('This post is another version of <a href="%s">%s</a>. If you publish, replace post immediately.', 'dashi'), $link, esc_html($original->post_title));
+				echo wp_kses_post(
+                    sprintf(
+                        /* translators: 1: original post URL, 2: original post title */
+                        __('This post is another version of <a href="%1$s">%2$s</a>. If you publish, replace post immediately.', 'dashi'),
+                        esc_url($link),
+                        esc_html($original->post_title)
+                    )
+                );
+			}
 		}
-	}
 
 	/**
 	 * echoTaxonomyScript
@@ -442,15 +473,14 @@ $("h1.wp-heading-inline").text("'.$str.'");
 	 * @param  object $original
 	 * @return  void
 	 */
-	private static function echoTaxonomyScript ($original)
-	{
-		$class = P::post2class($original);
-		if ($class && isset($_GET['dashi_original_id']))
+		private static function echoTaxonomyScript ($original)
 		{
-			$script = '';
-			$script.= '<script type="text/javascript">';
-			foreach ($class::get('taxonomies') as $taxonomy_name => $taxonomy)
+			$class = P::post2class($original);
+			if ($class && isset($_GET['dashi_original_id']))
 			{
+				$script = '';
+				foreach ($class::get('taxonomies') as $taxonomy_name => $taxonomy)
+				{
 				// update taxonomy
 				$taxes = wp_get_object_terms($original->ID, $taxonomy_name);
 				$ul_id = $taxonomy_name.'checklist';
@@ -463,8 +493,8 @@ $("h1.wp-heading-inline").text("'.$str.'");
 				}
 				$checkstr = '['.join(',',$checks).']';
 
-			$script.= 'jQuery (function($){
-var checkstr = '.$checkstr.';
+				$script.= 'jQuery (function($){
+	var checkstr = '.$checkstr.';
 
 $("#'.$ul_id.'").find(":input").each(function(){
 	if (checkstr.indexOf(parseInt($(this).val())) == -1)
@@ -477,12 +507,13 @@ $("#'.$ul_id.'").find(":input").each(function(){
 	}
 });
 
-});';
+	});';
+				}
+				$script = '<script type="text/javascript">'.$script.'</script>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 管理画面用の既存 inline script 出力
+				echo $script;
 			}
-			$script.= '</script>';
-			echo $script;
 		}
-	}
 
 	/**
 	 * savePost
@@ -683,8 +714,17 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		if (get_option('dashi_another_done_sendmail'))
 		{
 			$to = get_option('admin_email');
-			$subject = sprintf(__('WordPress: Failed to Publish Another @ %s', 'dashi'), home_url());
-			$message = sprintf(__("Failed to update content.\n\n%s\n\n%s\nDashi Plugin", 'dashi'), get_permalink($original_id), "-- \n");
+				$subject = sprintf(
+                    /* translators: %s: site URL */
+                    __('WordPress: Failed to Publish Another @ %s', 'dashi'),
+                    home_url()
+                );
+				$message = sprintf(
+                    /* translators: 1: post permalink, 2: message separator */
+                    __("Failed to update content.\n\n%1\$s\n\n%2\$s\nDashi Plugin", 'dashi'),
+                    get_permalink($original_id),
+                    "-- \n"
+                );
 			\Dashi\Core\Mail::send($to, $subject, $message);
 
 			// 管理者と別のユーザが記事を作っていたらそちらにも送信する
@@ -708,8 +748,17 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		if (get_option('dashi_another_done_sendmail'))
 		{
 			$to = get_option('admin_email');
-			$subject = sprintf(__('WordPress: Publish Another @ %s', 'dashi'), home_url());
-			$message = sprintf(__("Update content has done by reserved content.\n\n%s\n\n%s\nDashi Plugin", 'dashi'), get_permalink($posted_id), "-- \n");
+				$subject = sprintf(
+                    /* translators: %s: site URL */
+                    __('WordPress: Publish Another @ %s', 'dashi'),
+                    home_url()
+                );
+				$message = sprintf(
+                    /* translators: 1: post permalink, 2: message separator */
+                    __("Update content has done by reserved content.\n\n%1\$s\n\n%2\$s\nDashi Plugin", 'dashi'),
+                    get_permalink($posted_id),
+                    "-- \n"
+                );
 			\Dashi\Core\Mail::send($to, $subject, $message);
 
 			// 管理者と別のユーザが記事を作っていたらそちらにも送信する

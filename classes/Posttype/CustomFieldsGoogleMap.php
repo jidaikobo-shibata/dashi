@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class CustomFieldsGoogleMap
 {
 	/**
@@ -13,6 +15,8 @@ class CustomFieldsGoogleMap
 	 */
 	public static function draw ($object, $value, $is_public_form = false)
 	{
+		// 既存の Google Map 描画はテンプレート混在のため、段階的に安全化するまで該当 sniff を限定抑止する。
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		// base value
 		$id = $value['id'];
 		$place_id = 'place_'.$id;
@@ -89,7 +93,7 @@ class CustomFieldsGoogleMap
 	<td>
 		<label for="<?php echo $place_id ?>"><?php echo __('Place', 'dashi'); ?></label>
 		<input type="text" style="width: 80%;" name="<?php echo $place_name ?>" id="<?php echo $place_id ?>" value="<?php echo $place ?>" />
-		<input type="button" id="<?php echo $place_btn_id ?>" value="<?php echo __('Search'); ?>" />
+		<input type="button" id="<?php echo $place_btn_id ?>" value="<?php echo __('Search', 'dashi'); ?>" />
 	</td>
 </tr>
 
@@ -144,7 +148,7 @@ class CustomFieldsGoogleMap
 						updateMarkerPosition(marker.getPosition());
 						});
 					} else {
-						alert("<?php echo __('Geocoder failed due to'); ?>: " + status);
+						alert("<?php echo __('Geocoder failed due to', 'dashi'); ?>: " + status);
 					}
 				});
 			}
@@ -195,6 +199,7 @@ class CustomFieldsGoogleMap
 <input type="hidden" name="<?php echo $zoom_name ?>" value="<?php echo intval( $zoom ) ?>" />
 <?php endif; ?>
 
-<?php
+	<?php
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
 	}
-}

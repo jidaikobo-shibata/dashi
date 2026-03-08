@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Posttype
 {
 	protected static $_instances = array();
@@ -707,26 +709,33 @@ class Posttype
 		if ( ! $posttype::get('is_dashi')) return;
 		if (in_array($posttype, static::$defaults)) return;
 
-		$name = $posttype::get('post_type');
-		if (in_array($name, static::$banned))
-		{
-			throw new \Exception (sprintf(__('%s is cannot use as posttype name', 'dashi'), $name));
-		}
+			$name = $posttype::get('post_type');
+			if (in_array($name, static::$banned))
+			{
+				/* translators: %s: post type name. */
+				throw new \Exception (sprintf(__('%s is cannot use as posttype name', 'dashi'), $name));
+			}
 
-        $name = __($posttype::get('name'), 'dashi');
-		$singular_name = $posttype::get('singular_name') ?: $name;
+	        // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+	        $name = __($posttype::get('name'), 'dashi');
+			$singular_name = $posttype::get('singular_name') ?: $name;
 
 		$labels = array(
 			'name'              => $name,
 			'singular_name'     => $singular_name,
 			'menu_name'         => $posttype::get('menu_name') ?: $name,
-			'add_new'           => sprintf(__('add %s', 'dashi'), $singular_name),
-			'add_new_item'      => sprintf(__('add %s', 'dashi'), $singular_name),
-			'edit_item'         => sprintf(__('edit %s', 'dashi'), $singular_name),
-			'new_item'          => sprintf(__('new %s', 'dashi'), $singular_name),
-			'view_item'         => sprintf(__('view %s', 'dashi'), $singular_name),
-			'parent_item_colon' => '',
-		);
+				/* translators: %s: singular post type name. */
+				'add_new'           => sprintf(__('add %s', 'dashi'), $singular_name),
+				/* translators: %s: singular post type name. */
+				'add_new_item'      => sprintf(__('add %s', 'dashi'), $singular_name),
+				/* translators: %s: singular post type name. */
+				'edit_item'         => sprintf(__('edit %s', 'dashi'), $singular_name),
+				/* translators: %s: singular post type name. */
+				'new_item'          => sprintf(__('new %s', 'dashi'), $singular_name),
+				/* translators: %s: singular post type name. */
+				'view_item'         => sprintf(__('view %s', 'dashi'), $singular_name),
+				'parent_item_colon' => '',
+			);
 
 		// post_title の place holder
 		if ($posttype::get('enter_title_here'))
@@ -810,6 +819,7 @@ class Posttype
 		{
 			if (in_array($name, static::$banned))
 			{
+				/* translators: %s: taxonomy name. */
 				throw new \Exception (sprintf(__('%s is cannot use as taxonomy name', 'dashi'), $name));
 			}
 			register_taxonomy($name, $posttype::get('post_type'), $val);

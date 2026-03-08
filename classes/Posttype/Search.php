@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class Search
 {
     private static $null_byte_deleted_s = '';
@@ -265,7 +267,7 @@ class Search
         $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
 
         // タグ除去
-        $text = strip_tags($html);
+        $text = wp_strip_all_tags($html);
 
         // 改行・全角スペースを半角スペースに
         $text = str_replace(["\n", "\r", '　'], ' ', $text);
@@ -402,8 +404,12 @@ class Search
     private static function getBlackList()
     {
         global $wpdb;
-        $sql = 'select post_name, post_type from '.$wpdb->posts.' where `post_status` = "publish"';
-        $slugs_posttypes = $wpdb->get_results($sql);
+        $slugs_posttypes = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT post_name, post_type FROM '.$wpdb->posts.' WHERE post_status = %s',
+                'publish'
+            )
+        );
         $black_list = array();
         foreach ($slugs_posttypes as $slugs_posttype)
         {

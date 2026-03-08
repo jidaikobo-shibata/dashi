@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+if (!defined('ABSPATH')) exit;
+
 class CustomFieldsCategories
 {
     /**
@@ -92,7 +94,7 @@ class CustomFieldsCategories
             $html.= '</td></tr>';
         }
         wp_nonce_field(basename(__FILE__), 'term_order_nonce');
-        echo $html;
+        echo wp_kses_post($html);
     }
 
     /**

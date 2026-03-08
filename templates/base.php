@@ -13,7 +13,7 @@ foreach ($errors[$step] as $err => $fields):
     foreach ($fields as $field):
         if ( ! isset($steps[$step][$field])) continue;
         $message = sprintf(
-            __(\Dashi\Core\Validation::getMessage($err), 'dashi'),
+            \Dashi\Core\Validation::getMessage($err),
             $steps[$step][$field]['label']
         );
         $id = \Dashi\Core\Form\Field::getId($field);
