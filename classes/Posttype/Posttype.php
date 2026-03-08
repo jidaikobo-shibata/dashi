@@ -194,7 +194,7 @@ class Posttype
 			function ()
 			{
 				global $post_type;
-				$class = \Dashi\P::posttype2class($post_type);
+				$class = \Dashi\Core\Posttype\Posttype::posttype2class($post_type);
 				if ( ! $class || $class::get('is_dashi') === false) return;
 
 				wp_enqueue_script(
@@ -367,46 +367,18 @@ class Posttype
 	 */
 	private static function loadPostTypeFiles()
 	{
-        $dir = get_stylesheet_directory() . '/posttype';
-        $posttypes_files = [];
-        foreach (glob($dir . "/*.php") as $filepath)
-        {
-            $filename = basename($filepath);
-            if (!preg_match('/^[A-Za-z0-9_]+\.php$/', $filename)) {
-                continue;
-            }
-            $real = realpath($filepath);
-            if ($real === false || strpos($real, realpath($dir)) !== 0) {
-                continue;
-            }
-            include_once $real;
+		$posttype_files = PosttypeFileLocator::locate(
+			get_stylesheet_directory(),
+			get_template_directory()
+		);
 
-            $posttypes_files[] = $real;
-        }
-
-		// 子テーマを使っているなら、親テーマを読む
-		$pt_check = array_map('basename', $posttypes_files);
-		if (get_stylesheet_directory() != get_template_directory())
+		foreach ($posttype_files as $filepath)
 		{
-            $dir = get_template_directory() . '/posttype';
-			foreach (glob($dir . "/*.php") as $filepath)
-			{
-                $filename = basename($filepath);
-				if (in_array($filename, $pt_check)) continue;
-                if (!preg_match('/^[A-Za-z0-9_]+\.php$/', $filename)) {
-                    continue;
-                }
-                $real = realpath($filepath);
-                if ($real === false || strpos($real, realpath($dir)) !== 0) {
-                    continue;
-                }
-                include_once $real;
+			include_once $filepath;
+		}
 
-                $posttypes_files[] = $real;
-            }
-        }
-        return $posttypes_files;
-    }
+		return $posttype_files;
+	}
 
 	/**
 	 * definePostTypes
@@ -415,57 +387,19 @@ class Posttype
 	 */
 	private static function definePostTypes($posttypes_files)
 	{
-        $posttypes = [];
-
-		foreach ($posttypes_files as $filepath)
-		{
-            $filename = basename($filepath, '.php');
-
-            // クラス名組み立て（明示的に制限）
-            if (!preg_match('/^[A-Za-z0-9_]+$/', $filename)) {
-                continue; // ファイル名不正
-            }
-            $class = '\\Dashi\\Posttype\\' . ucfirst($filename);
-
-            // クラス存在＆ __init メソッドが明示的に定義されているか確認
-            if (!class_exists($class)) {
-                continue;
-            }
-
-            // Reflectionで __init が実際にそのクラスで定義されているかを確認
-            try {
-                $ref = new \ReflectionClass($class);
-                if ($ref->hasMethod('__init')) {
-                    $posttypes[] = $class;
-                }
-            } catch (\ReflectionException $e) {
-                continue; // 不正なクラスがあったらスキップ
-            }
-		}
-
-		// default post type - allow override
-		foreach (glob(DASHI_DIR."/posttype/*.php") as $filename)
-		{
-			$post_type = substr(basename($filename), 0, -4);
-			$class = '\\Dashi\\Posttype\\'.ucfirst($post_type);
-			if (in_array($class, $posttypes)) continue;
-			if ($post_type == 'pagepart' && ! get_option('dashi_activate_pagepart')) continue;
-			include($filename);
-			$posttypes[] = $class;
-		}
+        $posttypes = PosttypeClassResolver::collect($posttypes_files);
+        $posttypes = array_merge($posttypes, PosttypeDefaultLoader::load($posttypes));
 
 		// 出汁由来でないポストタイプの取得
 		global $wpdb;
 		$sql = 'SELECT `post_type` FROM '.$wpdb->posts.' GROUP BY `post_type`;';
-		foreach ($wpdb->get_results($sql) as $v)
-		{
-			if (in_array($v->post_type, array('revision', 'attachment'))) continue;
-			if (strpos($v->post_type, '-') !== false) continue;
-			$class = '\\Dashi\\Posttype\\'.ucfirst($v->post_type);
-			if (in_array($class, $posttypes)) continue;
-			$posttypes[] = $class;
-			self::virtual($v->post_type);
-		}
+        $virtuals = PosttypeVirtualRegistry::collect($wpdb->get_results($sql), $posttypes);
+        $posttypes = array_merge($posttypes, $virtuals['classes']);
+
+        foreach ($virtuals['posttypes'] as $posttype)
+        {
+            PosttypeVirtualRegistry::register($posttype);
+        }
 
 		return $posttypes;
 	}
@@ -630,26 +564,6 @@ class Posttype
 		}
 		return $adds;
 	}
-
-    /**
-     * virtual
-     *
-     * @return  void
-     */
-    private static function virtual($posttype)
-    {
-        // 投稿タイプ名に使える文字を制限（a〜z, A〜Z, 0〜9, _）
-        if (!preg_match('/^[A-Za-z0-9_]+$/', $posttype)) {
-            return;
-        }
-
-        $virtual_class = 'Dashi\\Posttype\\' . ucfirst($posttype);
-        $base_class = 'Dashi\\Core\\Posttype\\Virtual';
-
-        if (!class_exists($virtual_class)) {
-            class_alias($base_class, $virtual_class);
-        }
-    }
 
 	/**
 	 * load

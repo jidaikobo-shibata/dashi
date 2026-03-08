@@ -6,7 +6,7 @@ Description: Useful classes for creating a custom post type. When you install it
 Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
-Version: 3.3.4
+Version: 3.4.0
 Author URI: http://www.jidaikobo.com/
 thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
 License: GPL2
@@ -46,9 +46,22 @@ add_action(
     0
 );
 
-// Autoloader
-include(__DIR__.'/classes/Util.php');
-\Dashi\Core\Util::addAutoloaderPath(__DIR__.'/classes/', 'Dashi\\Core');
+// Composer のオートローダーを前提にする。
+$composer_autoload = __DIR__.'/vendor/autoload.php';
+if (!is_readable($composer_autoload))
+{
+    add_action(
+        'admin_notices',
+        function ()
+        {
+            echo '<div class="notice notice-error"><p>';
+            echo esc_html__('Dashi requires vendor/autoload.php. Run composer install in the plugin directory.', 'dashi');
+            echo '</p></div>';
+        }
+    );
+    return;
+}
+require_once $composer_autoload;
 
 // session
 add_action('template_redirect', array('\\Dashi\\Core\\Session', 'forge'), 10, 0);

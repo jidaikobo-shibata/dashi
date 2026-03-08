@@ -47,9 +47,9 @@ class Csv
 		$html.= '<form action="" method="post">';
 		$html.= '<select name="dashi_csv_export" style="width: 100%;">';
 		$html.= '<option value="">-</option>';
-		foreach (\Dashi\P::instances() as $v)
+		foreach (\Dashi\Core\Posttype\Posttype::instances() as $v)
 		{
-			$posttype = \Dashi\P::class2posttype($v);
+			$posttype = \Dashi\Core\Posttype\Posttype::class2posttype($v);
 			$obj = get_post_type_object($posttype);
 			if (is_object($obj) && ! $obj->show_in_nav_menus) continue;
 			if (empty($obj->label)) continue;
@@ -72,12 +72,15 @@ class Csv
 	private static function export($posttype)
 	{
 		// 安全な posttype だけ許可
-		$allowed_posttypes = array_map(['\Dashi\P', 'class2posttype'], \Dashi\P::instances());
+		$allowed_posttypes = array_map(
+			['\Dashi\Core\Posttype\Posttype', 'class2posttype'],
+			\Dashi\Core\Posttype\Posttype::instances()
+		);
 		if (!in_array($posttype, $allowed_posttypes, true)) {
 			wp_die(__('Invalid post type', 'dashi'), 403);
 		}
 
-		$class = \Dashi\P::posttype2class($posttype);
+		$class = \Dashi\Core\Posttype\Posttype::posttype2class($posttype);
 		$excel_compati = filter_input(INPUT_POST, 'excel_compati');
 
 		$args = array(

@@ -818,7 +818,7 @@ class PublicForm
 		$file = $_FILES['file_data'];
 		$form = isset($_POST['form']) ? sanitize_key($_POST['form']) : '';
 
-		$class = \Dashi\P::posttype2class($form);
+		$class = \Dashi\Core\Posttype\Posttype::posttype2class($form);
 
 		if (!$file || !$class)
 		{
@@ -986,7 +986,7 @@ class PublicForm
 	private static function finalize ($class, $vals)
 	{
 		global $post;
-		$post_type = \Dashi\P::class2posttype($class);
+		$post_type = \Dashi\Core\Posttype\Posttype::class2posttype($class);
 		$post_id = false;
 		$success = false;
 
@@ -1377,7 +1377,7 @@ class PublicForm
 		add_post_meta($post->ID, '_dashi_pubic_form_pending_process', 1);
 
 		// 画像をメディアディレクトリに移動する
-		$class = \Dashi\P::posttype2class($post->post_type);
+		$class = \Dashi\Core\Posttype\Posttype::posttype2class($post->post_type);
 
 		foreach ($class::getFlatCustomFields() as $k => $v)
 		{

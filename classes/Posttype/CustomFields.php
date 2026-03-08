@@ -290,8 +290,6 @@ class CustomFields
 		$is_use_wp_uploader = true
 	)
 	{
-		$err_msg = '<strong class="dashi_err_msg">Notice: set "label" attribute for label.</strong>';
-
 		// duplicateされたフィールドの順番制御用HTMLの準備
 		$duped_ctrl = self::addOrdrfield4dup($value);
 
@@ -300,62 +298,16 @@ class CustomFields
 
 		// カスタムフィールドを作成
 		$key = $value['id'];
-		$tmpkey = $key;
 		$description = isset($value['args']['description']) ? $value['args']['description'] : '';
 		$attrs = isset($value['args']['attrs']) ? $value['args']['attrs'] : array();
 		$filterable = ! empty($value['args']['filter']);
+        $resolved = CustomFieldValueResolver::resolve($object, $value);
+        $val = $resolved['value'];
+        $tmpkey = $resolved['meta_key'];
 
-		// default or population value
-		$val = isset($value['args']['value']) ? $value['args']['value'] : '';
-		if (
-			isset($value['args']['type']) &&
-			(
-				$value['args']['type'] == 'checkbox' ||
-				($value['args']['type'] == 'select' && isset($value['args']['attrs']['multiple'])) ||
-				strpos($key, '[') !== false // duplicateによる配列の場合
-			)
-		)
-		{
-			// duplicateによる配列の場合
-			if (preg_match("/\[(\d*?)\]/", $tmpkey, $ms))
-			{
-				$tmpkey = preg_replace("/\[\d*?\]/", '', $key);
-				if (
-					isset($_GET['dashi_copy_original_id']) &&
-					is_numeric($_GET['dashi_copy_original_id'])
-				)
-				{
-					$tmps = get_post_meta($_GET['dashi_copy_original_id'], $tmpkey, false);
-				}
-				else if (is_object($object) && isset($object->ID))
-				{
-					$tmps = get_post_meta($object->ID, $tmpkey, false);
-				}
-				$tmp = isset($tmps[$ms[1]]) ? $tmps[$ms[1]] : '';
-			}
-			else
-			{
-				$tmp = is_object($object) ? get_post_meta($object->ID, $tmpkey, false) : '';
-			}
-			$val = ! empty($tmp) ? $tmp : $val;
-		}
-		else
-		{
-			if (isset($object->{$key}) && ! is_null($object->{$key}))
-			{
-				$val = $object->{$key};
-			}
-		}
-
-		// add_meta_boxとおなじidにならないようにする
-		$id_str = 'dashi_'.$key;
-		if ( ! isset($attrs['id']) || $attrs['id'] != $key) $attrs['id'] = $id_str;
-
-		// 配列の形のidがきたら直す
-		if (strpos($attrs['id'], '[') !== false)
-		{
-			$attrs['id'] = str_replace(array('[', ']'), array('_', ''), $attrs['id']);
-		}
+        $normalized_attrs = CustomFieldAttributeNormalizer::normalize($key, $attrs);
+        $attrs = $normalized_attrs['attrs'];
+        $id_str = $normalized_attrs['id_str'];
 
 		$template = isset($value['args']['template']) ? $value['args']['template'] : '';
 
@@ -372,195 +324,78 @@ class CustomFields
 			$html = '';
 			switch ($value['args']['type'])
 			{
-				case 'text':
-					$html = Field::field_text(
-						$key,
-						$val,
-						$description,
-						$attrs,
-						$template
-					);
-					break;
-
-				case 'password':
-					$html = Field::field_password(
-						$key,
-						$val,
-						$description,
-						$attrs,
-						$template
-					);
-					break;
-
 				case 'textarea':
-					// wysiwyg
-					// wp_editor()はechoしちゃうので分岐
-					if (isset($value['args']['wysiwyg']))
-					{
-						if ( ! preg_match('/^[a-zA-Z_]+$/', $key)) throw new \Exception (__('You can use alphabet and underscore only when use wysiwyg.', 'dashi'));
-
-						$output.= '<span class="dashi_description">'.$description.'</span>';
-
-						// この値はboolとarrayでくる
-						$opts = is_array($value['args']['wysiwyg']) ? $value['args']['wysiwyg'] : array();
-
-						// name属性値は固定
-						$opts['textarea_name'] = $key;
-
-						// echoしちゃうので出力バッファ
-						ob_start();
-						wp_editor(
-							wp_specialchars_decode($val, ENT_QUOTES), // html前提なので
-							$id_str, // add_meta_boxのidを避ける
-							$opts
-						);
-						$html = ob_get_contents();
-						ob_end_clean();
-
-						// 文字数カウントなど
-						if(isset($value['args']['attrs']))
-						{
-							if (isset($value['args']['attrs']['class']))
-							{
-								$html = str_replace(
-									'wp-editor-area',
-									'wp-editor-area '.esc_html($value['args']['attrs']['class']),
-									$html
-								);
-								unset($value['args']['attrs']['class']);
-							}
-							if (isset($value['args']['attrs']['id'])) unset($value['args']['attrs']['id']);
-							if (isset($value['args']['attrs']['name'])) unset($value['args']['attrs']['name']);
-							if (isset($value['args']['attrs']['rows'])) unset($value['args']['attrs']['rows']);
-							if (isset($value['args']['attrs']['cols'])) unset($value['args']['attrs']['cols']);
-								$html = str_replace(
-									'<textarea ',
-									'<textarea '.\Dashi\Core\Field::array_to_attr($value['args']['attrs']).' ',
-									$html
-								);
-						}
-					}
-					// non wysiwyg
-					else
-					{
-						$html = Field::field_textarea(
-							$key,
-							$val,
-							$description,
-							$attrs,
-							$template
-						);
-					}
-					break;
-
-				case 'select':
-					$html = Field::field_select(
-						$key,
-						$val,
-						$options,
-						$description,
-						$attrs,
-						$template,
-						$filterable
-					);
-					break;
-
-				case 'radio':
-					$html = Field::field_radio(
-						$key,
-						$val,
-						$options,
-						$description,
-						$attrs,
-						$template,
-						$filterable
-					);
-					$is_label = false;
-					break;
-
-				case 'checkbox':
-					$html = Field::field_checkbox(
-						$key,
-						$val,
-						$options,
-						$description,
-						$attrs,
-						$template,
-						$filterable
-					);
-					$is_label = false;
+                    $rendered = CustomFieldTextareaRenderer::render(
+                        $key,
+                        $val,
+                        $description,
+                        $attrs,
+                        $template,
+                        $value,
+                        $id_str,
+                        $output
+                    );
+                    $output = $rendered['output'];
+                    $html = $rendered['html'];
 					break;
 
 				case 'file':
-					$attrs['id'] = 'upload_field_'.$attrs['id'];
-					$html = Field::field_file(
-						$key,
-						$val,
-						$description,
-						$attrs,
-						$template,
-						$is_use_wp_uploader
-					);
-					break;
-
 				case 'file_media':
-					$attrs['id'] = 'upload_field_'.$attrs['id'];
-					$is_image = isset($value['args']['is_image']) ?
-						intval($value['args']['is_image']) :
-						true;
-
-					$html = Field::field_file_media(
-						$key,
-						$val,
-						$description,
-						$attrs,
-						$template,
-						$is_image
-					);
+                    $rendered = CustomFieldFileRenderer::render(
+                        $value['args']['type'],
+                        $key,
+                        $val,
+                        $description,
+                        $attrs,
+                        $template,
+                        $value,
+                        $is_use_wp_uploader
+                    );
+                    $attrs = $rendered['attrs'];
+                    $html = $rendered['html'];
 					break;
+
+				default:
+                    $rendered = CustomFieldRenderer::renderBasic(
+                        $value['args']['type'],
+                        $key,
+                        $val,
+                        $options,
+                        $description,
+                        $attrs,
+                        $template,
+                        $filterable
+                    );
+                    if ($rendered['handled'])
+                    {
+                        $html = $rendered['html'];
+                        $is_label = $rendered['is_label'];
+                    }
+                    break;
 			}
 
-			// 文字数カウント表示域
-			if (isset($attrs['class']) && strpos($attrs['class'], 'dashi_chrcount') !== false)
-			{
-				$html.= '<div class="dashi_chrcount_area" id="dashi_chrcount_'.$attrs['id'].'">-</div>';
-			}
+            // 文字数カウント対象の field には、表示用のカウンタ領域を後ろに足す
+            $html = CustomFieldMarkupDecorator::appendCharCountArea($html, $attrs);
 
-			if (get_option('dashi_development_mode'))
-			{
-				// 予約語と既存ポストタイプと一致する名称をキーにしている場合、開発者向けにエラーを出す
-				if (
-					in_array($tmpkey, P::$banned) ||
-					in_array($tmpkey, array_map(array('\\Dashi\\P', 'class2posttype'), P::instances()))
-				)
-				{
-					$output.= '<strong class="dashi_err_msg">Notice: '.sprintf(__('"%s" is cannot use as custom field name.', 'dashi'), $key).'</strong>';
-				}
-
-				$current_class = P::posttype2class($object->post_type);
-				// 既存のカスタムフィールド名（他のポストタイプを含む）をカブっていたら、エラー
-				foreach (static::$custom_fields_flat as $each_class => $each_custom_fields)
-				{
-					if($current_class != '\\'.$each_class && in_array($tmpkey, array_keys($each_custom_fields)))
-					{
-						$output.= '<strong class="dashi_err_msg">Notice: '.sprintf(__('"%s" is already used other custom post type. This field cannot use "add_column" attribute at administration screen.', 'dashi'), $key).'</strong>';
-					}
-				}
-			}
+            // 開発者モードでだけ、キー名の衝突や label 不足の Notice を組み立てる
+            $output .= CustomFieldNoticeBuilder::build(
+                $key,
+                $tmpkey,
+                $object,
+                static::$custom_fields_flat
+            );
 
 			// スクリーンリーダ向けに表題がない場合は、開発者用にエラーを出す
-			if ($is_label && ! isset($value['title']) && current_user_can('administrator'))
-			{
-				$output.= $err_msg;
-			}
+            $output .= CustomFieldNoticeBuilder::buildMissingLabelNotice($is_label, $value);
 
-			// スクリーンリーダ向けテキスト
-			if ($is_label && isset($value['title']))
-			{
-				$label_class = 'dashi_custom_fields_label';
-				$label_class.= $is_label_hide ? ' screen-reader-text' : '';
-				$html = '<label for="'.$attrs['id'].'" class="'.$label_class.'">'.$value['title'].'</label>'.$html;
-			}
+            // スクリーンリーダ向けの label が必要な場合だけ、描画済み HTML を label で包む
+            $html = CustomFieldMarkupDecorator::wrapWithLabel(
+                $html,
+                $attrs,
+                $value,
+                $is_label,
+                $is_label_hide
+            );
 
 			$output.= $html.$duped_ctrl;
 		}
@@ -681,29 +516,8 @@ class CustomFields
 	{
 		foreach (P::instances() as $class)
 		{
-			static::$custom_fields_flat[$class] = self::_setFlattenedCustomFields($class::get('custom_fields'));
+			static::$custom_fields_flat[$class] = CustomFieldFlattener::flatten($class::get('custom_fields'));
 		}
-	}
-
-	/**
-	 * _setFlattenedCustomFields
-	 *
-	 * @return  void
-	 */
-	private static function _setFlattenedCustomFields ($custom_fields)
-	{
-		foreach ($custom_fields as $key => $field)
-		{
-			if (isset($field['fields']) && is_array($field['fields']))
-			{
-				foreach ($field['fields'] as $kk => $vv)
-				{
-					$custom_fields[$kk] = $vv;
-					unset($custom_fields[$key]['fields'][$kk]);
-				}
-			}
-		}
-		return $custom_fields;
 	}
 
 	/**
@@ -725,7 +539,7 @@ class CustomFields
 		);
 		if ($mod_arr)
 		{
-			return self::_setFlattenedCustomFields($mod_arr);
+			return CustomFieldFlattener::flatten($mod_arr);
 		}
 
 		return static::$custom_fields_flat[$class];
@@ -754,40 +568,20 @@ class CustomFields
 		// 出汁由来のposttypeを取得
 		foreach (P::instances() as $class)
 		{
-//			if ( ! $class::get('is_dashi')) continue;
-			foreach($class::get('custom_fields') as $key => $value)
-			{
-				if (isset($value['fields']) && is_array($value['fields']))
-				{
-					foreach ($value['fields'] as $field_key => $field)
-					{
-						static::$expected_keys[$class][] = $field_key;
-					}
-				}
-				else
-				{
-					static::$expected_keys[$class][] = $key;
-				}
-			}
-
-			// 後から足しているぶん
-			if ($class::get('is_redirect'))
-			{
-				static::$expected_keys[$class][] = 'dashi_redirect_to';
-			}
-			if ($class::get('is_use_sticky'))
-			{
-				static::$expected_keys[$class][] = 'dashi_sticky';
-			}
-			if ($class::get('is_searchable'))
-			{
-				static::$expected_keys[$class][] = 'dashi_search';
-			}
+            static::$expected_keys[$class] = CustomFieldExpectedKeyBuilder::build(
+                $class::get('custom_fields'),
+                $class::get('is_redirect'),
+                $class::get('is_use_sticky'),
+                $class::get('is_searchable')
+            );
 		}
 
 		// すべてのカスタムフィールド候補を取得
 		$sql = 'SELECT meta_key FROM '.$wpdb->postmeta.' GROUP BY `meta_key`;';
 		$meta_keys = $wpdb->get_results($sql);
+        $post_ids_by_meta_key = array();
+        $classes_by_post_id = array();
+        $is_dashi_by_class = array();
 
 		// ひとつpost_idを取り出し代表とする
 		foreach ($meta_keys as $v)
@@ -797,10 +591,35 @@ class CustomFields
 				'SELECT post_id FROM '.$wpdb->postmeta.' WHERE `meta_key` = %s LIMIT 1;',
 				$v->meta_key
 			);
-			$id = $wpdb->get_var($sql);
-			$class = P::postid2class($id);
-			if ( ! $class || $class::get('is_dashi')) continue;
-			static::$expected_keys[$class][] = $v->meta_key;
+            $post_ids_by_meta_key[$v->meta_key] = $wpdb->get_var($sql);
+        }
+
+        foreach ($post_ids_by_meta_key as $meta_key => $post_id)
+        {
+            $class = P::postid2class($post_id);
+            $classes_by_post_id[$post_id] = $class;
+
+            if ($class && !array_key_exists($class, $is_dashi_by_class))
+            {
+                $is_dashi_by_class[$class] = (bool) $class::get('is_dashi');
+            }
+        }
+
+        $external_expected_keys = CustomFieldExternalKeyCollector::collect(
+            $meta_keys,
+            $post_ids_by_meta_key,
+            $classes_by_post_id,
+            $is_dashi_by_class
+        );
+
+        foreach ($external_expected_keys as $class => $keys)
+        {
+            if (!isset(static::$expected_keys[$class]))
+            {
+                static::$expected_keys[$class] = array();
+            }
+
+            static::$expected_keys[$class] = array_merge(static::$expected_keys[$class], $keys);
 		}
 
 		set_transient('dashi_expected_custom_field_keys', static::$expected_keys, 300);
@@ -917,9 +736,9 @@ class CustomFields
 		$args = array('posts_per_page' => 20);
 
 		$allowed_post_types = array();
-		foreach (\Dashi\P::instances() as $class)
+		foreach (\Dashi\Core\Posttype\Posttype::instances() as $class)
 		{
-			$allowed_post_types[] = \Dashi\P::class2posttype($class);
+			$allowed_post_types[] = \Dashi\Core\Posttype\Posttype::class2posttype($class);
 		}
 
 		$post_type = \Dashi\Core\Input::post('post_type', false);

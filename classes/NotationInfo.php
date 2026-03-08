@@ -11,9 +11,9 @@ trait NotationInfo
 	 */
 	public static function addDashboardGlanceItems($args)
 	{
-		foreach (\Dashi\P::instances() as $v)
+		foreach (\Dashi\Core\Posttype\Posttype::instances() as $v)
 		{
-			$posttype = \Dashi\P::class2posttype($v);
+			$posttype = \Dashi\Core\Posttype\Posttype::class2posttype($v);
 			if (in_array($posttype, array('post', 'page'))) continue;
 
 			$obj = get_post_type_object($posttype);

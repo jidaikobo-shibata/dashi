@@ -23,7 +23,7 @@ class Save
 		if(get_post_meta($post_id, '_dashi_pubic_form_pending_process', true))
 		{
 			$post = get_post($post_id);
-			$class = \Dashi\P::posttype2class($post->post_type);
+			$class = \Dashi\Core\Posttype\Posttype::posttype2class($post->post_type);
 			foreach ($class::getFlatCustomFields() as $k => $v)
 			{
 				if ( ! isset($v['type'])) continue;

@@ -33,7 +33,7 @@ trait NotationDomain
 
 		// dashi_public_formが宛先を持っている場合は表示する
 		$dashi_mails = array();
-		foreach (\Dashi\P::instances() as $v)
+		foreach (\Dashi\Core\Posttype\Posttype::instances() as $v)
 		{
 			$sendto = $v::get('sendto');
 			if ( ! $sendto) continue;

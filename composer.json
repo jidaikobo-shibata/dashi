@@ -1,0 +1,13 @@
+{
+  "name": "jidaikobo/dashi-runtime",
+  "description": "Runtime autoload configuration for the Dashi plugin.",
+  "type": "project",
+  "autoload": {
+    "psr-4": {
+      "Dashi\\Core\\": "classes/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

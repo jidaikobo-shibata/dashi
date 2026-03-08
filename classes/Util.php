@@ -13,7 +13,10 @@ namespace Dashi\Core;
 class Util
 {
 	/**
-	 * add autoloader path
+	 * 旧自前オートローダー互換用
+	 *
+	 * Composer の導入後は、このメソッドでオートローダー登録を行わない。
+	 * 過去コードとの互換のためにメソッド定義だけを残している。
 	 *
 	 * @param  String $path
 	 * @param  String $namespace
@@ -21,37 +24,7 @@ class Util
 	 */
 	public static function addAutoloaderPath($path, $namespace = '')
 	{
-		spl_autoload_register(
-			function ($class_name) use ($path, $namespace)
-			{
-				// check namespace
-				$class = $class_name;
-				$strlen = strlen($namespace);
-
-				if (substr($class, 0, $strlen) !== $namespace) return;
-				$class = substr($class, $strlen + 1);
-
-				// underscores are directories
-				$path.= str_replace('\\', '/', $class);
-
-				// require
-				$file_path = $path.'.php';
-				if (file_exists($file_path))
-				{
-					require $path.'.php';
-				}
-				else
-				{
-					return false;
-				}
-
-				// init
-				if (method_exists($class_name, '_init') and is_callable($class_name.'::_init'))
-				{
-					call_user_func($class_name.'::_init');
-				}
-			}
-		);
+		return;
 	}
 
 	/**
