@@ -76,21 +76,25 @@ class Workflow
 		$views = array_slice($views, 0, -1, true);
 
 		// count
-		$waiting = new \Wp_Query(array(
-			'post_type'  => $post_type,
-			'status'     => 'draft',
-			'meta_key'   => 'dashi_workflow',
-			'compare'    => '=',
-			'meta_value' => 'waiting',
-		));
+			$waiting = new \Wp_Query(array(
+				'post_type'  => $post_type,
+				'status'     => 'draft',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_key'   => 'dashi_workflow',
+				'compare'    => '=',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				'meta_value' => 'waiting',
+			));
 
-		$draft = new \Wp_Query(array(
-			'post_type'  => $post_type,
-			'status'     => 'draft',
-			'meta_key'   => 'dashi_workflow',
-			'compare'    => '!=',
-			'meta_value' => 'waiting',
-		));
+			$draft = new \Wp_Query(array(
+				'post_type'  => $post_type,
+				'status'     => 'draft',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_key'   => 'dashi_workflow',
+				'compare'    => '!=',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				'meta_value' => 'waiting',
+			));
 
 		// link for approve
 		if ($waiting->post_count)

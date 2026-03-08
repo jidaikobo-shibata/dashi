@@ -7,38 +7,38 @@ if (!defined('ABSPATH'))
 if (!defined('ABSPATH')) exit;
 
 // アップロードディレクトリのパスを取得（WordPressの /uploads/dashi_uploads/ 配下に限定）
-$upload_dir = wp_upload_dir();
-$base_dir = trailingslashit($upload_dir['basedir']) . 'dashi_uploads/';
-$base_realpath = realpath($base_dir);
+$dashi_upload_dir = wp_upload_dir();
+$dashi_base_dir = trailingslashit($dashi_upload_dir['basedir']) . 'dashi_uploads/';
+$dashi_base_realpath = realpath($dashi_base_dir);
 
 // ファイル名を取得（basename でパストラバーサル防止）
-$raw_path = filter_input(INPUT_GET, 'path', FILTER_UNSAFE_RAW);
-$raw_path = is_string($raw_path) ? wp_unslash($raw_path) : '';
-$filename = sanitize_file_name(wp_basename(rawurldecode($raw_path)));
+$dashi_raw_path = filter_input(INPUT_GET, 'path', FILTER_UNSAFE_RAW);
+$dashi_raw_path = is_string($dashi_raw_path) ? wp_unslash($dashi_raw_path) : '';
+$dashi_filename = sanitize_file_name(wp_basename(rawurldecode($dashi_raw_path)));
 
-$exp = filter_input(INPUT_GET, 'exp', FILTER_VALIDATE_INT);
-$exp = is_int($exp) ? $exp : 0;
-$sig = filter_input(INPUT_GET, 'sig', FILTER_UNSAFE_RAW);
-$sig = is_string($sig) ? strtolower(trim(wp_unslash($sig))) : '';
+$dashi_exp = filter_input(INPUT_GET, 'exp', FILTER_VALIDATE_INT);
+$dashi_exp = is_int($dashi_exp) ? $dashi_exp : 0;
+$dashi_sig = filter_input(INPUT_GET, 'sig', FILTER_UNSAFE_RAW);
+$dashi_sig = is_string($dashi_sig) ? strtolower(trim(wp_unslash($dashi_sig))) : '';
 
-if ($filename === '' || !preg_match('/^[a-zA-Z0-9._-]+$/', $filename)) {
+if ($dashi_filename === '' || !preg_match('/^[a-zA-Z0-9._-]+$/', $dashi_filename)) {
     status_header(403);
     exit('Forbidden: Invalid file path.');
 }
 
-if ($exp < time() || !preg_match('/^[a-f0-9]{64}$/', $sig)) {
+if ($dashi_exp < time() || !preg_match('/^[a-f0-9]{64}$/', $dashi_sig)) {
     status_header(403);
     exit('Forbidden: Link expired.');
 }
 
-$expected_sig = hash_hmac('sha256', $filename . '|' . $exp, wp_salt('auth'));
-if (!hash_equals($expected_sig, $sig)) {
+$dashi_expected_sig = hash_hmac('sha256', $dashi_filename . '|' . $dashi_exp, wp_salt('auth'));
+if (!hash_equals($dashi_expected_sig, $dashi_sig)) {
     status_header(403);
     exit('Forbidden: Invalid signature.');
 }
 
 // 公開フォームの既定許可拡張子と整合させる
-$allowed_patterns = [
+$dashi_allowed_patterns = [
     'jpg|jpeg|jpe',
     'gif',
     'png',
@@ -56,43 +56,43 @@ $allowed_patterns = [
     'xlsx',
     'pptx',
 ];
-$ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-$is_allowed = false;
-foreach ($allowed_patterns as $pattern) {
-    $re = '/^(?:' . str_replace('\\|', '|', preg_quote($pattern, '/')) . ')$/i';
-    if (preg_match($re, $ext)) {
-        $is_allowed = true;
+$dashi_ext = strtolower(pathinfo($dashi_filename, PATHINFO_EXTENSION));
+$dashi_is_allowed = false;
+foreach ($dashi_allowed_patterns as $dashi_pattern) {
+    $dashi_re = '/^(?:' . str_replace('\\|', '|', preg_quote($dashi_pattern, '/')) . ')$/i';
+    if (preg_match($dashi_re, $dashi_ext)) {
+        $dashi_is_allowed = true;
         break;
     }
 }
-if (!$is_allowed) {
+if (!$dashi_is_allowed) {
     status_header(403);
     exit('Forbidden: Invalid file type.');
 }
 
 // 絶対パスを組み立てて検証
-$filepath = realpath($base_dir . $filename);
+$dashi_filepath = realpath($dashi_base_dir . $dashi_filename);
 if (
-    $base_realpath === false ||
-    $filepath === false || // ファイルが存在しない
-    strpos($filepath, $base_realpath) !== 0 || // アップロードディレクトリ外を指している
-    !file_exists($filepath)
+    $dashi_base_realpath === false ||
+    $dashi_filepath === false || // ファイルが存在しない
+    strpos($dashi_filepath, $dashi_base_realpath) !== 0 || // アップロードディレクトリ外を指している
+    !file_exists($dashi_filepath)
 ) {
     status_header(404);
     exit('File not found.');
 }
 
 // 適切な Content-Type を送信
-$wp_filetype = wp_check_filetype($filename);
-$content_type = !empty($wp_filetype['type']) ? $wp_filetype['type'] : 'application/octet-stream';
-header('Content-Type: ' . $content_type);
+$dashi_wp_filetype = wp_check_filetype($dashi_filename);
+$dashi_content_type = !empty($dashi_wp_filetype['type']) ? $dashi_wp_filetype['type'] : 'application/octet-stream';
+header('Content-Type: ' . $dashi_content_type);
 header('X-Content-Type-Options: nosniff');
-if (!preg_match('/^(image\/|video\/|audio\/|application\/pdf$)/i', $content_type)) {
-    header('Content-Disposition: attachment; filename="' . rawurlencode($filename) . '"');
+if (!preg_match('/^(image\/|video\/|audio\/|application\/pdf$)/i', $dashi_content_type)) {
+    header('Content-Disposition: attachment; filename="' . rawurlencode($dashi_filename) . '"');
 }
-header('Content-Length: ' . filesize($filepath));
+header('Content-Length: ' . filesize($dashi_filepath));
 
 // ファイル出力
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- ダウンロード応答としてストリーム出力する。
-readfile($filepath);
+readfile($dashi_filepath);
 exit;

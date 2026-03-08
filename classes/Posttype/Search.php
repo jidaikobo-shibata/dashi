@@ -207,13 +207,18 @@ class Search
             }
         }
 
-        // 除外する post_type があるなら追加条件を SQL に加える
-        if (!empty($exclude_post_types)) {
-            global $wpdb;
-            $placeholders = implode(',', array_fill(0, count($exclude_post_types), '%s'));
-            $sql_not_in = $wpdb->prepare(" AND {$wpdb->posts}.post_type NOT IN ($placeholders)", ...$exclude_post_types);
-            $search .= $sql_not_in;
-        }
+	        // 除外する post_type があるなら追加条件を SQL に加える
+	        if (!empty($exclude_post_types)) {
+	            global $wpdb;
+	            $quoted_post_types = array_map(
+	                static function ($post_type) use ($wpdb) {
+	                    return $wpdb->prepare('%s', $post_type);
+	                },
+	                $exclude_post_types
+	            );
+	            $sql_not_in = " AND {$wpdb->posts}.post_type NOT IN (" . implode(',', $quoted_post_types) . ')';
+	            $search .= $sql_not_in;
+	        }
 
         return $search;
 /*
@@ -401,11 +406,12 @@ class Search
      *
      * @return array
      */
-    private static function getBlackList()
-    {
-        global $wpdb;
-        $slugs_posttypes = $wpdb->get_results(
-            $wpdb->prepare(
+	    private static function getBlackList()
+	    {
+	        global $wpdb;
+	        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 既存公開スラッグのブラックリスト生成に使用。
+	        $slugs_posttypes = $wpdb->get_results(
+	            $wpdb->prepare(
                 'SELECT post_name, post_type FROM '.$wpdb->posts.' WHERE post_status = %s',
                 'publish'
             )

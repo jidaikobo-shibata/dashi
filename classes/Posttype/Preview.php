@@ -116,7 +116,8 @@ class Preview
 			if ( ! $class) return;
 			$fields = $class::getCustomFieldsKeys(true);
 
-			$post_metas = apply_filters('preview_post_meta_keys', $fields);
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- 既存互換のカスタムフック名。
+				$post_metas = apply_filters('preview_post_meta_keys', $fields);
 
 				foreach ($post_metas as $post_meta)
 				{
@@ -142,6 +143,7 @@ class Preview
 						add_metadata('post', $post_id, $post_meta, $vals);
 					}
 			}
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- 既存互換のカスタムフック名。
 			do_action('save_preview_postmeta', $post_id);
 		}
 	}

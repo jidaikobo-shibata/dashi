@@ -39,7 +39,8 @@ class Help
 		if ($help4post_type)
 		{
 			$helps['post_type']['title'] = $help4post_type->post_title;
-			$helps['post_type']['body'] = apply_filters('the_content', $help4post_type->post_content).'<p><a href="'.admin_url('post.php').'?post='.$help4post_type->ID.'&amp;action=edit">'.__('Edit this Help', 'dashi').'</a></p>';
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
+				$helps['post_type']['body'] = apply_filters('the_content', $help4post_type->post_content).'<p><a href="'.admin_url('post.php').'?post='.$help4post_type->ID.'&amp;action=edit">'.__('Edit this Help', 'dashi').'</a></p>';
 		}
 		else
 		{
@@ -55,7 +56,8 @@ class Help
 			if ($help4id)
 			{
 				$helps['id']['title'] = $help4id->post_title;
-				$helps['id']['body'] = apply_filters('the_content', $help4id->post_content).'<p><a href="'.admin_url('post.php').'?post='.$help4id->ID.'&amp;action=edit">'.__('Edit this Help', 'dashi').'</a></p>';
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
+					$helps['id']['body'] = apply_filters('the_content', $help4id->post_content).'<p><a href="'.admin_url('post.php').'?post='.$help4id->ID.'&amp;action=edit">'.__('Edit this Help', 'dashi').'</a></p>';
 			}
 			else
 			{

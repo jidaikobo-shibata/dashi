@@ -246,10 +246,13 @@ class CustomFields
 				$value['attrs']['data-dashi_referencer'] = $value['referencer'];
 			}
 
-			wp_enqueue_script(
-				'dashi_js_referencer',
-				plugins_url('assets/js/referencer.js', DASHI_FILE)
-			);
+				wp_enqueue_script(
+					'dashi_js_referencer',
+					plugins_url('assets/js/referencer.js', DASHI_FILE),
+					array('jquery'),
+					'1.1',
+					true
+				);
 			wp_localize_script(
 				'dashi_js_referencer',
 				'Params',
@@ -589,10 +592,11 @@ class CustomFields
             );
 		}
 
-		// すべてのカスタムフィールド候補を取得
-		$meta_keys = $wpdb->get_col(
-			"SELECT DISTINCT meta_key FROM {$wpdb->postmeta}"
-		);
+			// すべてのカスタムフィールド候補を取得
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 管理画面の候補収集のために直接取得。
+			$meta_keys = $wpdb->get_col(
+				"SELECT DISTINCT meta_key FROM {$wpdb->postmeta}"
+			);
         $post_ids_by_meta_key = array();
         $classes_by_post_id = array();
         $is_dashi_by_class = array();
@@ -602,8 +606,9 @@ class CustomFields
 		{
 			if (!is_string($meta_key) || $meta_key === '') continue;
 			if ($meta_key[0] == '_') continue;
-			$post_ids_by_meta_key[$meta_key] = $wpdb->get_var(
-				$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 各メタキーの代表 post_id 取得。
+				$post_ids_by_meta_key[$meta_key] = $wpdb->get_var(
+					$wpdb->prepare(
 					"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s LIMIT 1",
 					$meta_key
 				)

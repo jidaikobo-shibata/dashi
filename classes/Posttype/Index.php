@@ -4,6 +4,27 @@ namespace Dashi\Core\Posttype;
 class Index
 {
 	/**
+	 * 一覧フィルタの select 出力で許可する HTML 属性
+	 *
+	 * @return array<string, array<string, bool>>
+	 */
+	private static function getAllowedSelectHtml()
+	{
+		return array(
+			'select' => array(
+				'name' => true,
+				'id' => true,
+				'class' => true,
+				'multiple' => true,
+			),
+			'option' => array(
+				'value' => true,
+				'selected' => true,
+			),
+		);
+	}
+
+	/**
 	 * addColumn
 	 *
 	 * @return  array
@@ -172,7 +193,7 @@ class Index
 			$html .= '<option value="'.$term->slug.'" '.$selected_html.'>'.$term->name.'</option>';
 		}
 			$html.= '</select>';
-			echo wp_kses_post($html);
+			echo wp_kses($html, self::getAllowedSelectHtml());
 	}
 
 	/**
@@ -193,8 +214,8 @@ class Index
 		}
 		else
 		{
-				foreach (
-					(array) $wpdb->get_col(
+					foreach (
+						(array) $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 一覧絞り込み用の値を動的収集する。
 						$wpdb->prepare(
 							'SELECT '.$wpdb->postmeta.'.meta_value FROM '.$wpdb->postmeta.'
 JOIN '.$wpdb->posts.' ON '.$wpdb->postmeta.'.post_id = '.$wpdb->posts.'.ID
@@ -225,7 +246,7 @@ GROUP BY '.$wpdb->postmeta.'.meta_value',
 			$html .= '<option value="'.esc_attr($value).'"'.$selected_html.'>'.esc_html($text).'</option>';
 		}
 			$html .= '</select>';
-			echo wp_kses_post($html);
+			echo wp_kses($html, self::getAllowedSelectHtml());
 	}
 
 	/**

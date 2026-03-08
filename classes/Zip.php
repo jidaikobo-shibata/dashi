@@ -39,9 +39,11 @@ class Zip
 					'dashi_jquery_jpostal_js',
 //					'//jpostal-1006.appspot.com/jquery.jpostal.js',
 					plugins_url('assets/js/jquery.jpostal.js', DASHI_FILE),
-					array('jquery')
+					array('jquery'),
+					'1.1',
+					true
 				);
-		};
+			};
 		add_action('admin_enqueue_scripts', $wp_enqueue_script);
 		add_action('wp_enqueue_scripts', $wp_enqueue_script);
 

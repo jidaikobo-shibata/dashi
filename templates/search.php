@@ -9,9 +9,9 @@ if (!defined('ABSPATH')) exit;
 <h1><?php echo esc_html(wp_get_document_title()); ?></h1>
 <p><?php
     /* translators: %s: number of matched pages. */
-    $found_pages_message = __('Found %s pages.', 'dashi');
+    $dashi_found_pages_message = __('Found %s pages.', 'dashi');
     echo esc_html(
-        sprintf($found_pages_message, have_posts() ? (int) $wp_query->found_posts : 0)
+        sprintf($dashi_found_pages_message, have_posts() ? (int) $wp_query->found_posts : 0)
     );
 ?></p>
 
@@ -25,35 +25,36 @@ if (have_posts()):
 while (have_posts()): the_post();
 
 // post type
-$additional_information = '';
-$post_type = get_post_type($post);
-if ( ! in_array($post_type, array('post', 'page')))
+$dashi_additional_information = '';
+$dashi_post_type = get_post_type($post);
+if ( ! in_array($dashi_post_type, array('post', 'page')))
 {
-    $post_type_obj = $post_type ? get_post_type_object($post_type) : null;
+    $dashi_post_type_obj = $dashi_post_type ? get_post_type_object($dashi_post_type) : null;
 
     if (class_exists('\\Dashi\\Core\\Posttype\\Posttype'))
     {
-        $class = \Dashi\Core\Posttype\Posttype::getInstance($post_type);
-        if (class_exists($class))
+        $dashi_class = \Dashi\Core\Posttype\Posttype::getInstance($dashi_post_type);
+        if (class_exists($dashi_class))
         {
-            if ( ! $class::get('is_redirect') && substr($post_type, 0, 1) != '_')
+            if ( ! $dashi_class::get('is_redirect') && substr($dashi_post_type, 0, 1) != '_')
             {
-                $additional_information = ' <span class="link2archive">(<a href="'.
-                    esc_url(get_post_type_archive_link($post_type)).'">'.
-                    esc_html($post_type_obj->label).'</a>)</span>';
+                $dashi_additional_information = ' <span class="link2archive">(<a href="'.
+                    esc_url(get_post_type_archive_link($dashi_post_type)).'">'.
+                    esc_html($dashi_post_type_obj->label).'</a>)</span>';
             }
         }
     }
 }
 
 // summary
-$summary = $post->post_excerpt ?: apply_filters('the_content', $post->post_content);
-$summary = trim($summary);
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
+$dashi_summary = $post->post_excerpt ?: apply_filters('the_content', $post->post_content);
+$dashi_summary = trim($dashi_summary);
 ?>
 
-<dt><a href="<?php echo esc_url(get_permalink($post->ID)); ?>"><?php echo esc_html($post->post_title ?: __('(No Subject)', 'dashi')); ?></a><?php echo wp_kses_post($additional_information); ?></dt>
-<?php if ($summary): ?>
-<dd><?php echo esc_html(wp_trim_words($summary)); ?></dd>
+<dt><a href="<?php echo esc_url(get_permalink($post->ID)); ?>"><?php echo esc_html($post->post_title ?: __('(No Subject)', 'dashi')); ?></a><?php echo wp_kses_post($dashi_additional_information); ?></dt>
+<?php if ($dashi_summary): ?>
+<dd><?php echo esc_html(wp_trim_words($dashi_summary)); ?></dd>
 <?php
 endif;
 endwhile;

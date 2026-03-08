@@ -259,11 +259,13 @@ class Another
         $original = get_post($original_id);
         if ( ! $original) return false;
 
-        $another = new \WP_Query(array(
-                'post_type' => $original->post_type,
-                'meta_key' => 'dashi_original_id',
-                'meta_value' => $original_id,
-            ));
+	        $another = new \WP_Query(array(
+	                'post_type' => $original->post_type,
+	                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+	                'meta_key' => 'dashi_original_id',
+	                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+	                'meta_value' => $original_id,
+	            ));
 
         static::$anothers[$original_id] = isset($another->posts[0])
             ? $another->posts[0]
@@ -593,12 +595,13 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		// 取り残された差し替え記事を探す
         $now = current_time('mysql'); // 日時フォーマット: Y-m-d H:i:s
 
-        $args = [
-            'post_type'      => 'any',
-            'post_status'    => ['publish', 'future'],
-            'meta_query'     => [
-                [
-                    'key'     => 'dashi_original_id',
+	        $args = [
+	            'post_type'      => 'any',
+	            'post_status'    => ['publish', 'future'],
+	            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+	            'meta_query'     => [
+	                [
+	                    'key'     => 'dashi_original_id',
                     'compare' => 'EXISTS',
                 ],
             ],

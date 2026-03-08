@@ -30,10 +30,11 @@ class CustomFieldValueResolver
             $resolved = $object->{$key};
         }
 
-        return array(
-            'value' => $resolved,
-            'meta_key' => $meta_key,
-        );
+	        return array(
+	            'value' => $resolved,
+	            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- SQL用途ではなく配列キー名。
+	            'meta_key' => $meta_key,
+	        );
     }
 
     /**

@@ -32,6 +32,7 @@ class Input
 	 */
 	public static function get($index = null, $default = null)
 	{
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 汎用入力ヘルパー。利用側で用途に応じた検証を行う。
 		$get = Util::s($_GET);
 
 		if (func_num_args() === 0)
@@ -56,6 +57,7 @@ class Input
 	 */
 	public static function post($index = null, $default = null)
 	{
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 汎用入力ヘルパー。利用側で nonce/sanitize を行う。
 		$post = Util::s($_POST);
 
 		if (func_num_args() === 0)
@@ -92,6 +94,7 @@ class Input
 	 */
 	public static function file($index = null, $default = null)
 	{
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- ファイル入力は利用側の処理で nonce を検証する。
 		$files = Util::s($_FILES);
 
 		if (func_num_args() === 0)

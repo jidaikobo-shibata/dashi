@@ -597,8 +597,9 @@ class Save
 		// expose shortcode
 		if (preg_match_all('/'.get_shortcode_regex().'/s', $post->post_content, $ms))
 		{
-			$strs[] = Search::generateSearchStr(apply_filters('the_content', $post->post_content));
-		}
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
+				$strs[] = Search::generateSearchStr(apply_filters('the_content', $post->post_content));
+			}
 
 		$ret = join(' ', $strs);
 		$ret = Search::generateSearchStr($ret);

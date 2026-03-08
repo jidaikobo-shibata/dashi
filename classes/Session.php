@@ -33,15 +33,19 @@ class Session
 		}
 
 		// SESSION start
-		if (static::isStarted() === FALSE && ! headers_sent())
-		{
-			if (Util::isSsl())
+			if (static::isStarted() === FALSE && ! headers_sent())
 			{
-				ini_set('session.cookie_secure', 1);
-			}
-			ini_set('session.cookie_httponly', true);
-			ini_set('session.use_trans_sid', 0);
-			ini_set('session.use_only_cookies', 1);
+				if (Util::isSsl())
+				{
+					// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- セッション cookie を secure 化する。
+					ini_set('session.cookie_secure', 1);
+				}
+				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- セッション cookie の安全設定。
+				ini_set('session.cookie_httponly', true);
+				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- セッション設定の明示。
+				ini_set('session.use_trans_sid', 0);
+				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- セッション設定の明示。
+				ini_set('session.use_only_cookies', 1);
 //			session_save_path('/var/tmp');
 			session_name($session_name);
 			session_start();
@@ -135,14 +139,16 @@ class Session
 		// add
 		static::$values[$realm][$key][] = $vals;
 
-		// if Session which has same key and realm exists, merge.
-		if (isset($_SESSION[$realm][$key]))
-		{
-			static::$values[$realm][$key] = array_merge(
-				$_SESSION[$realm][$key],
-				static::$values[$realm][$key]
-			);
-		}
+			// if Session which has same key and realm exists, merge.
+			if (isset($_SESSION[$realm][$key]))
+			{
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- セッション領域の内部データをマージする。
+				$session_values = $_SESSION[$realm][$key];
+				static::$values[$realm][$key] = array_merge(
+					$session_values,
+					static::$values[$realm][$key]
+				);
+			}
 
 		$_SESSION[$realm] = static::$values[$realm];
 	}
@@ -212,10 +218,11 @@ class Session
 		// return by realm
 		if (empty($key))
 		{
-			if (isset($_SESSION[$realm]))
-			{
-				$vals = $_SESSION[$realm];
-			}
+				if (isset($_SESSION[$realm]))
+				{
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- セッション領域の内部データを取得する。
+					$vals = $_SESSION[$realm];
+				}
 			if (isset(static::$values[$realm]))
 			{
 				$vals = static::mergeValues($vals, static::$values[$realm]);
@@ -228,10 +235,11 @@ class Session
 			isset($_SESSION[$realm][$key])
 		)
 		{
-			if (isset($_SESSION[$realm][$key]))
-			{
-				$vals = $_SESSION[$realm][$key];
-			}
+				if (isset($_SESSION[$realm][$key]))
+				{
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- セッション領域の内部データを取得する。
+					$vals = $_SESSION[$realm][$key];
+				}
 			if (isset(static::$values[$realm][$key]))
 			{
 				$vals = static::mergeValues($vals, static::$values[$realm][$key]);

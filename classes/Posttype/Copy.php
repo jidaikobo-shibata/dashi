@@ -154,8 +154,9 @@ jQuery(function($){
 			$post_title,
 			''
 		);
-		$num = (int) $wpdb->get_var(
-			$wpdb->prepare(
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 既存タイトル重複数の算出に使用。
+			$num = (int) $wpdb->get_var(
+				$wpdb->prepare(
 				'SELECT COUNT(ID) FROM '.$wpdb->posts.' WHERE post_title LIKE %s AND post_status = %s',
 				'%' . $wpdb->esc_like($copy_title_base) . '%',
 				'publish'

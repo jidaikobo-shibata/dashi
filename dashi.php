@@ -34,8 +34,8 @@ if (defined('REST_REQUEST') && REST_REQUEST) return;
 if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) return;
 
 // Composer のオートローダーを前提にする。
-$composer_autoload = __DIR__.'/vendor/autoload.php';
-if (!is_readable($composer_autoload))
+$dashi_composer_autoload = __DIR__.'/vendor/autoload.php';
+if (!is_readable($dashi_composer_autoload))
 {
     add_action(
         'admin_notices',
@@ -48,7 +48,7 @@ if (!is_readable($composer_autoload))
     );
     return;
 }
-require_once $composer_autoload;
+require_once $dashi_composer_autoload;
 
 // session
 add_action('template_redirect', array('\\Dashi\\Core\\Session', 'forge'), 10, 0);
@@ -57,8 +57,8 @@ add_action('template_redirect', array('\\Dashi\\Core\\Session', 'forge'), 10, 0)
 define('DASHI_FILE', __FILE__);
 define('DASHI_DIR', __DIR__);
 
-$upload_dir = wp_upload_dir();
-define('DASHI_TMP_UPLOAD_DIR', trailingslashit($upload_dir['basedir']) . 'dashi_uploads/');
+$dashi_upload_dir = wp_upload_dir();
+define('DASHI_TMP_UPLOAD_DIR', trailingslashit($dashi_upload_dir['basedir']) . 'dashi_uploads/');
 
 // forge to init
 \Dashi\Core\Alias::forge();
@@ -116,13 +116,14 @@ register_activation_hook(
             }
         };
 
-        if (is_multisite() && $network_wide)
-        {
-            global $wpdb;
+	        if (is_multisite() && $network_wide)
+	        {
+	            global $wpdb;
 
-            foreach ($wpdb->get_col("SELECT blog_id FROM $wpdb->blogs") as $blog_id) {
-                switch_to_blog($blog_id);
-                $update();
+	            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- マルチサイト全体の一括更新対象を列挙する。
+	            foreach ($wpdb->get_col("SELECT blog_id FROM $wpdb->blogs") as $blog_id) {
+	                switch_to_blog($blog_id);
+	                $update();
                 restore_current_blog();
             }
         } else {

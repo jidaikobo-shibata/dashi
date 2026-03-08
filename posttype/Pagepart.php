@@ -43,17 +43,21 @@ class Pagepart extends \Dashi\Core\Posttype\Base
             'wp_enqueue_scripts',
             function ()
             {
-                wp_enqueue_style(
-                    'dashi_css_pagepart',
-                    plugins_url('assets/css/pagepart.css', DASHI_FILE)
-                );
-                wp_enqueue_script(
-                    'dashi_js_pagepart',
-                    plugins_url('assets/js/pagepart.js', DASHI_FILE),
-                    array('jquery')
-                );
-            }
-        );
+	                wp_enqueue_style(
+	                    'dashi_css_pagepart',
+	                    plugins_url('assets/css/pagepart.css', DASHI_FILE),
+	                    array(),
+	                    '1.1'
+	                );
+	                wp_enqueue_script(
+	                    'dashi_js_pagepart',
+	                    plugins_url('assets/js/pagepart.js', DASHI_FILE),
+	                    array('jquery'),
+	                    '1.1',
+	                    true
+	                );
+	            }
+	        );
     }
 
     /*
@@ -95,9 +99,10 @@ class Pagepart extends \Dashi\Core\Posttype\Base
             // ignore comment out
             $content = preg_replace("/\<!--[^-]+?--\>/is", '', $item->post_content);
 
-            if ( ! post_password_required($item->ID)):
-                $html.= @apply_filters('the_content', $content);
-            else:
+	            if ( ! post_password_required($item->ID)):
+	                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
+	                $html.= @apply_filters('the_content', $content);
+	            else:
                 $html.= get_the_password_form();
             endif;
 

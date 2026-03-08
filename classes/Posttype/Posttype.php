@@ -151,25 +151,30 @@ class Posttype
 			'wp_enqueue_scripts',
 			function ()
 			{
-				wp_enqueue_style(
-					'dashi_datetimepicker_css',
-					plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE)
-				);
+					wp_enqueue_style(
+						'dashi_datetimepicker_css',
+						plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE),
+						array(),
+						'1.1'
+					);
 
-				wp_enqueue_style(
-					'dashi_css',
-					plugins_url('assets/css/css.css', DASHI_FILE)
-				);
+					wp_enqueue_style(
+						'dashi_css',
+						plugins_url('assets/css/css.css', DASHI_FILE),
+						array(),
+						'1.1'
+					);
 
 				if (get_option('dashi_google_map_api_key'))
 				{
-					wp_enqueue_script(
-						'dashi_google_map_api_key_js',
-						'https://maps.google.com/maps/api/js?key='.
-							esc_html(get_option('dashi_google_map_api_key')),
-						array(),
-						null // API key のために ver を含めない
-					);
+						wp_enqueue_script(
+							'dashi_google_map_api_key_js',
+							'https://maps.google.com/maps/api/js?key='.
+								esc_html(get_option('dashi_google_map_api_key')),
+							array(),
+							'1.1',
+							false
+						);
 				}
 
 				wp_enqueue_script(
@@ -199,10 +204,13 @@ class Posttype
 				$class = \Dashi\Core\Posttype\Posttype::posttype2class($post_type);
 				if ( ! $class || $class::get('is_dashi') === false) return;
 
-				wp_enqueue_script(
-					'dashi_js_uploader',
-					plugins_url('assets/js/uploader.js', DASHI_FILE)
-				);
+					wp_enqueue_script(
+						'dashi_js_uploader',
+						plugins_url('assets/js/uploader.js', DASHI_FILE),
+						array('jquery'),
+						'1.1',
+						true
+					);
 
 				wp_enqueue_script(
 					'dashi_js_timepicker',
@@ -221,23 +229,30 @@ class Posttype
 				);
 
 				// redundancy...
-				wp_enqueue_style(
-					'dashi_datetimepicker_css',
-					plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE)
-				);
+					wp_enqueue_style(
+						'dashi_datetimepicker_css',
+						plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE),
+						array(),
+						'1.1'
+					);
 
-				wp_enqueue_style(
-					'dashi_css',
-					plugins_url('assets/css/css.css', DASHI_FILE)
-				);
+					wp_enqueue_style(
+						'dashi_css',
+						plugins_url('assets/css/css.css', DASHI_FILE),
+						array(),
+						'1.1'
+					);
 
 				if (get_option('dashi_google_map_api_key'))
 				{
-					wp_enqueue_script(
-						'dashi_google_map_api_key_js',
-						'https://maps.google.com/maps/api/js?key='.
-						esc_html(get_option('dashi_google_map_api_key'))
-					);
+						wp_enqueue_script(
+							'dashi_google_map_api_key_js',
+							'https://maps.google.com/maps/api/js?key='.
+							esc_html(get_option('dashi_google_map_api_key')),
+							array(),
+							'1.1',
+							false
+						);
 				}
 
 				wp_enqueue_style('thickbox');
@@ -393,12 +408,13 @@ class Posttype
         $posttypes = array_merge($posttypes, PosttypeDefaultLoader::load($posttypes));
 
 			// 出汁由来でないポストタイプの取得
-			global $wpdb;
-			$post_type_rows = array_map(
-				static function ($post_type) {
-					return (object) array('post_type' => $post_type);
+				global $wpdb;
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 既存 post_type の動的収集に使用。
+				$post_type_rows = array_map(
+					static function ($post_type) {
+						return (object) array('post_type' => $post_type);
 				},
-				(array) $wpdb->get_col("SELECT DISTINCT post_type FROM {$wpdb->posts}")
+				(array) $wpdb->get_col("SELECT DISTINCT post_type FROM {$wpdb->posts}") // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 既存 post_type の動的収集に使用。
 			);
 	        $virtuals = PosttypeVirtualRegistry::collect($post_type_rows, $posttypes);
 	        $posttypes = array_merge($posttypes, $virtuals['classes']);
@@ -498,16 +514,18 @@ class Posttype
 	private static function countMetaboxAmount($key, $val)
 	{
 		$allnum = 0;
-		if (
-			isset($_GET['dashi_copy_original_id']) &&
-			is_numeric($_GET['dashi_copy_original_id'])
-		)
+		$copy_original_id = filter_input(INPUT_GET, 'dashi_copy_original_id', FILTER_VALIDATE_INT);
+		$copy_nonce = filter_input(INPUT_GET, '_dashi_copy_nonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		$is_valid_copy_context = $copy_original_id &&
+			is_string($copy_nonce) &&
+			wp_verify_nonce(sanitize_text_field(wp_unslash($copy_nonce)), 'dashi_copy_post');
+		if ($is_valid_copy_context)
 		{
-			$post_id = filter_input(INPUT_GET, 'dashi_copy_original_id', FILTER_SANITIZE_NUMBER_INT);
+			$post_id = $copy_original_id;
 		}
 		else
 		{
-			$post_id = filter_input(INPUT_GET, 'post', FILTER_SANITIZE_NUMBER_INT);
+			$post_id = filter_input(INPUT_GET, 'post', FILTER_VALIDATE_INT);
 		}
 
 		// fieldsの場合、入力されている最大値を用いる。
