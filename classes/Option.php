@@ -5,6 +5,42 @@ if (!defined('ABSPATH')) exit;
 
 class Option
 {
+	private static function getSettingPageAllowedHtml()
+	{
+		return array(
+			'div' => array('class' => true, 'id' => true, 'style' => true),
+			'br' => array(),
+			'h1' => array(),
+			'h2' => array(),
+			'form' => array('action' => true, 'method' => true),
+			'fieldset' => array('style' => true),
+			'legend' => array(),
+			'label' => array('for' => true),
+			'input' => array(
+				'type' => true,
+				'name' => true,
+				'value' => true,
+				'id' => true,
+				'size' => true,
+				'class' => true,
+				'checked' => true,
+			),
+			'textarea' => array(
+				'name' => true,
+				'id' => true,
+				'style' => true,
+			),
+			'p' => array(),
+			'span' => array('title' => true),
+			'a' => array(
+				'href' => true,
+				'title' => true,
+				'class' => true,
+			),
+			'code' => array(),
+		);
+	}
+
 	private static $opts = array(
 		'dashi_activate_pagepart' => 'Activate page part',
 		'dashi_enrich_search_result_page' => 'Enrich search result page',
@@ -193,7 +229,7 @@ class Option
 		$html.= '</div>';
 
 			$html.= '<div class="inside">';
-			echo wp_kses_post($html);
+			echo wp_kses($html, static::getSettingPageAllowedHtml());
 ?>
 <textarea style="width: 100%;height: 500px;border: 1px #aaa solid;padding: 10px;font-family: monospace;">
 <?php
@@ -239,6 +275,6 @@ else
 		$html.= '</div><!--/.postbox-->';
 		$html.= '</div><!--/.wrap-->';
 
-			echo wp_kses_post($html);
+			echo wp_kses($html, static::getSettingPageAllowedHtml());
 		}
 	}

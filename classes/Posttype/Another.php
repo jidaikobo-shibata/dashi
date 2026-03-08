@@ -5,6 +5,23 @@ if (!defined('ABSPATH')) exit;
 
 class Another
 {
+	private static function originalNonceAction($original_id)
+	{
+		return 'dashi_original_post_' . (int) $original_id;
+	}
+
+	private static function getRequestedOriginalId()
+	{
+		$original_id = filter_input(INPUT_GET, 'dashi_original_id', FILTER_VALIDATE_INT);
+		if (!$original_id) return 0;
+
+		$nonce = filter_input(INPUT_GET, '_dashi_original_nonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		if (!is_string($nonce) || $nonce === '') return 0;
+		if (!wp_verify_nonce($nonce, static::originalNonceAction($original_id))) return 0;
+
+		return (int) $original_id;
+	}
+
     static $anothers = array();
 
     /**
@@ -292,7 +309,7 @@ class Another
                 unset($actions['inline hide-if-no-js']);
             }
 
-	            $tmps['dashi_edit_another'] = '<a href="post-new.php?post_type='.$post->post_type.'&amp;dashi_original_id='.$post->ID.'" title="'.esc_attr__('Keep this post until another post will be activated', 'dashi').'">'.$str.'</a>';
+	            $tmps['dashi_edit_another'] = '<a href="' . esc_url(static::getAnotherLink($post->ID)) . '" title="'.esc_attr__('Keep this post until another post will be activated', 'dashi').'">'.$str.'</a>';
 
             $actions = $tmps + $actions;
         }
@@ -308,10 +325,8 @@ class Another
     public static function inhibitPluralAnotherVersion ()
     {
         // オリジナルを取得
-        if ( ! isset($_GET['dashi_original_id'])) return;
-        // $original_id = $_GET['dashi_original_id'];
-        $original_id = filter_input(INPUT_GET, 'dashi_original_id', FILTER_VALIDATE_INT);
-        if (!$original_id) return;
+	        $original_id = static::getRequestedOriginalId();
+	        if (!$original_id) return;
 
         // 差し替えの存在確認
         $another = static::getAnother($original_id);
@@ -319,9 +334,9 @@ class Another
         // 差し替えが存在する場合はリダイレクト
         if ($another)
         {
-            wp_redirect(admin_url('post.php?post='.$another->ID.'&action=edit'));
-            exit;
-        }
+	            wp_safe_redirect(admin_url('post.php?post='.$another->ID.'&action=edit'));
+	            exit;
+	        }
     }
 
     /**
@@ -334,10 +349,8 @@ class Another
         // タクソノミーはjavascriptなので、editFormAfterTitleで
 
         // オリジナルを取得
-        if ( ! isset($_GET['dashi_original_id'])) return;
-        // $original_id = $_GET['dashi_original_id'];
-        $original_id = filter_input(INPUT_GET, 'dashi_original_id', FILTER_VALIDATE_INT);
-        if (!$original_id) return;
+	        $original_id = static::getRequestedOriginalId();
+	        if (!$original_id) return;
 
         $original = get_post($original_id);
 
@@ -413,10 +426,9 @@ $("h1.wp-heading-inline").text('.wp_json_encode($str).');
 	static public function editFormAfterTitle()
 	{
 		global $post;
-		$original_id = isset($_GET['dashi_original_id']) ?
-								 filter_input(INPUT_GET, 'dashi_original_id', FILTER_VALIDATE_INT) :
-								 $post->dashi_original_id;
-		if ( ! $original_id) return;
+			$requested_original_id = static::getRequestedOriginalId();
+			$original_id = $requested_original_id ?: (isset($post->dashi_original_id) ? (int) $post->dashi_original_id : 0);
+			if ( ! $original_id) return;
 		echo '<input type="hidden" name="dashi_original_id" value="'.intval($original_id).'" />';
 		echo '<style type="text/css" scoped="scoped">#edit-slug-box {display: none}</style>';
 
@@ -479,8 +491,8 @@ $("h1.wp-heading-inline").text('.wp_json_encode($str).');
 		private static function echoTaxonomyScript ($original)
 		{
 			$class = P::post2class($original);
-			if ($class && isset($_GET['dashi_original_id']))
-			{
+				if ($class && static::getRequestedOriginalId())
+				{
 				$script = '';
 				foreach ($class::get('taxonomies') as $taxonomy_name => $taxonomy)
 				{
@@ -545,9 +557,9 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		)
 		{
 			static::replacePosts ($dashi_original_id, $another->ID);
-			wp_redirect(admin_url('post.php?post='.$original->ID.'&action=edit'));
-			exit;
-		}
+				wp_safe_redirect(admin_url('post.php?post='.$original->ID.'&action=edit'));
+				exit;
+			}
 
 		// dashi_original_idを加える
 		Save::cudPostmeta($post_id, 'dashi_original_id', intval($dashi_original_id));
@@ -566,8 +578,12 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		// ダッシュボードを表示した時だけ走るようにする
 		global $pagenow;
 
-		$http = is_ssl() ? 'https://' : 'http://';
-		$url = untrailingslashit($http . $_SERVER["HTTP_HOST"] . $_SERVER["REQUEST_URI"]);
+			$http = is_ssl() ? 'https://' : 'http://';
+			$host = filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+			$request_uri = filter_input(INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+			$host = is_string($host) ? sanitize_text_field(wp_unslash($host)) : '';
+			$request_uri = is_string($request_uri) ? sanitize_text_field(wp_unslash($request_uri)) : '';
+			$url = untrailingslashit($http . $host . $request_uri);
 
 		$is_dashboard = ($pagenow == 'index.php' && is_admin());
 		$is_toppage = $url == home_url();
@@ -634,7 +650,14 @@ $("#'.$ul_id.'").find(":input").each(function(){
 	public static function getAnotherLink ($post_id)
 	{
 		$posttype = P::class2posttype(P::postid2class($post_id));
-		return 'post-new.php?post_type='.$posttype.'&amp;dashi_original_id='.$post_id;
+		$url = add_query_arg(
+			array(
+				'post_type' => $posttype,
+				'dashi_original_id' => (int) $post_id,
+			),
+			'post-new.php'
+		);
+		return wp_nonce_url($url, static::originalNonceAction($post_id), '_dashi_original_nonce');
 	}
 
 	/**

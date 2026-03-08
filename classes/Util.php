@@ -124,6 +124,7 @@ class Util
 		$value = filter_input(INPUT_SERVER, $key, FILTER_UNSAFE_RAW);
 		if (!is_string($value) && isset($_SERVER[$key]))
 		{
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 直後に sanitize_text_field で正規化する。
 			$value = wp_unslash((string) $_SERVER[$key]);
 		}
 

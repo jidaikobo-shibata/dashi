@@ -198,18 +198,23 @@ class Revisions
 		global $post;
 		$class = false;
 		// normal revision request
-		if (isset($_GET['revision']) && is_numeric($_GET['revision']))
+		$revision_id = filter_input(INPUT_GET, 'revision', FILTER_VALIDATE_INT);
+		if ($revision_id)
 		{
-			$revision = get_post($_GET['revision']);
+			$revision = get_post($revision_id);
 			$class = P::postid2class($revision->post_parent);
 		}
 		// ajax request
-		elseif (isset($_POST['post_id']))
+		else
 		{
-			$revision = get_post((int)$_POST['post_id']);
-			$class = P::postid2class($revision);
+			$post_id = filter_input(INPUT_POST, 'post_id', FILTER_VALIDATE_INT);
+			if ($post_id)
+			{
+				$revision = get_post($post_id);
+				$class = P::postid2class($revision);
+			}
 		}
-		elseif (isset($post->ID))
+		if ( ! $class && isset($post->ID))
 		{
 			$class = P::postid2class($post->ID);
 		}

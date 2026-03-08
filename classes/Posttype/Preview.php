@@ -118,21 +118,29 @@ class Preview
 
 			$post_metas = apply_filters('preview_post_meta_keys', $fields);
 
-			foreach ($post_metas as $post_meta)
-			{
-				if ( ! isset($_POST[$post_meta])) continue;
-				$vals = $_POST[$post_meta];
-				if (is_array($vals) && $post_meta != 'google_map')
+				foreach ($post_metas as $post_meta)
 				{
-					foreach ($vals as $v)
+					// phpcs:ignore WordPress.Security.NonceVerification.Missing -- post 編集系の保存導線で呼ばれる。
+					$post_val = filter_input(INPUT_POST, $post_meta, FILTER_DEFAULT, FILTER_REQUIRE_ARRAY);
+					// phpcs:ignore WordPress.Security.NonceVerification.Missing -- post 編集系の保存導線で呼ばれる。
+					$post_scalar = filter_input(INPUT_POST, $post_meta, FILTER_UNSAFE_RAW);
+					$vals = is_array($post_val) ? $post_val : $post_scalar;
+					if ($vals === null || $vals === false || $vals === '') continue;
+					if (is_string($vals))
 					{
-						add_metadata('post', $post_id, $post_meta, $v);
+						$vals = sanitize_text_field(wp_unslash($vals));
 					}
-				}
-				else
-				{
-					add_metadata('post', $post_id, $post_meta, $vals);
-				}
+					if (is_array($vals) && $post_meta != 'google_map')
+					{
+						foreach ($vals as $v)
+						{
+							add_metadata('post', $post_id, $post_meta, sanitize_text_field(wp_unslash((string) $v)));
+						}
+					}
+					else
+					{
+						add_metadata('post', $post_id, $post_meta, $vals);
+					}
 			}
 			do_action('save_preview_postmeta', $post_id);
 		}

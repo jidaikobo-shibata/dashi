@@ -18,16 +18,16 @@ class Security
         // ?author=Nを表示しない
         if (get_option('dashi_disactivate_author_page'))
         {
-            add_action(
-                'template_redirect',
-                function () {
-                    if(is_author())
-                    {
-                        wp_redirect(home_url());
-                        exit;
-                    }
-                }
-            );
+	            add_action(
+	                'template_redirect',
+	                function () {
+	                    if(is_author())
+	                    {
+	                        wp_safe_redirect(home_url());
+	                        exit;
+	                    }
+	                }
+	            );
         }
     }
 }

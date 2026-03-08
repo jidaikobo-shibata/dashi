@@ -139,6 +139,12 @@ msgstr "xmlrpc.phpを使う"
 msgid "After check html, check this."
 msgstr "生成されているHTML（head内など）を目視確認したら、チェックしてください"
 
+msgid "Confirmed the existence and validity of login-required content for content managed by WordPress."
+msgstr "WordPressに要ログインのページが、ゲストに公開されていないことを確認済み"
+
+msgid "Confirmed the existence and validity of login-required File (direct access)."
+msgstr "ログインしないとアクセスできないはずのファイルに直接アクセスできないことを確認済み"
+
 msgid "After check utility pages, check this."
 msgstr "サイトマップ、サイトポリシー等のページを目視確認したら、チェックしてください"
 

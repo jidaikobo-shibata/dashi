@@ -12,11 +12,14 @@ $base_dir = trailingslashit($upload_dir['basedir']) . 'dashi_uploads/';
 $base_realpath = realpath($base_dir);
 
 // ファイル名を取得（basename でパストラバーサル防止）
-$raw_path = isset($_GET['path']) ? wp_unslash((string) $_GET['path']) : '';
+$raw_path = filter_input(INPUT_GET, 'path', FILTER_UNSAFE_RAW);
+$raw_path = is_string($raw_path) ? wp_unslash($raw_path) : '';
 $filename = sanitize_file_name(wp_basename(rawurldecode($raw_path)));
 
-$exp = isset($_GET['exp']) ? intval($_GET['exp']) : 0;
-$sig = isset($_GET['sig']) ? strtolower(trim((string) wp_unslash($_GET['sig']))) : '';
+$exp = filter_input(INPUT_GET, 'exp', FILTER_VALIDATE_INT);
+$exp = is_int($exp) ? $exp : 0;
+$sig = filter_input(INPUT_GET, 'sig', FILTER_UNSAFE_RAW);
+$sig = is_string($sig) ? strtolower(trim(wp_unslash($sig))) : '';
 
 if ($filename === '' || !preg_match('/^[a-zA-Z0-9._-]+$/', $filename)) {
     status_header(403);

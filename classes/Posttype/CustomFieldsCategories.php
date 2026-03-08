@@ -103,14 +103,13 @@ class CustomFieldsCategories
      * @param object $tag
      * @return void
      */
-    public static function saveHook($term_id)
-    {
-        if (
-            !isset($_POST['term_order_nonce']) ||
-            !wp_verify_nonce($_POST['term_order_nonce'], basename(__FILE__))
-        ) {
-            return;
-        }
+	    public static function saveHook($term_id)
+	    {
+	        $term_order_nonce = filter_input(INPUT_POST, 'term_order_nonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+	        $term_order_nonce = is_string($term_order_nonce) ? sanitize_text_field(wp_unslash($term_order_nonce)) : '';
+	        if ($term_order_nonce === '' || !wp_verify_nonce($term_order_nonce, basename(__FILE__))) {
+	            return;
+	        }
 
         global $taxonomy;
 

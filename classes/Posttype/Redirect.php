@@ -53,7 +53,7 @@ class Redirect
 		if ( ! $to) return;
 
 		// redirection
-		wp_redirect($to, 301);
-		exit();
+			wp_safe_redirect($to, 301);
+			exit();
+		}
 	}
-}

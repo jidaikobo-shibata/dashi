@@ -15,11 +15,13 @@ class Notation
 	 * @return Void
 	 */
 	public static function forge()
-	{
-		// ダッシュボード判定 - pagenowではマルチサイトで判定できないため
-		if ( ! is_admin()) return;
-		if ( ! get_option('dashi_do_environmental_check')) return;
-		if (isset($_SERVER['SCRIPT_NAME']) && substr($_SERVER['SCRIPT_NAME'], -19) != '/wp-admin/index.php') return;
+		{
+			// ダッシュボード判定 - pagenowではマルチサイトで判定できないため
+			if ( ! is_admin()) return;
+			if ( ! get_option('dashi_do_environmental_check')) return;
+			$script_name = filter_input(INPUT_SERVER, 'SCRIPT_NAME', FILTER_UNSAFE_RAW);
+			$script_name = is_string($script_name) ? sanitize_text_field(wp_unslash($script_name)) : '';
+			if ($script_name !== '' && substr($script_name, -19) != '/wp-admin/index.php') return;
 
 		// ダッシュボードに記事数を表示する
 		add_filter(

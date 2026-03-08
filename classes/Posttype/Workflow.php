@@ -13,9 +13,12 @@ class Workflow
 	public static function forge ()
 	{
 		if ( ! is_admin()) return;
-		if ( ! isset($_GET['post_type'])) return;
+		$post_type = filter_input(INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		$post_type = is_string($post_type) ? sanitize_key(wp_unslash($post_type)) : '';
+		if ($post_type === '') return;
 
-		$class = P::posttype2class($_GET['post_type']);
+		$class = P::posttype2class($post_type);
+		if (!$class) return;
 
 		if ( ! $class::get('is_use_workflow')) return;
 
@@ -99,7 +102,8 @@ class Workflow
 		$views[key($tail)] = $tail[key($tail)];
 
 		// draftの見え方
-		if (isset($_GET['dashi_workflow']))
+		$dashi_workflow = filter_input(INPUT_GET, 'dashi_workflow', FILTER_UNSAFE_RAW);
+		if ($dashi_workflow !== null && $dashi_workflow !== false)
 		{
 			// currentを取り除く
 			if (isset($views['draft']))
@@ -143,7 +147,8 @@ class Workflow
 		// dashi_workflowの有無でdraftの表示内容を変更する
 		if(isset($wp_query->query['post_status']) && $wp_query->query['post_status'] == 'draft')
 		{
-			$comparison_operator = isset($_GET['dashi_workflow']) ? '=' : '!=';
+				$dashi_workflow = filter_input(INPUT_GET, 'dashi_workflow', FILTER_UNSAFE_RAW);
+				$comparison_operator = ($dashi_workflow !== null && $dashi_workflow !== false) ? '=' : '!=';
 			$wp_query->set('meta_query', array(
 				array(
 					'key'     => 'dashi_workflow',
