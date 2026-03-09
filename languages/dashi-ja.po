@@ -91,9 +91,6 @@ msgstr "?author=Nをゲストに表示しない（推奨）"
 msgid "Show error messages for developers"
 msgstr "開発者向けにエラーを表示する"
 
-msgid "Avoid to use field cache (slow query but for development)"
-msgstr "<span title=\"slow queryが発生しますが、開発時にはキャッシュを使わないほうが安全です\">カスタムフィールドのキャッシュを使わない</span>（運用サイトではオフ推奨）"
-
 msgid "set depth of page od [dashi_sitemap] (0 to ignore page)"
 msgstr "[dashi_sitemap]における固定ページの深さ（0で固定ページを無視します）"
 
@@ -249,9 +246,6 @@ msgstr "その他"
 
 msgid "install %1$s plugin ex: %2$s"
 msgstr "%1$s プラグインをインストールしてください。例：%2$s"
-
-msgid "now development mode. cache is disabled"
-msgstr "出汁は開発者モードです。フィールドキャッシュ利用を停止しています。"
 
 msgid "Disallow xmlrpc.php"
 msgstr "xmlrpc.phpを使わない場合は、アクセスを制限してください。"

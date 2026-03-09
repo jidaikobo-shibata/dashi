@@ -17,10 +17,6 @@ trait NotationHeavey
 		// ディレクトリのパーミッションが開きすぎていないかチェック
 		self::checkDirectoryPermission();
 
-		// sitemap.xmlの設置を促す
-		// see laterhttps://technote.space/blog/archives/1195
-		self::checkSiteMapXml();
-
 		// themes/XXX/index.phpでエラー表示を確認する
 		self::checkDisplayError();
 
@@ -63,36 +59,6 @@ trait NotationHeavey
 					});
 				}
 			}
-	}
-
-	/**
-	 * checkSiteMapXml
-	 *
-	 * @return Void
-	 */
-	private static function checkSiteMapXml()
-	{
-		if (
-			get_option('dashi_no_need_sitemap_plugin') ||
-			get_transient('dashi_notation_sitemap_exist')
-		) return;
-
-		// redirect loopなどでsitemap.xmlの存在を確認できなくても、
-		// XML sitemap プラグインを特別扱いする
-		$xmlsf_sitemaps = get_option('xmlsf_sitemaps');
-		if (
-			! Util::is_url_exists(home_url('sitemap.xml')) &&
-			! (isset($xmlsf_sitemaps['sitemap']) && $xmlsf_sitemaps['sitemap'] == 'sitemap.xml')
-		)
-		{
-				add_action('admin_notices', function ()
-				{
-					echo '<div class="message error dashi_error"><p><strong>'.esc_html__('sitemap.xml is not exist.', 'dashi').'</strong></p></div>';
-				});
-			return;
-		}
-
-		set_transient('dashi_notation_sitemap_exist', true, 24 * HOUR_IN_SECONDS);
 	}
 
 	/**

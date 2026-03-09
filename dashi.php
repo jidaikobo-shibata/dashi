@@ -105,10 +105,11 @@ register_activation_hook(
                 if ($v == 'dashi_specify_search_index') continue;
                 if ($v == 'dashi_no_need_analytics') continue;
                 if ($v == 'dashi_no_need_security_plugin') continue;
-                if ($v == 'dashi_no_need_sitemap_plugin') continue;
-                if ($v == 'dashi_no_need_dev_plugin') continue;
-                if ($v == 'dashi_no_need_acc_plugin') continue;
                 if ($v == 'dashi_do_not_heavy_dashboard_check') continue;
+                if ($v == 'dashi_head_html_is_ok') continue;
+                if ($v == 'dashi_utility_pages_are_ok') continue;
+                if ($v == 'dashi_alert_acl') continue;
+                if ($v == 'dashi_alert_fileacl') continue;
                 if ($v == 'dashi_sitemap_page_upsidedown') continue;
                 if ($v == 'dashi_do_eliminate_utf_separation') continue;
                 if ($v == 'dashi_sitemap_home_string') continue;

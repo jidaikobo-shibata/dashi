@@ -568,17 +568,6 @@ class CustomFields
 	 */
 	public static function setExpectedKeys ()
 	{
-		// group byがslow queryになるのでtransientを使う（5分）
-		$value = get_transient('dashi_expected_custom_field_keys');
-
-		// 開発者モードでは、無効にする
-		$dashi_development_diable_field_cache = get_option('dashi_development_diable_field_cache');
-		if ($value && $dashi_development_diable_field_cache != 1)
-		{
-			static::$expected_keys = $value;
-			return;
-		}
-
 		global $wpdb;
 
 		// 出汁由来のposttypeを取得
@@ -643,7 +632,6 @@ class CustomFields
             static::$expected_keys[$class] = array_merge(static::$expected_keys[$class], $keys);
 		}
 
-		set_transient('dashi_expected_custom_field_keys', static::$expected_keys, 300);
 	}
 
 	/**

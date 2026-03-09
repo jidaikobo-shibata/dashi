@@ -44,9 +44,6 @@ class Notation
 		self::alertAcl();
 		self::alertFileAcl();
 
-		// キャッシュが有効かどうかを表示
-		self::isCacheAvairable();
-
 		// 検索エンジンに表示しない設定をしていたら警告する
 		self::alertIfAvoidSearchEngine();
 
@@ -77,12 +74,6 @@ class Notation
 
 		// siteguardのインストールを促す
 		self::recommendSiteguard();
-
-		// jwp-a11yのインストールを促す
-		self::recommendJwpA11y();
-
-		// query monitorのインストールを促す
-		self::recommendQueryMonitor();
 
 		// コメントを受け付ける設定のサイトかどうか確認する
 		self::checkAllowComment();
@@ -139,21 +130,6 @@ class Notation
 			add_action('admin_notices', function ()
 			{
 				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Confirmed the existence and validity of login-required File (direct access).', 'dashi').'</strong></p></div>';
-			});
-	}
-
-	/**
-	 * isCacheAvairable
-	 *
-	 * @return Void
-	 */
-	private static function isCacheAvairable()
-	{
-		if ( ! get_option('dashi_development_diable_field_cache')) return;
-
-			add_action('admin_notices', function ()
-			{
-				echo '<div class="message notice notice-warning dashi_error"><p><strong>'.esc_html__('now development mode. cache is disabled', 'dashi').'</strong></p></div>';
 			});
 	}
 
@@ -268,46 +244,6 @@ class Notation
 			{
 				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('access log availability is not checked.', 'dashi').'</strong></p></div>';
 			});
-		}
-	}
-
-	/**
-	 * recommendJwpA11y
-	 *
-	 * @return Void
-	 */
-	private static function recommendJwpA11y()
-	{
-		if (
-			! is_plugin_active('jwp-a11y/jwp-a11y.php') &&
-			! get_option('dashi_no_need_acc_plugin')
-		)
-		{
-				add_action('admin_notices', function ()
-				{
-					/* translators: 1: plugin category, 2: plugin slug example. */
-					echo '<div class="message error dashi_error"><p><strong>'.sprintf(esc_html__('install %1$s plugin ex: %2$s', 'dashi'), 'Accessibility', 'jwp-a11y').'</strong></p></div>';
-				});
-		}
-	}
-
-	/**
-	 * recommendQueryMonitor
-	 *
-	 * @return Void
-	 */
-	private static function recommendQueryMonitor()
-	{
-		if (
-			! get_option('dashi_no_need_dev_plugin') &&
-			! is_plugin_active('query-monitor/query-monitor.php')
-		)
-		{
-				add_action('admin_notices', function ()
-				{
-					/* translators: 1: plugin category, 2: plugin slug example. */
-					echo '<div class="message error dashi_error"><p><strong>'.sprintf(esc_html__('install %1$s plugin ex: %2$s', 'dashi'), 'development', 'query monitor').'</strong></p></div>';
-				});
 		}
 	}
 
