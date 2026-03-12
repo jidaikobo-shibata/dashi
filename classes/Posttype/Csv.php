@@ -6,6 +6,42 @@ if (!defined('ABSPATH')) exit;
 class Csv
 {
 	/**
+	 * CSV エクスポートウィジェットで許可する HTML 属性
+	 *
+	 * @return array<string, array<string, bool>>
+	 */
+	private static function getAllowedWidgetHtml()
+	{
+		return array(
+			'form' => array(
+				'action' => true,
+				'method' => true,
+			),
+			'select' => array(
+				'name' => true,
+				'style' => true,
+			),
+			'option' => array(
+				'value' => true,
+				'selected' => true,
+			),
+			'label' => array(
+				'style' => true,
+			),
+			'input' => array(
+				'type' => true,
+				'name' => true,
+				'value' => true,
+				'class' => true,
+				'checked' => true,
+			),
+			'span' => array(
+				'title' => true,
+			),
+		);
+	}
+
+	/**
 	 * forge
 	 *
 	 * @return  Void
@@ -55,14 +91,14 @@ class Csv
 			$obj = get_post_type_object($posttype);
 			if (is_object($obj) && ! $obj->show_in_nav_menus) continue;
 			if (empty($obj->label)) continue;
-			$html.= '<option value="'.$obj->name.'">'.$obj->label.'</option>';
+			$html.= '<option value="'.esc_attr($obj->name).'">'.esc_html($obj->label).'</option>';
 		}
 		$html.= '</select>';
 		$html.= '<label style="display: block; padding: 10px 0;"><input type="checkbox" name="excel_compati" value="1"><span title="'.esc_attr__('some characters disappear', 'dashi').'">'.esc_html__('Microsoft Excel compatible CSV', 'dashi').'</span></label>';
 			$html.= '<input type="submit" class="button button-primary" value="'.esc_attr__('Export', 'dashi').'">';
 			$html .= wp_nonce_field('dashi_csv_export_action', '_wpnonce', true, false);
 			$html.= '</form>';
-			echo wp_kses_post($html);
+			echo wp_kses($html, self::getAllowedWidgetHtml());
 	}
 
 	/**
