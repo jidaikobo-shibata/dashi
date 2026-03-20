@@ -855,10 +855,22 @@ class Posttype
 				$name.'_edit_form_fields',
 				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'addCustomFields')
 			);
+			add_action(
+				$name.'_add_form_fields',
+				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'addCustomFieldsForNew')
+			);
 
 			add_action(
 				'edited_term',
-				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'saveHook')
+				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'saveHook'),
+				10,
+				3
+			);
+			add_action(
+				'created_term',
+				array('\\Dashi\\Core\\Posttype\\CustomFieldsCategories', 'saveHook'),
+				10,
+				3
 			);
 
 			static::$_taxonomies[$name] = static::class2posttype($posttype);
