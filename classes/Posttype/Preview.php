@@ -6,6 +6,53 @@ if (!defined('ABSPATH')) exit;
 class Preview
 {
 	/**
+	 * プレビュー保存時の値をフィールド型に応じて整形
+	 *
+	 * @param string $post_meta
+	 * @param mixed $value
+	 * @param string|bool $class
+	 * @return mixed
+	 */
+	private static function sanitizePreviewMetaValue($post_meta, $value, $class)
+	{
+		if (is_array($value))
+		{
+			return array_map(
+				static function ($item) use ($post_meta, $class)
+				{
+					return self::sanitizePreviewMetaValue($post_meta, $item, $class);
+				},
+				$value
+			);
+		}
+
+		if (! is_string($value))
+		{
+			return $value;
+		}
+
+		$value = wp_unslash($value);
+
+		if (! $class || ! method_exists($class, 'getFlatCustomFields'))
+		{
+			return sanitize_text_field($value);
+		}
+
+		$flat_fields = $class::getFlatCustomFields();
+		$field = isset($flat_fields[$post_meta]) && is_array($flat_fields[$post_meta])
+			? $flat_fields[$post_meta]
+			: [];
+		$field_type = isset($field['type']) ? (string) $field['type'] : '';
+
+		if (in_array($field_type, ['textarea', 'wysiwyg'], true))
+		{
+			return $value;
+		}
+
+		return sanitize_text_field($value);
+	}
+
+	/**
 	 * forge
 	 */
 	public static function forge ()
@@ -98,7 +145,6 @@ class Preview
 	static public function wpInsertPost ($post_id)
 	{
 		global $wpdb;
-
 		if (wp_is_post_revision($post_id))
 		{
 			// プレビューの既存値を削除
@@ -127,15 +173,12 @@ class Preview
 					$post_scalar = filter_input(INPUT_POST, $post_meta, FILTER_UNSAFE_RAW);
 					$vals = is_array($post_val) ? $post_val : $post_scalar;
 					if ($vals === null || $vals === false || $vals === '') continue;
-					if (is_string($vals))
-					{
-						$vals = sanitize_text_field(wp_unslash($vals));
-					}
+					$vals = self::sanitizePreviewMetaValue($post_meta, $vals, $class);
 					if (is_array($vals) && $post_meta != 'google_map')
 					{
 						foreach ($vals as $v)
 						{
-							add_metadata('post', $post_id, $post_meta, sanitize_text_field(wp_unslash((string) $v)));
+							add_metadata('post', $post_id, $post_meta, $v);
 						}
 					}
 					else
@@ -145,6 +188,7 @@ class Preview
 			}
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- 既存互換のカスタムフック名。
 			do_action('save_preview_postmeta', $post_id);
+
 		}
 	}
 
