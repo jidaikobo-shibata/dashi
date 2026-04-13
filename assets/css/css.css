@@ -210,3 +210,55 @@ table.dashi_tbl td.nowrap
 	overflow: hidden;
 	text-overflow: '';
 }
+
+/* public form confirm controls */
+
+#dashi_public_form_ctrls
+{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	margin: 32px 0 0;
+}
+
+#dashi_public_form_ctrls .dashi_button,
+#dashi_public_form_ctrls .dashi_button-primary
+{
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	height: 44px;
+	min-height: 44px;
+	padding: 0 18px !important;
+	font-size: 16px;
+	line-height: 1;
+	vertical-align: middle;
+}
+
+#dashi_public_form_ctrls .dashi_button
+{
+	background: #f6f7f7;
+	border: 1px solid #2271b1;
+	color: #135e96;
+}
+
+#dashi_public_form_ctrls .dashi_button-primary
+{
+	border: 1px solid #0073aa;
+}
+
+@media (max-width: 640px)
+{
+	#dashi_public_form_ctrls
+	{
+		align-items: stretch;
+	}
+
+	#dashi_public_form_ctrls .dashi_button,
+	#dashi_public_form_ctrls .dashi_button-primary
+	{
+		width: 100%;
+	}
+}

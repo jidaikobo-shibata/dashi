@@ -119,7 +119,7 @@ class Input
 	 */
 	public static function cookie($index = null, $default = null)
 	{
-		$cookies = Util::s($_COOKIES);
+		$cookies = Util::s($_COOKIE);
 
 		if (func_num_args() === 0)
 		{
