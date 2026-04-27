@@ -1149,10 +1149,16 @@ class PublicForm
 		}
 
 		// reply to
-		if ($class::get('replyto') && ! Validation::isMailaddress($class::get('sendto')))
+		if ($class::get('replyto') && ! Validation::isMailaddress($class::get('replyto')))
 		{
 				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
 				throw new \Exception(__('Mail form require valid "reply to mailaddress".', 'dashi'));
+		}
+
+		if ($class::get('public_form_admin_mail_from') && ! Validation::isMailaddress($class::get('public_form_admin_mail_from')))
+		{
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- 例外メッセージ用途。
+				throw new \Exception(__('Mail form require valid "from mailaddress".', 'dashi'));
 		}
 
 		// subjectless
@@ -1246,6 +1252,45 @@ class PublicForm
 		);
 	}
 
+	private static function normalizeMailAddress($mail_address)
+	{
+		if (!is_string($mail_address)) return '';
+
+		$mail_address = trim(str_replace(array("\r", "\n"), '', $mail_address));
+		return Validation::isMailaddress($mail_address) ? $mail_address : '';
+	}
+
+	private static function adminMailHeaders($class, $client_mail)
+	{
+		$admin_mail_from = static::normalizeMailAddress($class::get('public_form_admin_mail_from'));
+		$client_mail = static::normalizeMailAddress($client_mail);
+
+		if (!$admin_mail_from)
+		{
+			$from = $client_mail ?: $class::get('sendto');
+			return 'From: '.$from;
+		}
+
+		$headers = 'From: '.$admin_mail_from;
+		if ($client_mail)
+		{
+			$headers.= "\n".'Reply-To: '.$client_mail;
+		}
+
+		return $headers;
+	}
+
+	private static function publicFormEditPostUrl($post_id)
+	{
+		$post_id = absint($post_id);
+		if (!$post_id || !get_post($post_id))
+		{
+			return '';
+		}
+
+		return admin_url('post.php?post='.$post_id.'&action=edit');
+	}
+
 	/**
 	 * sendmail
 	 *
@@ -1265,9 +1310,10 @@ class PublicForm
 
 		// body
 		$admin_mail = self::body($class, $vals, true);
-		if ($post_id)
+		$edit_post_url = static::publicFormEditPostUrl($post_id);
+		if ($edit_post_url)
 		{
-			$admin_mail = "\n\n================\n\n".get_edit_post_link($post_id)."\n\n================\n\n".$admin_mail;
+			$admin_mail = "\n\n================\n\n".$edit_post_url."\n\n================\n\n".$admin_mail;
 		}
 		$admin_mail = __('Inquiries from the website form.', 'dashi')."\n\n".$admin_mail;
 		$admin_mail = apply_filters('dashi_public_form_admin_mail_body', $admin_mail, $post_type);
@@ -1284,12 +1330,11 @@ class PublicForm
 		if ( ! $dashi_public_form_done_sendmail) return;
 
 		// send
-		$from = $client_mail ?: $class::get('sendto');
 		$success = \Dashi\Core\Mail::send(
 			$class::get('sendto'),
 			$class::get('subject'),
 			$admin_mail,
-			'From: '.$from
+			static::adminMailHeaders($class, $client_mail)
 		);
 
 		// auto reply

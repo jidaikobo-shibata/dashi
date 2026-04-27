@@ -124,6 +124,7 @@ abstract class Base
 	// mail
 	protected $sendto;
 	protected $replyto;
+	protected $public_form_admin_mail_from;
 	protected $from_name;
 	protected $subject;
 	protected $re_subject;
