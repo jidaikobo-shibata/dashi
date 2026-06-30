@@ -2,8 +2,8 @@
 Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: custom field, custom post type
-Tested up to: 6.9
-Stable tag: 3.4.10
+Tested up to: 7.0
+Stable tag: 3.4.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.0
@@ -41,6 +41,9 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 3.4.11 =
+chore: update tested WordPress version
 
 = 3.4.10 =
 fix: improve public form admin mail sender and edit links
