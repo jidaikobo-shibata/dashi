@@ -123,6 +123,11 @@ class Preview
 
 		if (is_null($fields)) return $value;
 
+		if ( ! in_array($meta_key, $fields, true))
+		{
+			return $value;
+		}
+
 		$preview_id = static::get_preview_id($post_id);
 
 		if ($preview_id && $meta_key !== '_thumbnail_id')

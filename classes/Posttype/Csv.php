@@ -6,6 +6,16 @@ if (!defined('ABSPATH')) exit;
 class Csv
 {
 	/**
+	 * CSV エクスポートを使える権限かどうか
+	 *
+	 * @return bool
+	 */
+	private static function currentUserCanExport()
+	{
+		return current_user_can('edit_others_posts');
+	}
+
+	/**
 	 * CSV エクスポートウィジェットで許可する HTML 属性
 	 *
 	 * @return array<string, array<string, bool>>
@@ -53,6 +63,7 @@ class Csv
 		// ダッシュボード表示時にウィジェット追加
 		add_action('wp_dashboard_setup', function () {
 			if (!get_option('dashi_show_csv_export_dashboard')) return;
+			if (!self::currentUserCanExport()) return;
 
 			wp_add_dashboard_widget(
 				'dashi_list_posttype_to_gen_csv',
@@ -69,6 +80,10 @@ class Csv
 				$posttype = filter_input(INPUT_POST, 'dashi_csv_export') and
 				check_admin_referer('dashi_csv_export_action')
 			) {
+				if (!self::currentUserCanExport()) {
+					wp_die(esc_html__('You are not allowed to do this action.', 'dashi'), 403);
+				}
+
 				self::export($posttype);
 			}
 		});
@@ -81,6 +96,8 @@ class Csv
 	 */
 	public static function posttypeList()
 	{
+		if (!self::currentUserCanExport()) return;
+
 		$html = '';
 		$html.= '<form action="" method="post">';
 		$html.= '<select name="dashi_csv_export" style="width: 100%;">';

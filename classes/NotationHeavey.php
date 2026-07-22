@@ -13,6 +13,7 @@ trait NotationHeavey
 	public static function heavyCheck()
 	{
 		if ( ! get_option('dashi_do_not_heavy_dashboard_check')) return;
+		if ( ! Notation::currentUserCanViewAdminNotices()) return;
 
 		// ディレクトリのパーミッションが開きすぎていないかチェック
 		self::checkDirectoryPermission();

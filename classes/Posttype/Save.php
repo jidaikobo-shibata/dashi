@@ -614,6 +614,8 @@ class Save
 	 */
 	public static function showMessages()
 	{
+		if (!current_user_can('edit_posts')) return;
+
 		$messages = get_transient('dashi_errors');
 		if ($messages)
 		{

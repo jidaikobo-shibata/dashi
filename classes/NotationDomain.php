@@ -99,6 +99,8 @@ trait NotationDomain
 			// Contact Form 7が有効な場合宛先を表示する
 			add_action('wp_dashboard_setup', function ()
 			{
+				if (!self::currentUserCanViewEditorDashboardWidgets()) return;
+
 				wp_add_dashboard_widget (
 					'dashi_wpcf7_contact',
 					__('Recipients list of Contact Form 7', 'dashi'),
@@ -107,10 +109,12 @@ trait NotationDomain
 			});
 
 			// mail1の送信先、mail2の送信元のドメインが異なっていたら警告を出す
-			add_action(
-				'admin_init',
-				array('\\Dashi\\Core\\Notation', 'wpcf7ChkDomain')
-			);
+			add_action('admin_init', function ()
+			{
+				if (!self::currentUserCanViewAdminNotices()) return;
+
+				self::wpcf7ChkDomain();
+			});
 
 		}
 
@@ -131,6 +135,8 @@ trait NotationDomain
 		{
 			add_action('wp_dashboard_setup', function ()
 			{
+				if (!self::currentUserCanViewEditorDashboardWidgets()) return;
+
 				wp_add_dashboard_widget (
 					'dashi_public_form_contact',
 					__('Recipients list of Dashi Public Forms', 'dashi'),
@@ -310,9 +316,11 @@ trait NotationDomain
 	 *
 	 * @return Void
 	 */
-		public static function wpcf7ContactList()
-		{
-			$mail_item_labels = array(
+	public static function wpcf7ContactList()
+	{
+		if (!self::currentUserCanViewEditorDashboardWidgets()) return;
+
+		$mail_item_labels = array(
 				'subject'            => __('subject', 'dashi'),
 				'sender'             => __('sender', 'dashi'),
 				'recipient'          => __('recipient', 'dashi'),
@@ -358,9 +366,11 @@ trait NotationDomain
 	 *
 	 * @return Void
 	 */
-		public static function dashiContactList()
-		{
-			$mail_item_labels = array(
+	public static function dashiContactList()
+	{
+		if (!self::currentUserCanViewEditorDashboardWidgets()) return;
+
+		$mail_item_labels = array(
 				'subject'    => __('subject', 'dashi'),
 				're_subject' => __('re_subject', 'dashi'),
 				'recipient'  => __('recipient', 'dashi'),

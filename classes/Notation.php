@@ -15,30 +15,75 @@ class Notation
 	 * @return Void
 	 */
 	public static function forge()
-		{
-			// 「確認済み（30日間非表示）」の受付は admin-post.php でも動くよう常時登録
-			add_action(
-				'admin_post_dashi_cf7_ack_warning',
-				array('\\Dashi\\Core\\Notation', 'handleCf7WarningAcknowledge')
-			);
+	{
+		// 「確認済み（30日間非表示）」の受付は admin-post.php でも動くよう常時登録
+		add_action(
+			'admin_post_dashi_cf7_ack_warning',
+			array('\\Dashi\\Core\\Notation', 'handleCf7WarningAcknowledge')
+		);
 
-			// ダッシュボードでのみ環境チェックを表示する
-			if ( ! is_admin()) return;
-			if ( ! get_option('dashi_do_environmental_check')) return;
-			global $pagenow;
-			if ($pagenow !== 'index.php')
-			{
-				return;
-			}
-			$script_name = filter_input(INPUT_SERVER, 'SCRIPT_NAME', FILTER_UNSAFE_RAW);
-			$script_name = is_string($script_name) ? sanitize_text_field(wp_unslash($script_name)) : '';
-			if ($script_name !== '' && substr($script_name, -19) != '/wp-admin/index.php') return;
+		// ダッシュボードでのみ環境チェックを表示する
+		if ( ! is_admin()) return;
+		if ( ! get_option('dashi_do_environmental_check')) return;
+		global $pagenow;
+		if ($pagenow !== 'index.php')
+		{
+			return;
+		}
+		$script_name = filter_input(INPUT_SERVER, 'SCRIPT_NAME', FILTER_UNSAFE_RAW);
+		$script_name = is_string($script_name) ? sanitize_text_field(wp_unslash($script_name)) : '';
+		if ($script_name !== '' && substr($script_name, -19) != '/wp-admin/index.php') return;
 
 		// ダッシュボードに記事数を表示する
 		add_filter(
 			'dashboard_glance_items',
 			array('\\Dashi\\Core\\Notation', 'addDashboardGlanceItems')
 		);
+
+		add_action('admin_init', array('\\Dashi\\Core\\Notation', 'registerAdminNotices'));
+
+		// 以降プラグインのチェック
+		include_once(ABSPATH.'wp-admin/includes/plugin.php');
+
+		// pendingやfutureの記事の一覧を表示
+		self::showPendingAndFuture();
+
+		// Contact Form 7 and form domains
+		self::chkDomains();
+	}
+
+	/**
+	 * 編集者以上向けのダッシュボード情報を表示できるか
+	 *
+	 * @return bool
+	 */
+	public static function currentUserCanViewEditorDashboardWidgets()
+	{
+		if (!function_exists('wp_get_current_user')) return false;
+
+		return current_user_can('edit_others_posts');
+	}
+
+	/**
+	 * 管理者向けの通知を表示できるか
+	 *
+	 * @return bool
+	 */
+	public static function currentUserCanViewAdminNotices()
+	{
+		if (!function_exists('wp_get_current_user')) return false;
+
+		return current_user_can('manage_options');
+	}
+
+	/**
+	 * 管理者向けの通知を登録する
+	 *
+	 * @return void
+	 */
+	public static function registerAdminNotices()
+	{
+		if (!self::currentUserCanViewAdminNotices()) return;
 
 		// コンテンツの権限確認
 		self::alertAcl();
@@ -69,9 +114,6 @@ class Notation
 		// サーバ側アクセスログの有効性チェック
 		self::checkAccesslog();
 
-		// 以降プラグインのチェック
-		include_once(ABSPATH.'wp-admin/includes/plugin.php');
-
 		// siteguardのインストールを促す
 		self::recommendSiteguard();
 
@@ -80,12 +122,6 @@ class Notation
 
 		// Hello Worldの削除を促す
 		self::deleteHelloWorld();
-
-		// pendingやfutureの記事の一覧を表示
-		self::showPendingAndFuture();
-
-		// Contact Form 7 and form domains
-		self::chkDomains();
 	}
 
 	/**
@@ -298,6 +334,8 @@ class Notation
 	{
 		add_action('wp_dashboard_setup', function ()
 		{
+			if (!self::currentUserCanViewEditorDashboardWidgets()) return;
+
 			wp_add_dashboard_widget (
 				'dashi_list_unseen_content',
 				__('Unseen Contents List', 'dashi'),
