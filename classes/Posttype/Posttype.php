@@ -49,6 +49,14 @@ class Posttype
 			array('\\Dashi\\Core\\Posttype\\CustomFields', 'addCustomFields')
 		);
 
+		// 自動生成する検索インデックスを標準カスタムフィールドUIに表示しない。
+		add_filter(
+			'is_protected_meta',
+			array('\\Dashi\\Core\\Posttype\\CustomFields', 'protectSearchMeta'),
+			10,
+			3
+		);
+
 		// add column to admin index
 		add_action(
 			'manage_posts_columns',

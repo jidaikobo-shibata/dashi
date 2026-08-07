@@ -21,6 +21,24 @@ class CustomFields
 	}
 
 	/**
+	 * dashi_search をWordPress内部管理用のpost metaとして扱う
+	 *
+	 * @param bool   $protected
+	 * @param string $meta_key
+	 * @param string $meta_type
+	 * @return bool
+	 */
+	public static function protectSearchMeta($protected, $meta_key, $meta_type)
+	{
+		if ($meta_type === 'post' && $meta_key === 'dashi_search')
+		{
+			return true;
+		}
+
+		return $protected;
+	}
+
+	/**
 	 * add custom fields
 	 *
 	 * @return  void
@@ -147,6 +165,10 @@ class CustomFields
 		{
 			if ( ! isset($value['type'])) continue;
 			if ($value['type'] != 'hidden') continue;
+
+			// dashi_search は保存後にサーバ側で再生成する派生データなので、
+			// 編集フォームから古い値を送信しない。
+			if ($key === 'dashi_search') continue;
 
 			// value and post_type
 			$value = isset($value['value']) ? $value['value'] : '';

@@ -488,6 +488,10 @@ class Save
 					$str
 				);
 			}
+			else
+			{
+				delete_post_meta($post_id, 'dashi_search');
+			}
 		}
 	}
 
