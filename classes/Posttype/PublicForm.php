@@ -145,9 +145,11 @@ class PublicForm
 			// req_method
 			$req_method = filter_input(INPUT_SERVER, "REQUEST_METHOD");
 			$req_method = $req_method ? $req_method : filter_input(INPUT_ENV, "REQUEST_METHOD");
+			$is_public_form_back = filter_input(INPUT_POST, "dashi_public_form_back");
 
 			// nonce check (public form submit only)
 			$is_public_form_submit = (
+				$is_public_form_back ||
 				filter_input(INPUT_POST, "dashi_public_form_do_final") ||
 				filter_input(INPUT_POST, "dashi_public_form_send")
 			);
@@ -157,11 +159,15 @@ class PublicForm
 				$wpnonce = filter_input(INPUT_POST, "_wpnonce");
 				if ($wpnonce)
 				{
-					if (filter_input(INPUT_POST, "dashi_public_form_do_final"))
+					if ($is_public_form_back)
 					{
 						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form_do_final');
 					}
-					if (filter_input(INPUT_POST, "dashi_public_form_send"))
+					elseif (filter_input(INPUT_POST, "dashi_public_form_do_final"))
+					{
+						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form_do_final');
+					}
+					elseif (filter_input(INPUT_POST, "dashi_public_form_send"))
 					{
 						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form');
 					}
@@ -181,7 +187,14 @@ class PublicForm
 			}
 
 			// set value
-			$vals = self::setValue($class, $form, $req_method);
+			$value_req_method = $is_public_form_back ? 'BACK' : $req_method;
+			$vals = self::setValue($class, $form, $value_req_method);
+
+			// 確認画面から戻る場合は、セッション値を維持したまま入力画面を再描画する。
+			if ($is_public_form_back)
+			{
+				return self::form($class, $form, $vals, array());
+			}
 
 		// posted value
 		$errors = array();
@@ -256,8 +269,9 @@ class PublicForm
 				$retVal['errors'][] = __('This file type is not allowed.', 'dashi');
 				return $retVal;
 			}
-			$file['tmp_name'] = $tmp_name;
-			$file['name'] = $file_name;
+				$file['tmp_name'] = $tmp_name;
+				$file['name'] = $file_name;
+				$file['type'] = $wp_filetype['type'];
 
 		// 拡張子
 		$ext = substr($file['name'], strrpos($file['name'], '.'), strlen($file['name']));
@@ -267,11 +281,12 @@ class PublicForm
 		$is_uploadable = false;
 		foreach ($class::get('public_form_allowed_mimes') as $allowed_ext => $allowed_mime)
 		{
-			if (
-				! $is_uploadable &&
-				preg_match("/{$allowed_ext}/i", $ext_dotless) &&
-				$allowed_mime == $file['type']
-			)
+				$allowed_extensions = array_map('strtolower', explode('|', $allowed_ext));
+				if (
+					! $is_uploadable &&
+					in_array(strtolower($ext_dotless), $allowed_extensions, true) &&
+					$allowed_mime === $file['type']
+				)
 			{
 				$is_uploadable = true;
 			}
@@ -898,7 +913,7 @@ class PublicForm
 
 		$html = '';
 		$html.= '<dl class="dashi_public_form_confirm">';
-		foreach ($class::getFlatCustomFields() as $k => $v)
+		foreach (static::getFieldsInDisplayOrder($class::get('custom_fields')) as $k => $v)
 		{
 			if (isset($v['private_form_only']) && $v['private_form_only'] == true) continue;
 
@@ -1005,7 +1020,7 @@ class PublicForm
 		$html.= '<form id="dashi_public_form_ctrls" method="POST" action="'.get_permalink($post->ID).'">';
 		$html.= '<input type="hidden" name="dashi_public_form_do_final" value="1" />';
 
-		$buttons = '<a href="'.get_permalink($post->ID).'" class="dashi_button">'.__('Back', 'dashi').'</a>';
+		$buttons = '<button class="dashi_button" type="submit" name="dashi_public_form_back" value="1">'.esc_html__('Back', 'dashi').'</button>';
 		$buttons.= '<input class="dashi_button-primary" type="submit" value="'.__('Send', 'dashi').'">';
 
 		$buttons = apply_filters('dashi_public_form_confirm_button', $buttons, $post->post_type);
@@ -1021,6 +1036,42 @@ class PublicForm
 		$html.= '</form>';
 
 		return $html;
+	}
+
+	/**
+	 * 入力画面と同じ並びで、確認画面用にフィールド定義を展開する。
+	 *
+	 * 共通の getFlatCustomFields() は既存処理との互換性を維持するため変更せず、
+	 * グループ配下のフィールドを親の直後へ展開する。
+	 *
+	 * @param array $fields カスタムフィールド定義。
+	 * @return array
+	 */
+	private static function getFieldsInDisplayOrder ($fields)
+	{
+		$ordered_fields = array();
+
+		foreach ($fields as $key => $field)
+		{
+			$child_fields = array();
+			if (isset($field['fields']) && is_array($field['fields']))
+			{
+				$child_fields = $field['fields'];
+				$field['fields'] = array();
+			}
+
+			$ordered_fields[$key] = $field;
+
+			if ($child_fields)
+			{
+				$ordered_fields = array_merge(
+					$ordered_fields,
+					static::getFieldsInDisplayOrder($child_fields)
+				);
+			}
+		}
+
+		return $ordered_fields;
 	}
 
 	/**
@@ -1459,7 +1510,9 @@ class PublicForm
 				{
 					$body.= esc_html($v)."\n\n";
 				}
-				$csv[] = str_replace(array("\n", "\r"), ' ', $v);
+				// PHP 8.1以降では null を str_replace() に渡すと非推奨警告になる。
+				// PHP 7.4との互換性を維持しつつ、未入力値は空文字として扱う。
+				$csv[] = static::normalizeCsvScalar($v);
 			}
 		}
 		$body.= "================\n\n";
@@ -1477,6 +1530,17 @@ class PublicForm
 		$body.= "\n";
 
 		return $body;
+	}
+
+	/**
+	 * メール本文へ付加するTSVの単一値を文字列へ正規化する。
+	 *
+	 * @param mixed $value
+	 * @return string
+	 */
+	private static function normalizeCsvScalar ($value)
+	{
+		return str_replace(array("\n", "\r"), ' ', (string) $value);
 	}
 
 	/**

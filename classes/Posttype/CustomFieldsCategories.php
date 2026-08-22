@@ -202,23 +202,25 @@ class CustomFieldsCategories
             return;
         }
 
+        if (!current_user_can('edit_term', $term_id)) {
+            return;
+        }
+
         $taxonomies = P::taxonomies();
         if ( ! isset($taxonomies[$taxonomy])) return;
 
         $posttype = P::posttype2class($taxonomies[$taxonomy]);
         $custom_fields_taxonomies = $posttype::get('custom_fields_taxonomies');
+        if (!isset($custom_fields_taxonomies[$taxonomy])) return;
 
         $cat_key = 'cat_'.$term_id;
-        $old_values = get_option($cat_key);
-
         $new_values = [];
-        foreach ($custom_fields_taxonomies as $custom_fields) {
-            foreach ($custom_fields as $key => $val) {
+        foreach ($custom_fields_taxonomies[$taxonomy] as $key => $val) {
                 $new_value = Input::post($key);
                 if (is_array($new_value)) {
-                    $new_value = array_map('sanitize_text_field', $new_value);
+                    $new_value = map_deep(wp_unslash($new_value), 'sanitize_text_field');
                 } else {
-                    $new_value = sanitize_text_field($new_value);
+                    $new_value = sanitize_text_field(wp_unslash((string) $new_value));
                 }
 
                 // $new_value = maybe_serialize($new_value);
@@ -234,7 +236,6 @@ class CustomFieldsCategories
                 // } else {
                 //     $new_values[$key] = $new_value;
                 // }
-            }
         }
 
         update_option($cat_key, $new_values);

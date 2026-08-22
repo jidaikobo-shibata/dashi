@@ -98,8 +98,13 @@ class Option
 	 */
 	private static function dbio()
 	{
-		if (Input::post())
+		if (Input::post('dashi_options_submit'))
 		{
+			if (!current_user_can('manage_options')) return;
+
+			$nonce = Input::post('_dashi_options_nonce');
+			if (!is_string($nonce) || !wp_verify_nonce($nonce, 'dashi_save_options')) return;
+
 			$posts = Input::post();
 
 			// checkboxes
@@ -145,6 +150,8 @@ class Option
 		$html.= '<h2>'.__("Settings", 'dashi').'</h2>';
 
 		$html.= '<form action="" method="POST">';
+		$html.= wp_nonce_field('dashi_save_options', '_dashi_options_nonce', true, false);
+		$html.= '<input type="hidden" name="dashi_options_submit" value="1" />';
 
 		foreach (static::$opts as $k => $v)
 		{

@@ -277,6 +277,11 @@ class Save
 				$attrtmp = $class::getFlatCustomFields();
 				$attrs = isset($attrtmp[$orig_key]) ? $attrtmp[$orig_key] : array();
 
+				if (isset($attrs['type']) && $attrs['type'] === 'google_map')
+				{
+					$val = self::sanitizeGoogleMapValue($val);
+				}
+
 				// do not store data - ex) privacy data from public form
 				if (isset($attrs['store_data']) && $attrs['store_data'] == false) continue;
 
@@ -349,6 +354,28 @@ class Save
 
 		// search
 		self::updateSearch($class, $is_default, $post_id);
+	}
+
+	/**
+	 * Google Map の値を保存前に型・範囲検証する。
+	 *
+	 * @param mixed $value
+	 * @return array<string, mixed>
+	 */
+	private static function sanitizeGoogleMapValue($value)
+	{
+		if (!is_array($value)) return array();
+
+		$lat = isset($value['lat']) && is_numeric($value['lat']) ? (float) $value['lat'] : null;
+		$lng = isset($value['lng']) && is_numeric($value['lng']) ? (float) $value['lng'] : null;
+		$zoom = isset($value['zoom']) ? (int) $value['zoom'] : 13;
+
+		return array(
+			'place' => sanitize_text_field((string) ($value['place'] ?? '')),
+			'lat' => $lat !== null && is_finite($lat) && $lat >= -90 && $lat <= 90 ? $lat : '',
+			'lng' => $lng !== null && is_finite($lng) && $lng >= -180 && $lng <= 180 ? $lng : '',
+			'zoom' => min(21, max(1, $zoom)),
+		);
 	}
 
 	/**

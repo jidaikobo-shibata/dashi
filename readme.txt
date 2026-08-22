@@ -2,8 +2,8 @@
 Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: custom field, custom post type
-Tested up to: 7.0
-Stable tag: 3.4.13
+Tested up to: 7.1
+Stable tag: 3.4.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.0
@@ -41,6 +41,13 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 3.4.14 =
+security: harden settings, replacement posts, taxonomy fields, maps, and uploads
+fix: preserve public form values when returning from the confirmation screen
+fix: keep public form confirmation fields in input order
+fix: avoid PHP 8.1 deprecation warnings for empty public form mail values
+fix: show Page Parts edit links according to WordPress capabilities
 
 = 3.4.13 =
 fix: keep generated search metadata out of post edit submissions

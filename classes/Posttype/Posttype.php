@@ -106,7 +106,8 @@ class Posttype
 
 		// save hook
 		add_action('save_post', array('\\Dashi\\Core\\Posttype\\Save', 'updateCustomFields'));
-		add_action('edited_term', array('\\Dashi\\Core\\Posttype\\SaveCategories', 'save'));
+		// taxonomy は registerTaxonomy() で登録する CustomFieldsCategories::saveHook() に集約する。
+		// SaveCategories クラス自体は、外部コードとの下位互換性のため残す。
 
 		// non multi-byte slug
 		add_filter('pre_wp_unique_post_slug', array('\\Dashi\\Core\\Posttype\\Save', 'autoPostSlug'), 10, 6);

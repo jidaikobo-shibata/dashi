@@ -65,8 +65,6 @@ class Pagepart extends \Dashi\Core\Posttype\Base
      */
     public static function get_pagepart($attrs)
     {
-        global $current_user;
-
         // musts
         $musts = array(
             'slug' => __('slug', 'dashi'),
@@ -106,18 +104,29 @@ class Pagepart extends \Dashi\Core\Posttype\Base
                 $html.= get_the_password_form();
             endif;
 
-            if (isset($current_user->roles[0]) && $current_user->roles[0] == 'administrator')
+            if (current_user_can('edit_post', $item->ID))
             {
-                $html.= '<a class="edit_link" href="'.site_url('/wp-admin/post.php?post='.$item->ID.'&action=edit').'">[EDIT "'.$item->post_title.'"]</a>';
+                $edit_url = get_edit_post_link($item->ID, 'raw');
+                if ($edit_url)
+                {
+                    $html.= '<a class="edit_link" href="'.esc_url($edit_url).'">[EDIT "'.esc_html($item->post_title).'"]</a>';
+                }
             }
         }
         else
         {
-            if (isset($current_user->roles[0]) && $current_user->roles[0] == 'administrator')
+            if (current_user_can('edit_posts'))
             {
                 // 新規作成
                 // \Dashi\Hooks::auto_post_slug()に依存
-                $html.= '<a class="edit_link" href="'.site_url('/wp-admin/post-new.php?post_type=pagepart').'&amp;slug='.$slug.'">[CREATE "'.$slug.'"]</a>';
+                $create_url = add_query_arg(
+                    array(
+                        'post_type' => 'pagepart',
+                        'slug' => $slug,
+                    ),
+                    admin_url('post-new.php')
+                );
+                $html.= '<a class="edit_link" href="'.esc_url($create_url).'">[CREATE "'.esc_html($slug).'"]</a>';
             }
         }
         $html.= '</div>';

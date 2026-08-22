@@ -432,6 +432,7 @@ $("h1.wp-heading-inline").text('.wp_json_encode($str).');
 			$original_id = $requested_original_id ?: (isset($post->dashi_original_id) ? (int) $post->dashi_original_id : 0);
 			if ( ! $original_id) return;
 		echo '<input type="hidden" name="dashi_original_id" value="'.intval($original_id).'" />';
+		wp_nonce_field(static::originalNonceAction($original_id), '_dashi_original_nonce');
 		echo '<style type="text/css" scoped="scoped">#edit-slug-box {display: none}</style>';
 
 		$original = get_post($original_id);
@@ -542,9 +543,13 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		// 適用するページのみ
 		global $pagenow;
 		$dashi_original_id = Input::post('dashi_original_id');
+		$nonce = Input::post('_dashi_original_nonce');
 
 		if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return $post_id;
 		if ( ! $dashi_original_id || $pagenow != 'post.php') return $post_id;
+		if (!is_string($nonce) || !wp_verify_nonce($nonce, static::originalNonceAction($dashi_original_id))) return $post_id;
+		if (!current_user_can('edit_post', $post_id)) return $post_id;
+		if (!current_user_can('edit_post', $dashi_original_id)) return $post_id;
 
 		$another = get_post($post_id);
 		$original = get_post($dashi_original_id);
@@ -565,6 +570,7 @@ $("#'.$ul_id.'").find(":input").each(function(){
 
 		// dashi_original_idを加える
 		Save::cudPostmeta($post_id, 'dashi_original_id', intval($dashi_original_id));
+		Save::cudPostmeta($post_id, '_dashi_replacement_authorized_by', get_current_user_id());
 	}
 
 	/**
@@ -672,6 +678,18 @@ $("#'.$ul_id.'").find(":input").each(function(){
 	{
 		$original = get_post($original_id);
 		$another = get_post($another_id);
+		if (!$original || !$another || $original->post_type !== $another->post_type) return false;
+
+		$current_user_id = get_current_user_id();
+		$authorized_user_id = (int) get_post_meta(
+			$another_id,
+			'_dashi_replacement_authorized_by',
+			true
+		);
+		// 既存の予約差し替えには認可記録がないため、投稿者権限をフォールバック確認する。
+		$actor_id = $current_user_id ?: ($authorized_user_id ?: (int) $another->post_author);
+		if (!$actor_id || !user_can($actor_id, 'edit_post', $original_id)) return false;
+		if (!user_can($actor_id, 'delete_post', $another_id)) return false;
 
 		// post
 		$original->post_title   = $another->post_title;
@@ -687,7 +705,7 @@ $("#'.$ul_id.'").find(":input").each(function(){
 		if ( ! $posted_id)
 		{
 			self::sendAFailMail($original_id);
-			return;
+			return false;
 		}
 
 		// postmeta
@@ -730,6 +748,7 @@ $("#'.$ul_id.'").find(":input").each(function(){
 
 		// recover hook
 		add_action('save_post', array('\\Dashi\\Core\\Posttype\\Another', 'savePost'));
+		return true;
 	}
 
 	/**
