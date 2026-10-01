@@ -150,7 +150,7 @@ class Notation
 
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Confirmed the existence and validity of login-required content for content managed by WordPress.', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Login-required WordPress content verification is not checked.', 'dashi').'</strong></p></div>';
 			});
 	}
 
@@ -165,7 +165,7 @@ class Notation
 
 			add_action('admin_notices', function ()
 			{
-				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Confirmed the existence and validity of login-required File (direct access).', 'dashi').'</strong></p></div>';
+				echo '<div class="message error dashi_error"><p><strong>'.esc_html__('Login-required file direct access verification is not checked.', 'dashi').'</strong></p></div>';
 			});
 	}
 

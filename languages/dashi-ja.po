@@ -268,6 +268,12 @@ msgstr "「バックアップ体制設定済み」が未チェックになって
 msgid "access log availability is not checked."
 msgstr "「アクセスログ取得体制設定済み」が未チェックになっています。"
 
+msgid "Login-required WordPress content verification is not checked."
+msgstr "「WordPressに要ログインのページが、ゲストに公開されていないことを確認済み」が未チェックになっています。"
+
+msgid "Login-required file direct access verification is not checked."
+msgstr "「ログインしないとアクセスできないはずのファイルに直接アクセスできないことを確認済み」が未チェックになっています。"
+
 msgid "Disallow file edit by WordPress. add wp-config.php to <code>define('DISALLOW_FILE_EDIT', true);</code>"
 msgstr "CMS上でのphp編集を禁止してください。wp-config.phpに<code>define('DISALLOW_FILE_EDIT', true);</code>を足してください。"
 
