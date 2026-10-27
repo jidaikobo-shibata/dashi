@@ -3,7 +3,7 @@ Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: custom field, custom post type
 Tested up to: 7.1
-Stable tag: 3.4.14
+Stable tag: 3.4.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.0
@@ -41,6 +41,16 @@ please check `Settings' -> `Dashi' to know how to add custom post types.
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 3.4.15 =
+security: preserve visibility restrictions when extending search, including attachment filename searches
+security: verify public upload ownership and validate all public form submissions
+security: restrict autosave previews and copying according to post permissions
+security: allow only valid heading tags in the sitemap shortcode
+fix: prevent approved uploads from overwriting existing files
+fix: apply custom field filters correctly and in sequence
+fix: preserve upload receipts across confirmation and back actions, and prevent repeated submissions
+note: review legacy pending attachments before updating; files selected in existing forms may need to be uploaded again
 
 = 3.4.14 =
 security: harden settings, replacement posts, taxonomy fields, maps, and uploads
@@ -706,6 +716,9 @@ add mail form
 first commit.
 
 == Upgrade Notice ==
+
+= 3.4.15 =
+Security update for search, previews, copying, sitemap output and public uploads. Review legacy pending attachments before updating. Files selected in existing forms may need to be uploaded again.
 
 == Frequently Asked Questions ==
 

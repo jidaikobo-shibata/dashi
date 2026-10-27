@@ -370,8 +370,17 @@ class Posttype
 			$posttype::forge($post_name, $post_type);
 
 			// 複製可能なカスタムフィールド（meta_box）を追加
-			self::duplicateMetaBox($posttype);
+            if (function_exists('wp_get_current_user')) self::duplicateMetaBox($posttype);
 		}
+
+        if (!function_exists('wp_get_current_user') && ($GLOBALS['pagenow'] ?? '') === 'post.php') {
+            // プラグイン読込中は認証機能がまだない。コピー元の認可を省略せず、認証と投稿タイプの登録後に展開する。
+            add_action('widgets_init', static function () use ($posttypes) {
+                foreach ($posttypes as $posttype) self::duplicateMetaBox($posttype);
+                CustomFields::setExpectedKeys();
+                CustomFields::setFlattenedCustomFields();
+            }, 20);
+        }
 
 		// すべてのcustom_fieldsを用意
 		CustomFields::setExpectedKeys();
@@ -523,19 +532,9 @@ class Posttype
 	private static function countMetaboxAmount($key, $val)
 	{
 		$allnum = 0;
-		$copy_original_id = filter_input(INPUT_GET, 'dashi_copy_original_id', FILTER_VALIDATE_INT);
-		$copy_nonce = filter_input(INPUT_GET, '_dashi_copy_nonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-		$is_valid_copy_context = $copy_original_id &&
-			is_string($copy_nonce) &&
-			wp_verify_nonce(sanitize_text_field(wp_unslash($copy_nonce)), 'dashi_copy_post');
-		if ($is_valid_copy_context)
-		{
-			$post_id = $copy_original_id;
-		}
-		else
-		{
-			$post_id = filter_input(INPUT_GET, 'post', FILTER_VALIDATE_INT);
-		}
+        $original = Copy::requestedOriginal();
+        $post_id = $original ? $original->ID : filter_input(INPUT_GET, 'post', FILTER_VALIDATE_INT);
+        if ($post_id && !current_user_can('edit_post', $post_id)) return 0;
 
 		// fieldsの場合、入力されている最大値を用いる。
 		if ($post_id)

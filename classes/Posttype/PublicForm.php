@@ -35,6 +35,8 @@ class PublicForm
 		);
 
 		static::createUploadDir();
+        add_action('admin_notices', [self::class, 'uploadNotice']);
+        add_action('init', [self::class, 'resumeSession'], 0);
 
 		add_action(
 			'dashi_public_form_gc_hook',
@@ -46,6 +48,15 @@ class PublicForm
 			wp_schedule_event(time(), 'hourly', 'dashi_public_form_gc_hook');
 		}
 	}
+
+    /** HTML出力前に既存セッションを再開し、初回の正当なPOSTでは作成する。 */
+    public static function resumeSession()
+    {
+        Session::show('dashi_public_uploads');
+        $method = isset($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD'])
+            ? strtoupper(sanitize_key(wp_unslash($_SERVER['REQUEST_METHOD']))) : '';
+        if ($method === 'POST' && self::isPublicFormNonceValid()) Session::forge();
+    }
 
 	/**
 	 * TODO get_posts が管理画面で走らせると死ぬ、
@@ -71,8 +82,10 @@ class PublicForm
 
 			$fields = $class::getFlatCustomFields();
 			$pendings = get_posts(array(
-				'post_type'      => $posttypes,
-				'post_status'    => 'pending',
+				'post_type'      => $post_type,
+                'post_status' => ['pending', 'draft', 'future', 'private', 'publish'],
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- 承認移動が未完了の投稿だけを対象に、添付データの誤削除を防ぐ。
+                'meta_query' => [['key' => '_dashi_pubic_form_pending', 'compare' => 'EXISTS']],
 				'posts_per_page' => -1,
 			));
 
@@ -142,49 +155,27 @@ class PublicForm
 		// post_id
 		global $post;
 
-			// req_method
-			$req_method = filter_input(INPUT_SERVER, "REQUEST_METHOD");
-			$req_method = $req_method ? $req_method : filter_input(INPUT_ENV, "REQUEST_METHOD");
-			$is_public_form_back = filter_input(INPUT_POST, "dashi_public_form_back");
-
-			// nonce check (public form submit only)
-			$is_public_form_submit = (
-				$is_public_form_back ||
-				filter_input(INPUT_POST, "dashi_public_form_do_final") ||
-				filter_input(INPUT_POST, "dashi_public_form_send")
-			);
-			if ($req_method == 'POST' && $is_public_form_submit)
-			{
-				$valid_post = false;
-				$wpnonce = filter_input(INPUT_POST, "_wpnonce");
-				if ($wpnonce)
-				{
-					if ($is_public_form_back)
-					{
-						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form_do_final');
-					}
-					elseif (filter_input(INPUT_POST, "dashi_public_form_do_final"))
-					{
-						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form_do_final');
-					}
-					elseif (filter_input(INPUT_POST, "dashi_public_form_send"))
-					{
-						$valid_post = wp_verify_nonce($wpnonce, 'dashi_public_form');
-					}
-				}
-
-				if ( ! $valid_post)
-				{
-					// タイミング的にリダイレクトできないのでexit()のみ
-					// wp_safe_redirect(home_url());
-					exit();
-				}
-			}
-			elseif ($req_method == 'GET')
-			{
-				// Initial page load should not revive stale upload/session values.
-				Session::remove('dashi_public_form', $form);
-			}
+        $req_method = isset($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD'])
+            ? strtoupper(sanitize_key(wp_unslash($_SERVER['REQUEST_METHOD']))) : 'GET';
+        $is_public_form_back = self::postValue('dashi_public_form_back') === '1';
+        $is_final = self::postValue('dashi_public_form_do_final') === '1' && !$is_public_form_back;
+        if ($req_method === 'POST') {
+            $nonce = self::postValue('_wpnonce');
+            $action = ($is_final || $is_public_form_back) ? 'dashi_public_form_do_final' : 'dashi_public_form';
+            $has_action = $is_final || $is_public_form_back || self::postValue('dashi_public_form_send') === '1';
+            if (!$has_action || !is_string($nonce) || !wp_verify_nonce($nonce, $action)) {
+                return '<p class="dashi_public_form_error">' . esc_html__('Invalid form request. Please reload the form.', 'dashi') . '</p>';
+            }
+            if ($is_final && !Session::show('dashi_public_form_confirmed', $form)) {
+                return '<p class="dashi_public_form_error">' . esc_html__('Please confirm the form before submitting.', 'dashi') . '</p>';
+            }
+        } elseif ($req_method === 'GET') {
+            PublicUploadStore::discardForm($form);
+            Session::remove('dashi_public_form_confirmed', $form);
+            Session::remove('dashi_public_form', $form);
+        } else {
+            return '';
+        }
 
 			// set value
 			$value_req_method = $is_public_form_back ? 'BACK' : $req_method;
@@ -200,6 +191,7 @@ class PublicForm
 		$errors = array();
 		if ($req_method == 'POST')
 		{
+            $vals = self::normalizeFileValues($class, $form, $vals);
 			// apply filters
 			$vals = self::applyFilters($class, $vals);
 
@@ -211,11 +203,12 @@ class PublicForm
 		if ( ! $errors && $req_method == 'POST')
 		{
 			// 最終処理＋確認画面
-			if (filter_input(INPUT_POST, "dashi_public_form_do_final"))
+			if (self::postValue('dashi_public_form_do_final') === '1')
 			{
 				return self::finalize($class, $vals);
 			}
 
+            Session::set('dashi_public_form_confirmed', $form, true);
 			// 内容確認画面
 			return self::confirm($class, $vals);
 		}
@@ -232,7 +225,7 @@ class PublicForm
 	private static function upload ($class, $form, $val, $key)
 	{
 		// 最終段階ではセッションを返す
-		if (filter_input(INPUT_POST, "dashi_public_form_do_final")) return $val;
+		if (self::postValue('dashi_public_form_do_final') === '1') return $val;
 
 		if (!static::isPublicFormNonceValid()) return array();
 
@@ -246,6 +239,9 @@ class PublicForm
 
 		// ファイルをDASHI_TMP_UPLOAD_DIRにアップする
 		$val = static::handleUpload($class, $file);
+        if (empty($val['errors']) && !empty($val['name'])) {
+            $val = PublicUploadStore::register($form, $key, $val);
+        }
 
 		return $val;
 	}
@@ -350,7 +346,7 @@ class PublicForm
 		$retVal['original_name'] = $file['name'];
 
 		// ファイル名を予測が難しいものにする
-		$name = wp_unique_filename( DASHI_TMP_UPLOAD_DIR, $file['name']);
+		$name = wp_unique_filename(DASHI_TMP_UPLOAD_DIR, bin2hex(random_bytes(16)) . $ext);
 
 		$retVal['name'] = $name;
 		$upload_path = DASHI_TMP_UPLOAD_DIR.$name;
@@ -476,29 +472,50 @@ class PublicForm
 		return sanitize_file_name(wp_basename($value));
 	}
 
-	private static function buildSessionSignedUrls($form)
-	{
-		$all = Session::show('dashi_public_form');
-		if (!is_array($all) || !isset($all[$form]) || !is_array($all[$form]))
-		{
-			return array();
-		}
+    private static function buildSessionSignedUrls($form)
+    {
+        $urls = [];
+        foreach ((array) Session::show('dashi_public_form', $form) as $field => $item) {
+            $upload = PublicUploadStore::resolve($form, $field, $item);
+            if ($upload) $urls[$field] = self::signedUploadUrl($upload['name']);
+        }
+        return $urls;
+    }
 
-		$urls = array();
-		foreach ($all[$form] as $field => $item)
-		{
-			if (is_array($item) && !empty($item['name']))
-			{
-				$url = static::signedUploadUrl($item['name']);
-				if ($url)
-				{
-					$urls[$field] = $url;
-				}
-			}
-		}
+    private static function sessionFiles($form)
+    {
+        $files = [];
+        foreach ((array) Session::show('dashi_public_form', $form) as $field => $item) {
+            $upload = PublicUploadStore::resolve($form, $field, $item);
+            if ($upload) $files[$field] = array_intersect_key($upload, array_flip(['upload_id', 'name', 'original_name', 'type']));
+        }
+        return [$form => $files];
+    }
 
-		return $urls;
-	}
+    /** POST値の型を保持する。表示時に用途別のエスケープを行う。 */
+    private static function postValue($key)
+    {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 呼び出し側でnonceと用途別の型・所有者を検証する。
+        return isset($_POST[$key]) ? wp_unslash($_POST[$key]) : null;
+    }
+
+    private static function normalizeFileValues($class, $form, $vals)
+    {
+        foreach ($class::getFlatCustomFields() as $field => $attrs) {
+            if (($attrs['type'] ?? '') !== 'file' || !empty($attrs['private_form_only'])) continue;
+            $value = $vals->$field ?? null;
+            if ($value === null || $value === '' || $value === []) {
+                $vals->$field = [];
+                continue;
+            }
+            $upload = PublicUploadStore::resolve($form, $field, $value);
+            $vals->$field = $upload ?: [
+                'dashi_uploaded_file' => true,
+                'errors' => [__('The uploaded file is no longer available. Please upload it again.', 'dashi')],
+            ];
+        }
+        return $vals;
+    }
 
 	/**
 	 * setValue
@@ -528,9 +545,9 @@ class PublicForm
 				continue;
 			}
 
-			$filter_input = filter_input(INPUT_POST, $k);
+			$filter_input = self::postValue($k);
 
-			if ($req_method == 'POST' && ! filter_input(INPUT_POST, "dashi_public_form_do_final"))
+			if ($req_method == 'POST' && self::postValue('dashi_public_form_do_final') !== '1')
 			{
 				$vals->$k = $filter_input;
 			}
@@ -538,10 +555,10 @@ class PublicForm
 			// 配列の場合
 			if (
 				! $filter_input && $req_method == 'POST' &&
-				! filter_input(INPUT_POST, "dashi_public_form_do_final")
+				self::postValue('dashi_public_form_do_final') !== '1'
 			)
 			{
-				$vals->$k = filter_input(INPUT_POST, $k, FILTER_DEFAULT ,FILTER_REQUIRE_ARRAY);
+				$vals->$k = self::postValue($k);
 			}
 
 			// ファイルの場合
@@ -557,6 +574,7 @@ class PublicForm
 				}
 		}
 
+        $vals = self::normalizeFileValues($class, $form, $vals);
 		// set back to session
 		Session::set('dashi_public_form', $form, $vals);
 
@@ -582,7 +600,7 @@ class PublicForm
 			foreach ($fields[$k]['filters'] as $filter)
 			{
 				$filter = strtolower($filter);
-				$vals->$k = \Dashi\Core\Filter::$filter($v);
+				$vals->$k = \Dashi\Core\Filter::$filter($vals->$k);
 			}
 		}
 
@@ -639,9 +657,9 @@ class PublicForm
 		foreach ($vals as $k => $v)
 		{
 			if ($k == 'post_type') continue;
-			if ( ! isset($v['dashi_uploaded_file'])) continue;
+			if (!is_array($v) || !isset($v['dashi_uploaded_file'])) continue;
 			if ( empty($v['errors'])) continue;
-			if ($errors[$k])
+			if (!empty($errors[$k]))
 			{
 				$errors[$k] = array_merge($errors[$k], $v['errors']);
 			}
@@ -829,7 +847,7 @@ class PublicForm
 					'dashi_js_pubic_uploader',
 					plugins_url('assets/js/public_uploader.js', DASHI_FILE),
 					array(),
-					defined('DASHI_VERSION') ? DASHI_VERSION : false,
+					(string) filemtime(DASHI_DIR . '/assets/js/public_uploader.js'),
 					true
 				);
 					wp_localize_script('dashi_js_pubic_uploader', 'DashiUpload', array(
@@ -841,7 +859,7 @@ class PublicForm
 					'upload_nonce' => wp_create_nonce('dashi_public_uploader'),
 					'max_upload_size' => wp_max_upload_size(),
 					'form'         => $form,
-					'session'      => Session::show('dashi_public_form') ?: array(),
+					'session'      => self::sessionFiles($form),
 				));
 			}
 
@@ -871,12 +889,8 @@ class PublicForm
 			'error'    => isset($file_raw['error']) ? absint($file_raw['error']) : UPLOAD_ERR_NO_FILE,
 			'size'     => isset($file_raw['size']) ? absint($file_raw['size']) : 0,
 		);
-		$form = filter_input(INPUT_POST, 'form', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-		if (!is_string($form) && isset($_POST['form']))
-		{
-			$form = sanitize_text_field(wp_unslash((string) $_POST['form']));
-		}
-		$form = is_string($form) ? sanitize_key($form) : '';
+        $form = self::postValue('form');
+        $form = is_string($form) ? sanitize_key($form) : '';
 
 		$class = \Dashi\Core\Posttype\Posttype::posttype2class($form);
 
@@ -885,7 +899,16 @@ class PublicForm
 			wp_send_json_error(array('message' => 'invalid request'), 400);
 		}
 
-		$result = static::handleUpload($class, $file);
+        $field = self::postValue('field');
+        $fields = $class::getFlatCustomFields();
+        if (!is_string($field) || !isset($fields[$field]) || ($fields[$field]['type'] ?? '') !== 'file'
+            || !empty($fields[$field]['private_form_only'])) {
+            wp_send_json_error(['message' => 'invalid field'], 400);
+        }
+        $result = static::handleUpload($class, $file);
+        if (empty($result['errors']) && !empty($result['name'])) {
+            $result = PublicUploadStore::register($form, $field, $result);
+        }
 		if (isset($result['errors']) && is_array($result['errors']) && !empty($result['errors']))
 		{
 			wp_send_json_error($result, 400);
@@ -912,6 +935,7 @@ class PublicForm
 		global $post;
 
 		$html = '';
+        $vals = self::normalizeFileValues($class, P::class2posttype($class), $vals);
 		$html.= '<dl class="dashi_public_form_confirm">';
 		foreach (static::getFieldsInDisplayOrder($class::get('custom_fields')) as $k => $v)
 		{
@@ -934,10 +958,15 @@ class PublicForm
 						$html.= '<iframe title="Google Map" style="width:100%;min-height:200px;" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.co.jp/maps/place?q='.esc_html($vals->{$k}['lat']).','.esc_html($vals->{$k}['lng']).'&output=embed&t=m&z='.intval($vals->{$k}['zoom']).'"></iframe>';
 					}
 					// ファイルの場合（画像のみプレビュー、それ以外はリンク）
-					elseif (isset($vals->{$k}['dashi_uploaded_file']))
+					elseif (($v['type'] ?? '') === 'file' && isset($vals->{$k}['dashi_uploaded_file']))
 					{
 						$file_name = isset($vals->{$k}['name']) ? (string) $vals->{$k}['name'] : '';
-						$signed_url = static::signedUploadUrl($file_name);
+						$signed_url = $file_name !== '' ? static::signedUploadUrl($file_name) : '';
+                        if ($signed_url === '') {
+                            $html .= esc_html__('Please upload the file again.', 'dashi');
+                            $html .= '</dd>';
+                            continue;
+                        }
 						$wp_filetype = wp_check_filetype($file_name);
 						$is_image = !empty($wp_filetype['type']) && strpos($wp_filetype['type'], 'image/') === 0;
 
@@ -1108,7 +1137,9 @@ class PublicForm
 			($allow_post_by_public_form && $post_id)
 		)
 		{
-//			Session::remove('dashi_public_form', $form);
+            PublicUploadStore::discardForm($post_type);
+            Session::remove('dashi_public_form_confirmed', $post_type);
+            Session::remove('dashi_public_form', $post_type);
 		}
 
 		// 終了画面
@@ -1133,9 +1164,19 @@ class PublicForm
 	{
 		$new = (object) array();
 
-		$fields = $class::getFlatCustomFields();
+        $fields = $class::getFlatCustomFields();
+        $form = P::class2posttype($class);
+        $uploads = [];
+        foreach ($fields as $field => $attrs) {
+            if (($attrs['type'] ?? '') !== 'file' || !empty($attrs['private_form_only'])) continue;
+            $value = $vals->$field ?? null;
+            if ($value === null || $value === '' || $value === []) continue;
+            $upload = PublicUploadStore::resolve($form, $field, $value);
+            if (!$upload) return false;
+            $uploads[$field] = $upload;
+        }
 
-		$post_title_field = $class::get('public_form_post_title_field');
+        $post_title_field = $class::get('public_form_post_title_field');
 		$new->post_title = isset($vals->$post_title_field) ?
 								$vals->$post_title_field :
 								'';
@@ -1146,7 +1187,7 @@ class PublicForm
 								'';
 
 		$new->post_status = 'pending';
-		$new->post_type = $vals->post_type;
+		$new->post_type = $form;
 
 		$post_id = wp_insert_post($new);
 
@@ -1164,13 +1205,16 @@ class PublicForm
 			}
 
 			// custom_fields
-			Save::_updateCustomFields($post_id, (array) $vals);
+            $save_values = (array) $vals;
+            foreach ($uploads as $field => $upload) $save_values[$field] = self::uploadUrl() . $upload['name'];
+			Save::_updateCustomFields($post_id, $save_values);
 			add_post_meta($post_id, '_dashi_pubic_form_pending', true);
 
+            PublicUploadStore::claim($post_id, $uploads);
 			// file path
-			foreach ($vals as $k => $v)
+			foreach ($uploads as $k => $v)
 			{
-				if ( ! isset($v['dashi_uploaded_file'])) continue;
+				if (!is_array($v) || !isset($v['dashi_uploaded_file'])) continue;
 				update_post_meta($post_id, $k, static::uploadUrl().$v['name']);
 			}
 		}
@@ -1290,7 +1334,7 @@ class PublicForm
 
 	private static function isPublicFormNonceValid()
 	{
-		$wpnonce = filter_input(INPUT_POST, '_wpnonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		$wpnonce = self::postValue('_wpnonce');
 		if (!is_string($wpnonce) && isset($_POST['_wpnonce']))
 		{
 			$wpnonce = sanitize_text_field(wp_unslash((string) $_POST['_wpnonce']));
@@ -1360,7 +1404,7 @@ class PublicForm
 		$client_mail = isset($vals->$client_mail_field) ? $vals->$client_mail_field : '';
 
 		// body
-		$admin_mail = self::body($class, $vals, true);
+		$admin_mail = self::body($class, $vals, true, (int) $post_id);
 		$edit_post_url = static::publicFormEditPostUrl($post_id);
 		if ($edit_post_url)
 		{
@@ -1411,7 +1455,7 @@ class PublicForm
 	 * @param bool $is_admin
 	 * @return  string
 	 */
-	public static function body($class, $vals, $is_admin = false)
+	public static function body($class, $vals, $is_admin = false, $post_id = 0)
 	{
 		// body
 		$fields = $class::getFlatCustomFields();
@@ -1457,13 +1501,17 @@ class PublicForm
 					$body.= esc_html($v['place'])."\n\n".$tmp."\n\n";
 					$csv[] = esc_html($v['place'])." ".$tmp;
 				}
-				else if (isset($v['dashi_uploaded_file']))
+				else if (($field['type'] ?? '') === 'file' && isset($v['dashi_uploaded_file']))
 				{
 					if ($is_admin)
 					{
-						$signed_upload_url = static::signedUploadUrl($v['name']);
+						$upload = PublicUploadStore::resolve(P::class2posttype($class), $k, $v, $post_id);
+                        if (!$upload && $post_id && is_string($v['name'] ?? null)) {
+                            $upload = PublicUploadStore::forPost($post_id, P::class2posttype($class), $k, $v['name']);
+                        }
+                        $signed_upload_url = $upload ? static::signedUploadUrl($upload['name']) : '';
 						$csv[] = esc_html($signed_upload_url);
-						$csv[] = isset($v['exif']) ? $v['exif'] : '' ;
+						$csv[] = isset($upload['exif']) ? $upload['exif'] : '' ;
 						$body.= esc_html($signed_upload_url)."\n\n";
 					}
 					else
@@ -1550,67 +1598,80 @@ class PublicForm
 	 * @param  Object  $post
 	 * @return Void
 	 */
-	public static function pendingToPublish($post)
-	{
-		if ( ! get_post_meta($post->ID, '_dashi_pubic_form_pending')) return;
-		add_post_meta($post->ID, '_dashi_pubic_form_pending_process', 1);
+    public static function pendingToPublish($post)
+    {
+        if (!get_post_meta($post->ID, '_dashi_pubic_form_pending', true)) return;
+        $class = P::posttype2class($post->post_type);
+        if (!$class) return;
+        $uploads = get_post_meta($post->ID, PublicUploadStore::POST_META, true);
+        $uploads = is_array($uploads) ? $uploads : [];
+        $failed = false;
+        $has_thumbnail = false;
 
-		// 画像をメディアディレクトリに移動する
-		$class = \Dashi\Core\Posttype\Posttype::posttype2class($post->post_type);
+        foreach ($class::getFlatCustomFields() as $field => $attrs) {
+            if (($attrs['type'] ?? '') !== 'file' || empty($post->$field)) continue;
+            if (isset($uploads[$field]['final_url']) && $post->$field === $uploads[$field]['final_url']) continue;
+            $filename = self::extractUploadedFilename($post->$field);
+            $upload = PublicUploadStore::forPost($post->ID, $post->post_type, $field, $filename);
+            // 旧形式や手入力のファイル名を、受領済みのファイルとして復活させない。
+            if (!$upload) {
+                $failed = true;
+                continue;
+            }
+            $copy = PublicUploadStore::copyToFinal($filename, self::uploadDir());
+            if (is_wp_error($copy)) {
+                $failed = true;
+                continue;
+            }
+            $dirs = wp_upload_dir();
+            $url = dirname($dirs['url']) . '/files/' . $copy['name'];
+            $type = wp_check_filetype($copy['name']);
+            $attachment = [
+                'guid' => $url,
+                'post_mime_type' => $type['type'],
+                'post_title' => pathinfo($upload['original_name'] ?? $copy['name'], PATHINFO_FILENAME),
+                'post_content' => '',
+                'post_status' => 'inherit',
+            ];
+            $attachment_id = wp_insert_attachment($attachment, $copy['path'], $post->ID, true);
+            if (is_wp_error($attachment_id) || !$attachment_id) {
+                wp_delete_file($copy['path']);
+                $failed = true;
+                continue;
+            }
+            if (!function_exists('wp_generate_attachment_metadata')) require_once ABSPATH . 'wp-admin/includes/image.php';
+            $metadata = wp_generate_attachment_metadata($attachment_id, $copy['path']);
+            wp_update_attachment_metadata($attachment_id, $metadata);
+            update_post_meta($post->ID, $field, $url);
+            $uploads[$field]['final_url'] = $url;
+            update_post_meta($post->ID, PublicUploadStore::POST_META, $uploads);
+            if (!$has_thumbnail) {
+                update_post_meta($post->ID, '_thumbnail_id', $attachment_id);
+                $has_thumbnail = true;
+            }
+            // 保存フックで古い一時URLを上書きされないよう、既存の引継ぎを維持する。
+            update_post_meta($post->ID, '_dashi_pubic_form_pending_process', 1);
+            wp_delete_file($copy['source']);
+        }
+        if ($failed) {
+            update_post_meta($post->ID, '_dashi_public_upload_error', 1);
+        } else {
+            delete_post_meta($post->ID, '_dashi_public_upload_error');
+            delete_post_meta($post->ID, '_dashi_pubic_form_pending');
+            delete_post_meta($post->ID, PublicUploadStore::POST_META);
+        }
+    }
 
-		foreach ($class::getFlatCustomFields() as $k => $v)
-		{
-			if ( ! isset($v['type'])) continue;
-			if ($v['type'] != 'file') continue;
-			if ( ! isset($post->$k) || empty($post->$k)) continue;
-			$eyecatched = false;
-
-			// ファイル名
-			$file = static::extractUploadedFilename($post->$k);
-
-			// 年単位のディレクトリに保管する
-			$upload_dirs = wp_upload_dir();
-			$upload_path = self::uploadDir();
-
-			// 元のファイルの位置
-			$tmp_path = DASHI_TMP_UPLOAD_DIR.$file;
-
-			if ( ! file_exists($tmp_path)) continue;
-
-			// 移動
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- 同一ホスト内の一時領域から確定領域へ原子的に移動する。
-				rename($tmp_path, $upload_path.$file);
-
-			// あたらしいURL
-			$newurl = dirname($upload_dirs['url']).'/files/'.$file;
-
-			// ファイルの登録
-			$wp_filetype = wp_check_filetype($upload_path.$file, null);
-			$attachment = array(
-				'guid'  => $newurl,
-				'post_mime_type' => $wp_filetype['type'],
-				'post_title' => preg_replace('/\.[^.]+$/', '', $file),
-				'post_content' => '',
-				'post_status' => 'inherit'
-			);
-			$attach_id = wp_insert_attachment($attachment, $upload_path.$file, $post->ID);
-
-			// メディアライブラリの画像サムネイルを生成する
-			$attach_data = wp_generate_attachment_metadata($attach_id, $upload_path.$file);
-			wp_update_attachment_metadata($attach_id,  $attach_data);
-
-			if ( ! $eyecatched)
-			{
-				update_post_meta($post->ID, '_thumbnail_id', $attach_id);
-			}
-
-			// update post meta
-			update_post_meta($post->ID, $k ,$newurl);
-		}
-
-		// 正常に処理が終わったっら削除
-		delete_post_meta($post->ID, '_dashi_pubic_form_pending');
-	}
+    /** 所有者を確認できない旧アップロード等は、自動移動せず編集者へ知らせる。 */
+    public static function uploadNotice()
+    {
+        $id = Input::get('post');
+        if (!is_scalar($id) || !ctype_digit((string) $id) || !current_user_can('edit_post', (int) $id)) return;
+        if (!get_post_meta((int) $id, '_dashi_public_upload_error', true)) return;
+        echo '<div class="notice notice-error"><p>'
+            . esc_html__('An uploaded file could not be verified or stored. Check the attachment and upload it again before publishing.', 'dashi')
+            . '</p></div>';
+    }
 
 	/**
 	 * createUploadDir

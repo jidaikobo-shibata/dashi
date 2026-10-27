@@ -56,7 +56,7 @@ class Session
 
 		$_SESSION = array();
 		$session_name = static::getSessionName();
-		if (Input::cookie($session_name))
+		if (!headers_sent() && Input::cookie($session_name))
 		{
 			setcookie($session_name, '', time()-42000, '/');
 		}

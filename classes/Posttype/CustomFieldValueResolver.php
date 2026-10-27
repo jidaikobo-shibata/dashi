@@ -74,15 +74,10 @@ class CustomFieldValueResolver
 	        if (preg_match("/\[(\d*?)\]/", $key, $ms))
 	        {
 	            $meta_key = preg_replace("/\[\d*?\]/", '', $key);
-	            $copy_original_id = filter_input(INPUT_GET, 'dashi_copy_original_id', FILTER_VALIDATE_INT);
-	            $copy_nonce = filter_input(INPUT_GET, '_dashi_copy_nonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-	            if (
-	                $copy_original_id &&
-	                is_string($copy_nonce) &&
-	                wp_verify_nonce(sanitize_text_field(wp_unslash($copy_nonce)), 'dashi_copy_post')
-	            ) {
-	                $tmps = get_post_meta($copy_original_id, $meta_key, false);
-	            }
+            $original = Copy::requestedOriginal(isset($object->post_type) ? $object->post_type : '');
+            if ($original) {
+                $tmps = get_post_meta($original->ID, $meta_key, false);
+            }
 	            elseif (is_object($object) && isset($object->ID))
 	            {
                 $tmps = get_post_meta($object->ID, $meta_key, false);

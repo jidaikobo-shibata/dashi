@@ -307,7 +307,7 @@ class Save
 				self::aplyValidation($attrs, $val, $is_dupped, $label, $e);
 
 				// filters
-				self::applyFilter($attrs, $val, $is_dupped);
+				$val = self::applyFilter($attrs, $val, $is_dupped);
 
 				// add error - require
 				self::addError($attrs, $val, $e, $label);
@@ -436,7 +436,7 @@ class Save
 	 * @param  array $attrs
 	 * @param  mixed $val
 	 * @param  bool $is_dupped
-	 * @return Void
+	 * @return mixed
 	 */
 	private static function applyFilter($attrs, $val, $is_dupped)
 	{
@@ -461,6 +461,7 @@ class Save
 				}
 			}
 		}
+		return $val;
 	}
 
 	/**

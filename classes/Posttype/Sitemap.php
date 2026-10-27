@@ -148,7 +148,10 @@ class Sitemap
 	public static function shortcode ($params)
 	{
 		$items = static::generate();
-		$h = isset($params['h']) ? $params['h'] : 'h2';
+		$h = isset($params['h']) && is_string($params['h']) ? strtolower($params['h']) : 'h2';
+		if (!in_array($h, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true)) {
+			$h = 'h2';
+		}
 
 		$html = '';
 		foreach ($items as $posttype => $item)

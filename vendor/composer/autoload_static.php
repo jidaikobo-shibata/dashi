@@ -7,14 +7,14 @@ namespace Composer\Autoload;
 class ComposerStaticInit09cca36ce09a8fb0dbb6c6e9ad6e43ac
 {
     public static $prefixLengthsPsr4 = array (
-        'D' => 
+        'D' =>
         array (
             'Dashi\\Core\\' => 11,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'Dashi\\Core\\' => 
+        'Dashi\\Core\\' =>
         array (
             0 => __DIR__ . '/../..' . '/classes',
         ),
@@ -65,6 +65,7 @@ class ComposerStaticInit09cca36ce09a8fb0dbb6c6e9ad6e43ac
         'Dashi\\Core\\Posttype\\PosttypeVirtualRegistry' => __DIR__ . '/../..' . '/classes/Posttype/PosttypeVirtualRegistry.php',
         'Dashi\\Core\\Posttype\\Preview' => __DIR__ . '/../..' . '/classes/Posttype/Preview.php',
         'Dashi\\Core\\Posttype\\PublicForm' => __DIR__ . '/../..' . '/classes/Posttype/PublicForm.php',
+        'Dashi\\Core\\Posttype\\PublicUploadStore' => __DIR__ . '/../..' . '/classes/Posttype/PublicUploadStore.php',
         'Dashi\\Core\\Posttype\\Redirect' => __DIR__ . '/../..' . '/classes/Posttype/Redirect.php',
         'Dashi\\Core\\Posttype\\Revisions' => __DIR__ . '/../..' . '/classes/Posttype/Revisions.php',
         'Dashi\\Core\\Posttype\\Save' => __DIR__ . '/../..' . '/classes/Posttype/Save.php',

@@ -741,3 +741,19 @@ msgstr "保存"
 
 msgid "Help"
 msgstr "ヘルプ"
+
+# 公開フォームの受領確認と再送防止
+msgid "Invalid form request. Please reload the form."
+msgstr "フォームのリクエストが無効です。フォームを再読み込みしてください。"
+
+msgid "Please confirm the form before submitting."
+msgstr "入力内容を確認してから送信してください。"
+
+msgid "The uploaded file is no longer available. Please upload it again."
+msgstr "アップロードしたファイルを確認できません。もう一度アップロードしてください。"
+
+msgid "Please upload the file again."
+msgstr "ファイルをもう一度アップロードしてください。"
+
+msgid "An uploaded file could not be verified or stored. Check the attachment and upload it again before publishing."
+msgstr "アップロードしたファイルの確認または保存ができませんでした。添付ファイルを確認し、必要に応じてもう一度アップロードしてください。"

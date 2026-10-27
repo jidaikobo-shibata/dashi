@@ -5,187 +5,186 @@ if (!defined('ABSPATH')) exit;
 
 class Search
 {
-    private static $null_byte_deleted_s = '';
-
     /**
-     * Remove null bytes from string safely
-     *
-     * @param string $str
-     * @return string
+     * 元の入力を復活させず、現在のクエリで検証された検索語だけを使う。
      */
-    private static function removeNullBytes($str)
+    private static function nullBytelessS($query)
     {
-        return str_replace(["\0"], '', $str);
-    }
-
-    /**
-     * delete null byte form string
-     *
-     * @return string
-     */
-    private static function nullBytelessS()
-    {
-        if (static::$null_byte_deleted_s !== '') return static::$null_byte_deleted_s;
-
-        global $wp_query;
-
-        if (isset($wp_query->query['s'])) {
-            $cleaned = static::removeNullBytes($wp_query->query['s']);
-            $wp_query->query['s'] = $cleaned; // sanitize in place
-            static::$null_byte_deleted_s = $cleaned;
+        $term = $query->get('s');
+        if (!is_string($term) || strlen($term) > 1600) {
+            return '';
         }
-
-        return static::$null_byte_deleted_s;
+        return str_replace("\0", '', $term);
     }
 
     /**
-     * posts_request Hook
-     * Note: for cosmetic reasons only. Prevents visual artifact of null byte in search box.
-     * @return string
+     * 表示用の検索語からヌル文字を除く。SQL全体や元の入力は変更しない。
      */
     public static function postsRequest($sql, $wp_query)
     {
-        global $wp_query;
-
-        // delete null-byte string from preset input field text
-        if (isset($wp_query->query_vars['s']))
-        {
-            $wp_query->query_vars['s'] = static::removeNullBytes($wp_query->query_vars['s']);
+        $term = $wp_query->get('s');
+        if (is_string($term)) {
+            $wp_query->set('s', str_replace("\0", '', $term));
         }
-
-        $nullBytelessS = static::nullBytelessS();
-        if ($nullBytelessS)
-        {
-            return static::removeNullBytes($sql);
-        }
-
-        if (empty($nullBytelessS) && $wp_query->is_search)
-        {
-            return '';
-        }
-
         return $sql;
     }
 
-    /**
-     * distinct
-     *
-     * @return string
-     */
     public static function searchDistinct($sql, $wp_query)
     {
-        if (!is_search() || !static::nullBytelessS()) {
-            return $sql;
-        }
-
-        // 正常に返す（WordPress expects string）
-        return 'DISTINCT';
-/*
-        global $wpdb;
-
-        // query_string exists
-        if (isset($wp_query->query['s'])) $wp_query->is_search = true;
-        if ( ! static::nullBytelessS()) return;
-        if ( ! $wp_query->is_search) return;
-
-        // modify sql
-        return $sql.'DISTINCT';
-*/
+        // EXISTSによる検索なので、重複排除の追加は不要。
+        return $sql;
     }
 
-    /**
-     * join
-     *
-     * @return string
-     */
     public static function searchJoin($join, $wp_query)
     {
-        global $wpdb;
-
-        // 管理画面では無効
-        if (is_admin()) return $join;
-
-        // 検索クエリが空なら追加しない
-        $search_term = static::nullBytelessS();
-        if (empty($search_term) || !$wp_query->is_search) {
-            return $join;
-        }
-
-        // すでにJOINしていたら再JOINを避けたい（簡易チェック）
-        if (strpos($join, 'post_metas') !== false) {
-            return $join;
-        }
-
-        // JOIN句を追加
-        $join .= " LEFT JOIN {$wpdb->postmeta} AS post_metas ON ";
-        $join .= "({$wpdb->posts}.ID = post_metas.post_id)";
+        // メタ条件は相関サブクエリに閉じ込め、投稿行を増やさない。
         return $join;
-
-/*
-        global $wp_query, $wpdb;
-
-        if (is_admin()) return $join;
-
-        // query_string exists
-        if (isset($wp_query->query['s'])) $wp_query->is_search = true;
-        if ( ! static::nullBytelessS()) return $join;
-        if ( ! isset($wp_query->is_search) || ! $wp_query->is_search) return $join;
-        if ( ! isset($obj->query['s'])) return $join;
-
-        $join .= " LEFT OUTER JOIN {$wpdb->postmeta} AS post_metas ON ({$wpdb->posts}.ID = post_metas.post_id)";
-        return $join;
-*/
     }
 
     /**
-     * add fields
-     *
-     * @return string
+     * 検索語ごとに本文とメタを検索し、権限に関わる条件はORの外に置く。
      */
     public static function searchFields($search, $wp_query)
     {
         global $wpdb;
 
-        // 無効条件
-        $search_term = static::nullBytelessS();
-        if (empty($search_term) || !$wp_query->is_search) {
+        $term = static::nullBytelessS($wp_query);
+        $terms = $wp_query->get('search_terms');
+        if (is_admin() || !$wp_query->is_search() || $term === '' || $search === ''
+            || !is_array($terms) || !$terms) {
             return $search;
         }
 
-        // 追加条件を組み立て
-        $meta_search = $wpdb->prepare(
-            " OR (post_metas.meta_key = %s AND post_metas.meta_value LIKE %s)",
-            'dashi_search',
-            '%' . $search_term . '%'
-        );
-
-        // 既存の WHERE に追加（やや安全な方法）
-        if (preg_match('/\(\(\((.+?)\)\)\)/s', $search, $matches)) {
-            // 複雑な構造の中に追加したい場合
-            $search = str_replace($matches[0], '((' . $matches[1] . $meta_search . '))', $search);
-        } else {
-            // 通常の構造に単純追加
-            $search .= $meta_search;
+        $ranges = static::searchTermRanges($search);
+        if (count($ranges) !== count($terms)) {
+            return $search;
         }
 
+        $wildcard = $wp_query->get('exact') ? '' : '%';
+        $replacements = [];
+        foreach (array_values($terms) as $index => $word) {
+            if (!is_string($word) || str_replace("\0", '', $word) === '') {
+                return $search;
+            }
+            [$offset, $length] = $ranges[$index];
+            $original = substr($search, $offset, $length);
+            $exclude = null;
+
+            // コアが生成するカラム比較だけの構造を照合する。
+            // protectedプロパティやフィルターの再実行には依存しない。
+            foreach ([false, true] as $negative) {
+                $core_word = $negative ? substr($word, 1) : $word;
+                $core_like = $wildcard . $wpdb->esc_like($core_word) . $wildcard;
+                $operator = $negative ? 'NOT LIKE' : 'LIKE';
+                $comparisons = [];
+                foreach (['post_title', 'post_excerpt', 'post_content'] as $column) {
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 固定カラム名と固定演算子のみ。
+                    $comparison = $wpdb->prepare("({$wpdb->posts}.{$column} {$operator} %s)", $core_like);
+                    $comparisons[] = preg_quote($comparison, '~');
+                }
+                // 本体にファイル名検索がある場合は、その条件もそのまま保持する。
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 演算子はLIKEまたはNOT LIKEのみ。
+                $comparison = $wpdb->prepare("(sq1.meta_value {$operator} %s)", $core_like);
+                $comparisons[] = preg_quote($comparison, '~');
+                $comparison_pattern = '(?:' . implode('|', $comparisons) . ')';
+                $separator = $negative ? ' AND ' : ' OR ';
+                $pattern = '~\A\(' . $comparison_pattern
+                    . '(?:' . $separator . $comparison_pattern . ')*\)\z~s';
+                if (preg_match($pattern, $original) === 1) {
+                    $exclude = $negative;
+                    break;
+                }
+            }
+            if ($exclude === null) {
+                // 未知の構造は拡張しない。既存の制限を破棄・移動しない。
+                return $search;
+            }
+
+            $word = str_replace("\0", '', $exclude ? substr($word, 1) : $word);
+            $like = $wildcard . $wpdb->esc_like($word) . $wildcard;
+            $exists = $exclude ? 'NOT EXISTS' : 'EXISTS';
+            $meta = $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- EXISTSまたはNOT EXISTSの固定文字列のみ。
+                "{$exists} (SELECT 1 FROM {$wpdb->postmeta} AS dashi_search_meta"
+                . " WHERE dashi_search_meta.post_id = {$wpdb->posts}.ID"
+                . ' AND dashi_search_meta.meta_key = %s AND dashi_search_meta.meta_value LIKE %s)',
+                'dashi_search',
+                $like
+            );
+            $replacements[] = [
+                $offset,
+                $length,
+                '(' . $original . ($exclude ? ' AND ' : ' OR ') . $meta . ')',
+            ];
+        }
+
+        // オフセットがずれないよう後ろから置換。外側の保護条件は変更しない。
+        foreach (array_reverse($replacements) as [$offset, $length, $replacement]) {
+            $search = substr_replace($search, $replacement, $offset, $length);
+        }
         return $search;
+    }
 
-/*
-        global $wpdb;
+    /**
+     * コア検索句「AND (語句 AND 語句 ...)」内の語句の位置だけを取得する。
+     * SQL文字列・識別子内の括弧は数えず、想定外の構造は受け付けない。
+     *
+     * @return array<int, array{int, int}>
+     */
+    private static function searchTermRanges($search)
+    {
+        if (!preg_match('/\A\s*AND\s*\(/i', $search, $opening)) {
+            return [];
+        }
+        $start = strlen($opening[0]);
+        $depth = 1;
+        $quote = null;
+        $ranges = [];
+        $group_start = null;
+        $previous_end = $start;
+        $size = strlen($search);
 
-        // query_string exists
-        if (isset($wp_query->query['s'])) $wp_query->is_search = true;
-        if ( ! static::nullBytelessS()) return $search;
-        if ( ! $wp_query->is_search) return $search;
-
-        // modify sql
-        $sql = $wpdb->prepare(
-            ") OR (post_metas.meta_key = 'dashi_search' AND post_metas.meta_value LIKE %s",
-            '%'.static::nullBytelessS().'%');
-        $search = str_replace(')))', $sql.')))', $search);
-
-        return $search;
-*/
+        for ($i = $start; $i < $size; ++$i) {
+            $char = $search[$i];
+            if ($quote !== null) {
+                if ($char === '\\') {
+                    ++$i;
+                } elseif ($char === $quote) {
+                    if ($i + 1 < $size && $search[$i + 1] === $quote) {
+                        ++$i;
+                    } else {
+                        $quote = null;
+                    }
+                }
+                continue;
+            }
+            if ($char === "'" || $char === '"' || $char === '`') {
+                if ($depth < 2) {
+                    return [];
+                }
+                $quote = $char;
+            } elseif ($char === '(') {
+                if ($depth === 1) {
+                    $gap = substr($search, $previous_end, $i - $previous_end);
+                    $expected = $ranges ? '/\A\s+AND\s+\z/i' : '/\A\s*\z/';
+                    if (!preg_match($expected, $gap)) {
+                        return [];
+                    }
+                    $group_start = $i;
+                }
+                ++$depth;
+            } elseif ($char === ')') {
+                --$depth;
+                if ($depth === 1 && $group_start !== null) {
+                    $ranges[] = [$group_start, $i - $group_start + 1];
+                    $previous_end = $i + 1;
+                    $group_start = null;
+                } elseif ($depth === 0) {
+                    return trim(substr($search, $previous_end, $i - $previous_end)) === '' ? $ranges : [];
+                }
+            }
+        }
+        return [];
     }
 
     /**
@@ -195,7 +194,7 @@ class Search
      */
     public static function searchExclude($search, $wp_query)
     {
-        if (!is_search() || !static::nullBytelessS()) {
+        if (!$wp_query->is_search() || static::nullBytelessS($wp_query) === '') {
             return $search;
         }
 
@@ -221,20 +220,7 @@ class Search
 	        }
 
         return $search;
-/*
-        // query_string exists
-        if (isset($wp_query->query['s'])) $wp_query->is_search = true;
-        if ( ! static::nullBytelessS()) return $search;
-        if ( ! $wp_query->is_search) return $search;
 
-        foreach (Posttype::instances() as $class)
-        {
-            if ($class::get('is_searchable')) continue;
-            $post_type = $class::get('post_type');
-            $search = str_replace(", '{$post_type}'", '', $search);
-        }
-        return $search;
-*/
     }
 
     /**
@@ -244,7 +230,7 @@ class Search
      */
     public static function searchOrderby($orderby, $wp_query)
     {
-        if (!is_search() || !static::nullBytelessS()) {
+        if (!$wp_query->is_search() || static::nullBytelessS($wp_query) === '') {
             return $orderby;
         }
 

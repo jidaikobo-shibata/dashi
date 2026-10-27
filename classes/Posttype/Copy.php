@@ -8,6 +8,28 @@ class Copy
 	private const COPY_NONCE_ACTION = 'dashi_copy_post';
 	private const COPY_NONCE_NAME = '_dashi_copy_nonce';
 
+    public static function nonceAction($original_id)
+    {
+        return self::COPY_NONCE_ACTION . '_' . (int) $original_id;
+    }
+
+    /** コピーに関わるすべての読み取り経路で同じ認可を使う。 */
+    public static function requestedOriginal($target_type = '')
+    {
+        if (!function_exists('wp_get_current_user')) return null;
+        $id = Input::get('dashi_copy_original_id');
+        $nonce = Input::get(self::COPY_NONCE_NAME);
+        if (!is_scalar($id) || !ctype_digit((string) $id) || !is_string($nonce)) return null;
+        $id = (int) $id;
+        $original = get_post($id);
+        $target_type = $target_type ?: Input::get('post_type', 'post');
+        if (!$original || !is_string($target_type) || $original->post_type !== $target_type) return null;
+        $type = get_post_type_object($target_type);
+        if (!$type || !current_user_can($type->cap->create_posts) || !current_user_can('edit_post', $id)) return null;
+        if (!wp_verify_nonce($nonce, self::nonceAction($id))) return null;
+        return $original;
+    }
+
 	/**
 	 * forge
 	 *
@@ -64,7 +86,7 @@ class Copy
 	public static function adminHeadPostPhp ()
 	{
 		global $post;
-		if ( ! isset($post)) return;
+		if (!isset($post) || !current_user_can('edit_post', $post->ID)) return;
 
 		// コピーのリンク
 		$copy_url = wp_nonce_url(
@@ -75,7 +97,7 @@ class Copy
 				),
 				admin_url('post-new.php')
 			),
-			self::COPY_NONCE_ACTION,
+			self::nonceAction($post->ID),
 			self::COPY_NONCE_NAME
 		);
 		$link_html = sprintf(
@@ -99,7 +121,8 @@ jQuery(function($){
 	 */
 	public static function addEditCopy ($actions, $post)
 	{
-		if (current_user_can('edit_published_posts'))
+		if (current_user_can('edit_post', $post->ID)
+            && current_user_can(get_post_type_object($post->post_type)->cap->create_posts))
 		{
 			$tmps = array();
 
@@ -123,7 +146,7 @@ jQuery(function($){
 					),
 					admin_url('post-new.php')
 				),
-				self::COPY_NONCE_ACTION,
+				self::nonceAction($post->ID),
 				self::COPY_NONCE_NAME
 			);
 			$tmps['dashi_edit_Copy'] = sprintf(
@@ -180,18 +203,11 @@ jQuery(function($){
 	{
 		// タクソノミーはjavascriptなので、editFormAfterTitleで
 
-		// オリジナルを取得
-		if ( ! isset($_GET['dashi_copy_original_id'])) return;
-		if ( ! isset($_GET[self::COPY_NONCE_NAME])) return;
-		$nonce = sanitize_text_field(wp_unslash($_GET[self::COPY_NONCE_NAME]));
-		if (!wp_verify_nonce($nonce, self::COPY_NONCE_ACTION)) return;
+        global $post;
+        if (!isset($post->post_type)) return;
+        $original = self::requestedOriginal($post->post_type);
+        if (!$original) return;
 
-		$original_id = absint(wp_unslash($_GET['dashi_copy_original_id']));
-		if (!$original_id) return;
-		$original = get_post($original_id);
-		if (!$original) return;
-
-		global $post;
 		$post->post_title = self::modCopyTitle($original->post_title);
 		$post->post_content = $original->post_content;
 		$post->post_excerpt = $original->post_excerpt;
@@ -199,7 +215,7 @@ jQuery(function($){
 
 		// カスタムフィールド
 		$class = P::posttype2class($post->post_type);
-		foreach ($class::getCustomFieldsKeys() as $custom_field)
+		foreach ($class ? $class::getCustomFieldsKeys() : [] as $custom_field)
 		{
 			$post->$custom_field = $original->$custom_field;
 		}
@@ -228,23 +244,17 @@ jQuery(function($){
 	static public function editFormAfterTitle()
 	{
 		global $post;
-		$original_id = isset($_GET['dashi_copy_original_id']) ?
-								 absint(wp_unslash($_GET['dashi_copy_original_id'])) :
-								 0;
-		if ( ! $original_id) return;
-		if ( ! isset($_GET[self::COPY_NONCE_NAME])) return;
-		$nonce = sanitize_text_field(wp_unslash($_GET[self::COPY_NONCE_NAME]));
-		if (!wp_verify_nonce($nonce, self::COPY_NONCE_ACTION)) return;
-		echo '<input type="hidden" name="dashi_copy_original_id" value="'.intval($original_id).'" />';
-		wp_nonce_field(self::COPY_NONCE_ACTION, self::COPY_NONCE_NAME);
-
-		$original = get_post($original_id);
-		if (!$original) return;
+        if (!isset($post->post_type)) return;
+        $original = self::requestedOriginal($post->post_type);
+        if (!$original) return;
+        $original_id = $original->ID;
+        echo '<input type="hidden" name="dashi_copy_original_id" value="'.intval($original_id).'" />';
+        wp_nonce_field(self::nonceAction($original_id), self::COPY_NONCE_NAME);
 
 		// taxonomy
 		// 作成時のみ
 		$class = P::post2class($original);
-		if ($class && isset($_GET['dashi_copy_original_id']))
+		if ($class)
 		{
 			foreach ($class::get('taxonomies') as $taxonomy_name => $taxonomy)
 			{
@@ -291,7 +301,7 @@ jQuery(function($){
         if (is_null($dashi_original_id)) return $post_id;
 		if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return $post_id;
 		if ( ! $dashi_original_id || $pagenow != 'post.php') return $post_id;
-		if (is_null($nonce) || !wp_verify_nonce((string) $nonce, self::COPY_NONCE_ACTION)) return $post_id;
+		if (is_null($nonce) || !wp_verify_nonce((string) $nonce, self::nonceAction($dashi_original_id))) return $post_id;
 
 		if (!current_user_can('edit_post', $post_id)) {
 			return $post_id;
@@ -301,7 +311,8 @@ jQuery(function($){
 		$original = get_post($dashi_original_id);
 
 		// revisionの更新などが走るので、処理分け
-		if ($original->post_type != $copy->post_type) return $post_id;
+		if (!$original || !$copy || !current_user_can('edit_post', $original->ID)
+            || $original->post_type !== $copy->post_type) return $post_id;
 
 		// 公開日を差し替える
 		// $copy->post_date = $original->post_date;

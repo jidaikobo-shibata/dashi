@@ -382,7 +382,7 @@ class Field
     {
         $html = '';
         $name_attr = esc_attr($name);
-        $value_attr = esc_attr($value);
+        $value_attr = is_scalar($value) ? esc_attr($value) : '';
         $id_attr = isset($attrs['id']) ? esc_attr($attrs['id']) : '';
 
         if ($is_use_wp_uploader)

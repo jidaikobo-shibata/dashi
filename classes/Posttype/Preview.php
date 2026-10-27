@@ -205,12 +205,19 @@ class Preview
 	 */
 	static public function get_preview_id($post_id)
 	{
-		global $post;
-		$preview_id = 0;
-		if ($post->ID == $post_id && is_preview() && $preview = wp_get_post_autosave($post->ID))
-		{
-			$preview_id = $preview->ID;
-		}
-		return $preview_id;
-	}
+        global $post;
+        if (!is_preview() || !is_user_logged_in() || !isset($post->ID)
+            || (int) $post->ID !== (int) $post_id || !current_user_can('edit_post', $post_id)) {
+            return 0;
+        }
+        $requested_id = Input::get('preview_id');
+        $nonce = Input::get('preview_nonce');
+        if (!is_scalar($requested_id) || (int) $requested_id !== (int) $post_id
+            || !is_string($nonce) || !wp_verify_nonce($nonce, 'post_preview_' . (int) $post_id)) {
+            return 0;
+        }
+        // 他の編集者の自動保存をプレビューへ混ぜない。
+        $preview = wp_get_post_autosave($post_id, get_current_user_id());
+        return $preview ? (int) $preview->ID : 0;
+    }
 }
