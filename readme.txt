@@ -3,7 +3,7 @@ Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: custom field, custom post type
 Tested up to: 7.1
-Stable tag: 3.4.15
+Stable tag: 3.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.1
@@ -113,6 +113,15 @@ Dashi uses [Google Maps Platform](https://mapsplatform.google.com/) to display m
 1. Use the Settings -> Plugin Name screen to configure the plugin
 
 == Changelog ==
+
+= 3.5.0 =
+* Corrected the minimum PHP requirement to 7.1 to match the code.
+* Store unapproved public form attachments in the database and enforce upload limits, ownership, and expiration.
+* Tightened permissions for search, copying, previews, revisions, CSV export, and dashboard widgets.
+* Hardened scheduled replacements and made notification retries track completed deliveries.
+* Load date and time picker assets only where needed, and corrected time zone handling when saving date and time fields.
+* Added an option to use WordPress alternate cron spawning.
+* Upgrade note: a user with publishing and replacement permissions must reopen and save existing scheduled replacements to renew their approval before the scheduled publication date.
 
 = 3.4.15 =
 security: preserve visibility restrictions when extending search, including attachment filename searches
@@ -788,6 +797,9 @@ add mail form
 first commit.
 
 == Upgrade Notice ==
+
+= 3.5.0 =
+Requires PHP 7.1 or later. A user with publishing and replacement permissions must reopen and save existing scheduled replacements before their publication date. Review legacy pending attachments before updating.
 
 = 3.4.15 =
 Security update for search, previews, copying, sitemap output and public uploads. Review legacy pending attachments before updating. Files selected in existing forms may need to be uploaded again.
