@@ -46,7 +46,8 @@ class Preview
 
 		if (in_array($field_type, ['textarea', 'wysiwyg'], true))
 		{
-			return $value;
+			// リビジョンから復元されても、編集者に許可されたHTMLの範囲を守る。
+			return current_user_can('unfiltered_html') ? $value : wp_kses_post($value);
 		}
 
 		return sanitize_text_field($value);
@@ -123,7 +124,7 @@ class Preview
 
 		if (is_null($fields)) return $value;
 
-		if ( ! in_array($meta_key, $fields, true))
+		if ( ! in_array($meta_key, Revisions::storedFieldKeys($class, $fields), true))
 		{
 			return $value;
 		}
@@ -147,55 +148,45 @@ class Preview
 	 * @param int $post_id preview_id
 	 * @	return void
 	 */
-	static public function wpInsertPost ($post_id)
-	{
-		global $wpdb;
-		if (wp_is_post_revision($post_id))
-		{
-			// プレビューの既存値を削除
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- プレビュー用リビジョンのメタを明示削除。
-				$wpdb->query(
-					$wpdb->prepare(
-						"DELETE FROM {$wpdb->postmeta} WHERE post_id = %d",
-						$post_id
-					)
-				);
+    public static function wpInsertPost($post_id)
+    {
+        $parent_id = wp_is_post_revision($post_id);
+        if (!$parent_id || !is_admin() || !current_user_can('edit_post', $parent_id)) return;
 
-			// fieldの確保
-			$post = get_post($post_id);
-			$class = P::postid2class($post->post_parent);
-			if ( ! $class) return;
-			$fields = $class::getCustomFieldsKeys(true);
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 下で親投稿の保存nonceを検証し、各値は保存時に処理する。
+        $submitted = $_POST;
+        $id_key = 'post_ID';
+        if (wp_doing_ajax()) {
+            if (($submitted['action'] ?? '') !== 'heartbeat') return;
+            $submitted = $submitted['data']['wp_autosave'] ?? [];
+            if (!is_array($submitted)) return;
+            $id_key = 'post_id';
+        }
 
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- 既存互換のカスタムフック名。
-				$post_metas = apply_filters('preview_post_meta_keys', $fields);
+        $nonce = $submitted['_wpnonce'] ?? '';
+        if (filter_var($submitted[$id_key] ?? '', FILTER_VALIDATE_INT) !== (int) $parent_id
+            || !is_string($nonce) || !wp_verify_nonce($nonce, 'update-post_' . $parent_id)) return;
+        $class = P::postid2class($parent_id);
+        if (!$class) return;
 
-				foreach ($post_metas as $post_meta)
-				{
-					// phpcs:ignore WordPress.Security.NonceVerification.Missing -- post 編集系の保存導線で呼ばれる。
-					$post_val = filter_input(INPUT_POST, $post_meta, FILTER_DEFAULT, FILTER_REQUIRE_ARRAY);
-					// phpcs:ignore WordPress.Security.NonceVerification.Missing -- post 編集系の保存導線で呼ばれる。
-					$post_scalar = filter_input(INPUT_POST, $post_meta, FILTER_UNSAFE_RAW);
-					$vals = is_array($post_val) ? $post_val : $post_scalar;
-					if ($vals === null || $vals === false || $vals === '') continue;
-					$vals = self::sanitizePreviewMetaValue($post_meta, $vals, $class);
-					if (is_array($vals) && $post_meta != 'google_map')
-					{
-						foreach ($vals as $v)
-						{
-							add_metadata('post', $post_id, $post_meta, $v);
-						}
-					}
-					else
-					{
-						add_metadata('post', $post_id, $post_meta, $vals);
-					}
-			}
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- 既存互換のカスタムフック名。
-			do_action('save_preview_postmeta', $post_id);
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- 既存互換のカスタムフック名。
+        $keys = (array) apply_filters('preview_post_meta_keys', $class::getCustomFieldsKeys(true));
+        foreach (Revisions::storedFieldKeys($class, $keys) as $key) {
+            $value = $submitted[$key] ?? null;
+            if (!is_string($value) && !is_array($value)) continue;
 
-		}
-	}
+            // 実際に送信された対象フィールドだけを更新する。
+            delete_metadata('post', $post_id, $key);
+            if ($value === '') continue;
+            $value = self::sanitizePreviewMetaValue($key, $value, $class);
+            foreach (is_array($value) && $key !== 'google_map' ? $value : [$value] as $item) {
+                add_metadata('post', $post_id, $key, wp_slash($item));
+            }
+        }
+
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- 既存互換のカスタムフック名。
+        do_action('save_preview_postmeta', $post_id);
+    }
 
 	/**
 	 * get_preview_id

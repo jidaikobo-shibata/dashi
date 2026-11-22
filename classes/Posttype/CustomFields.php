@@ -5,6 +5,32 @@ if (!defined('ABSPATH')) exit;
 
 class CustomFields
 {
+	private static $resolvedAdminFields = [];
+	private static $searchBaseFields = [];
+
+	public static function rememberSearchBase($class)
+	{
+		$key = get_current_blog_id() . ':' . P::class2posttype($class);
+		self::$searchBaseFields[$key] = self::$searchBaseFields[$key] ?? $class::get('custom_fields');
+	}
+
+	public static function searchFieldsForSlug($class, $slug, $slugFields = null)
+	{
+		$type = P::class2posttype($class);
+		$fields = self::$searchBaseFields[get_current_blog_id() . ':' . $type] ?? $class::get('custom_fields');
+		$slugFields = $slugFields ?? Base::slugCustomFields($slug);
+		if ($slugFields === null) return null;
+		$fields = array_merge($fields, $slugFields);
+		return apply_filters('dashi_mod_custom_fields', [], $type, $fields) ?: $fields;
+	}
+
+	public static function resolvedSearchFields($class)
+	{
+		$fields = $class::get('custom_fields');
+		$postType = P::class2posttype($class);
+		if (isset(self::$resolvedAdminFields[$postType])) return $fields;
+		return apply_filters('dashi_mod_custom_fields', [], $postType, $fields) ?: $fields;
+	}
 	protected static $expected_keys = array();
 	protected static $custom_fields_flat = array(); // expose inner fields
 
@@ -80,6 +106,7 @@ class CustomFields
 
 			// カスタムフィールドは当該ポストタイプのときだけ設定すれば良い
 			if ($post_type != P::class2posttype($class)) continue;
+			self::rememberSearchBase($class);
 
 			// add redirect
 			if ($class::get('is_redirect') && $class !== 'Dashi\\Posttype\\Editablehelp')
@@ -120,17 +147,8 @@ class CustomFields
 				$arr = $class::set('custom_fields', $arr);
 			}
 
-			// dashi_mod_custom_fields hook
-			$mod_arr = apply_filters(
-				'dashi_mod_custom_fields',
-				array(),
-				P::class2posttype($class),
-				$class::get('custom_fields')
-			);
-			if ($mod_arr)
-			{
-				$class::set('custom_fields', $mod_arr);
-			}
+			$class::set('custom_fields', self::resolvedSearchFields($class));
+			self::$resolvedAdminFields[$post_type] = true;
 
 			// add custom fields
 			foreach ($class::get('custom_fields') as $key => $value)
@@ -272,7 +290,7 @@ class CustomFields
 					'dashi_js_referencer',
 					plugins_url('assets/js/referencer.js', DASHI_FILE),
 					array('jquery'),
-					'1.1',
+					(string) filemtime(DASHI_DIR . '/assets/js/referencer.js'),
 					true
 				);
 			wp_localize_script(
@@ -391,6 +409,13 @@ class CustomFields
                     );
                     $attrs = $rendered['attrs'];
                     $html = $rendered['html'];
+                    if ($value['args']['type'] === 'file') {
+                        $url = PublicForm::pendingAttachmentUrl($object, $tmpkey, $val);
+                        if ($url !== '') {
+                            $html .= '<p><a href="' . esc_url($url) . '">'
+                                . esc_html__('Download pending attachment', 'dashi') . '</a></p>';
+                        }
+                    }
 					break;
 
 				default:
@@ -764,33 +789,43 @@ class CustomFields
 			wp_send_json_error(array('message' => 'forbidden'), 403);
 		}
 
-		$args = array('posts_per_page' => 20);
+        $post_type = \Dashi\Core\Input::post('post_type', 'post');
+        $post_type = $post_type === '' ? 'post' : $post_type;
+        $allowed = array_map([Posttype::class, 'class2posttype'], Posttype::instances());
+        if (!is_string($post_type) || ($post_type !== 'post' && !in_array($post_type, $allowed, true))
+            || !get_post_type_object($post_type)) {
+            wp_send_json_error(['message' => 'invalid post_type'], 400);
+        }
 
-		$allowed_post_types = array();
-		foreach (\Dashi\Core\Posttype\Posttype::instances() as $class)
-		{
-			$allowed_post_types[] = \Dashi\Core\Posttype\Posttype::class2posttype($class);
-		}
+        $search = \Dashi\Core\Input::post('search', '');
+        if (!is_string($search)) {
+            wp_send_json_error(['message' => 'invalid search'], 400);
+        }
 
-		$post_type = \Dashi\Core\Input::post('post_type', false);
-		if ($post_type)
-		{
-			$post_type = sanitize_key($post_type);
-			if ( ! in_array($post_type, $allowed_post_types, true))
-			{
-				wp_send_json_error(array('message' => 'invalid post_type'), 400);
-			}
-			$args['post_type'] = $post_type;
-		}
-
-		$search = \Dashi\Core\Input::post('search', false);
-		if ($search !== false && $search !== null && $search !== '')
-		{
-			$args['s'] = sanitize_text_field($search);
-		}
-
-		$results = get_posts($args);
-		wp_send_json_success($results);
+        wp_send_json_success(self::referencerResults($post_type, sanitize_text_field($search)));
 	}
+
+    private static function referencerResults($post_type, $search)
+    {
+        $posts = get_posts([
+            'posts_per_page' => 20,
+            'post_type' => $post_type,
+            'post_status' => 'publish',
+            'has_password' => false,
+            'suppress_filters' => false,
+            's' => $search,
+        ]);
+        $viewable = is_post_type_viewable($post_type);
+        $results = [];
+        foreach ($posts as $post) {
+            if (!($post instanceof \WP_Post) || $post->post_type !== $post_type || $post->post_status !== 'publish'
+                || $post->post_password !== '' || !current_user_can('read_post', $post->ID)
+                || (!$viewable && !current_user_can('edit_post', $post->ID))
+                || post_password_required($post)
+                || !apply_filters('dashi_search_can_show_result', true, $post)) continue;
+            $results[] = ['ID' => $post->ID, 'post_title' => $post->post_title];
+        }
+        return $results;
+    }
 
 }

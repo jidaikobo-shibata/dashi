@@ -3,6 +3,10 @@ jQuery(function ($) {
     $('.dashi_form input[type="file"]').each(function () {
         var input = $(this);
         var name = input.attr('name');
+        var form = input.closest('form');
+        var uploadGrant = form.find('[name="dashi_upload_grant"]').val();
+        var formType = form.find('[name="dashi_upload_form"]').val();
+        if (!uploadGrant || !formType) return;
         var area = $('<div>', { 'class': '__uploader' }).attr('data-name', name);
         var uploadButton = $('<button>', { type: 'button', 'class': 'button' }).text('ファイルをアップロード');
         var clearButton = $('<button>', { type: 'button', 'class': 'button' }).text('クリア');
@@ -42,7 +46,8 @@ jQuery(function ($) {
                 data.append('action', DashiUpload.action);
                 data.append('_wpnonce', DashiUpload.upload_nonce);
                 data.append('file_data', file);
-                data.append('form', DashiUpload.form);
+                data.append('form', formType);
+                data.append('dashi_upload_grant', uploadGrant);
                 data.append('field', name);
                 status.text('アップロード中…');
                 uploadButton.prop('disabled', true);

@@ -5,6 +5,11 @@ if (!defined('ABSPATH')) exit;
 
 class Pagepart extends \Dashi\Core\Posttype\Base
 {
+    private const MAX_EMBED_DEPTH = 16;
+    private const MAX_EMBEDS_PER_REQUEST = 128;
+    private static $rendering = [];
+    private static $renderCount = 0;
+
     /*
      * init
      */
@@ -65,44 +70,57 @@ class Pagepart extends \Dashi\Core\Posttype\Base
      */
     public static function get_pagepart($attrs)
     {
-        // musts
-        $musts = array(
-            'slug' => __('slug', 'dashi'),
-        );
+        $slug = $attrs['slug'] ?? '';
+        if (!is_string($slug) || $slug === '') {
+            return '「' . esc_html__('slug', 'dashi') . '」 is missing.<br />sample: <code>[get_pagepart slug=home]</code>';
+        }
 
-        // error
-        $errors = array();
-        foreach ($musts as $key => $must)
-        {
-            if (array_key_exists($key, $attrs) && empty($attrs[$key]) || ! isset($attrs[$key]))
-            {
-                $errors[] = '「'.$musts[$key].'」';
+        if (self::$renderCount >= self::MAX_EMBEDS_PER_REQUEST) return '';
+
+        $item = get_page_by_path($slug, OBJECT, ['pagepart']);
+        $html = '<div class="dashi_pagepart_wrapper">';
+        if ($item && $item->post_status === 'publish') {
+            $id = (int) $item->ID;
+            if (isset(self::$rendering[$id]) || count(self::$rendering) >= self::MAX_EMBED_DEPTH) return '';
+            ++self::$renderCount;
+            self::$rendering[$id] = true;
+            $hadPost = array_key_exists('post', $GLOBALS);
+            $previousPost = $GLOBALS['post'] ?? null;
+            try {
+                // パスから特定した投稿にも、サイトの投稿クエリーによる閲覧制限を適用する。
+                $matches = get_posts([
+                    'p' => $id,
+                    'post_type' => 'pagepart',
+                    'post_status' => 'publish',
+                    'numberposts' => 1,
+                    'suppress_filters' => false,
+                    'cache_results' => false,
+                    'update_post_meta_cache' => false,
+                    'update_post_term_cache' => false,
+                ]);
+                $item = $matches[0] ?? null;
+                if (!$item instanceof \WP_Post || (int) $item->ID !== $id
+                    || $item->post_type !== 'pagepart' || $item->post_status !== 'publish') return '';
+
+                // 閲覧制限や入れ子のショートコードが、処理中のパーツを参照できるようにする。
+                $GLOBALS['post'] = $item;
+                $rendered = \Dashi\Core\Util::withSingularPostQuery($item, static function () use ($item) {
+                    if (!apply_filters('dashi_search_can_show_result', true, $item)) return null;
+                    if (post_password_required($item)) return get_the_password_form($item);
+                    $content = preg_replace("/\<!--[^-]+?--\>/is", '', $item->post_content);
+                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
+                    return (string) apply_filters('the_content', $content);
+                });
+                if ($rendered === null) return '';
+                $html .= $rendered;
+            } finally {
+                if ($hadPost) {
+                    $GLOBALS['post'] = $previousPost;
+                } else {
+                    unset($GLOBALS['post']);
+                }
+                unset(self::$rendering[$id]);
             }
-        }
-
-        if ($errors)
-        {
-            $retval = join($errors).' is missing.<br />';
-            $retval.= 'sample: <code>[get_pagepart slug=home]</code>';
-            return $retval;
-        }
-
-        $slug = esc_html($attrs['slug']);
-
-        $item = get_page_by_path($slug, object, 'pagepart');
-        $html = '';
-        $html.= '<div class="dashi_pagepart_wrapper">';
-        if ($item && $item->post_status=='publish')
-        {
-            // ignore comment out
-            $content = preg_replace("/\<!--[^-]+?--\>/is", '', $item->post_content);
-
-	            if ( ! post_password_required($item->ID)):
-	                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
-	                $html.= @apply_filters('the_content', $content);
-	            else:
-                $html.= get_the_password_form();
-            endif;
 
             if (current_user_can('edit_post', $item->ID))
             {

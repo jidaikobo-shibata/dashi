@@ -25,9 +25,33 @@ class Copy
         $target_type = $target_type ?: Input::get('post_type', 'post');
         if (!$original || !is_string($target_type) || $original->post_type !== $target_type) return null;
         $type = get_post_type_object($target_type);
-        if (!$type || !current_user_can($type->cap->create_posts) || !current_user_can('edit_post', $id)) return null;
-        if (!wp_verify_nonce($nonce, self::nonceAction($id))) return null;
+        if (!$type || !wp_verify_nonce($nonce, self::nonceAction($id)) || !self::canCopy($original, $type)) return null;
         return $original;
+    }
+
+    private static function canCopy($post, $type)
+    {
+        if (!current_user_can($type->cap->create_posts) || !current_user_can('edit_post', $post->ID)
+            || (self::hasProtectedVisibility($post) && !current_user_can($type->cap->publish_posts))) return false;
+
+        // 新しい投稿IDにサイト固有の制限が継承されるかは、サイト側で判断する。
+        $allowed = apply_filters('dashi_can_copy_post_visibility', null, $post);
+        if ($allowed !== null) return $allowed === true;
+        return !has_filter('dashi_search_can_show_result') && !has_filter('post_password_required')
+            && !has_filter('dashi_can_replace_post_visibility');
+    }
+
+    private static function hasProtectedVisibility($post)
+    {
+        return $post->post_status === 'private' || $post->post_password !== '';
+    }
+
+    public static function useBlockEditorForCopy($useBlockEditor, $post)
+    {
+        if (!$useBlockEditor || $post->post_status !== 'auto-draft') return $useBlockEditor;
+        $original = self::requestedOriginal($post->post_type);
+        // ブロックエディターのREST初期値は、コピー画面の保護設定を読み込まない。
+        return !$original || !self::hasProtectedVisibility($original);
     }
 
 	/**
@@ -38,6 +62,8 @@ class Copy
 	public static function forge ()
 	{
 		if ( ! is_admin()) return;
+
+		add_filter('use_block_editor_for_post', [self::class, 'useBlockEditorForCopy'], 10, 2);
 
 		$posttypes = array('post', 'page');
 		foreach (P::instances() as $class)
@@ -86,7 +112,9 @@ class Copy
 	public static function adminHeadPostPhp ()
 	{
 		global $post;
-		if (!isset($post) || !current_user_can('edit_post', $post->ID)) return;
+		if (!isset($post)) return;
+        $type = get_post_type_object($post->post_type);
+        if (!$type || !self::canCopy($post, $type)) return;
 
 		// コピーのリンク
 		$copy_url = wp_nonce_url(
@@ -121,8 +149,8 @@ jQuery(function($){
 	 */
 	public static function addEditCopy ($actions, $post)
 	{
-		if (current_user_can('edit_post', $post->ID)
-            && current_user_can(get_post_type_object($post->post_type)->cap->create_posts))
+		$type = get_post_type_object($post->post_type);
+        if ($type && self::canCopy($post, $type))
 		{
 			$tmps = array();
 
@@ -211,11 +239,14 @@ jQuery(function($){
 		$post->post_title = self::modCopyTitle($original->post_title);
 		$post->post_content = $original->post_content;
 		$post->post_excerpt = $original->post_excerpt;
+        $post->post_password = $original->post_password;
+        // 編集画面の初期表示だけを変える。コピーを保存するまではDBの自動下書きのまま。
+        if ($original->post_status === 'private') $post->post_status = 'private';
 		// $post->post_date = $original->post_date;
 
 		// カスタムフィールド
 		$class = P::posttype2class($post->post_type);
-		foreach ($class ? $class::getCustomFieldsKeys() : [] as $custom_field)
+		foreach ($class ? Revisions::storedFieldKeys($class, $class::getCustomFieldsKeys()) : [] as $custom_field)
 		{
 			$post->$custom_field = $original->$custom_field;
 		}

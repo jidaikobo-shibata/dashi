@@ -74,15 +74,9 @@ trait NotationHeavey
 			file_exists(get_stylesheet_directory().'/index.php')
 		)
 		{
-			$res = wp_remote_get(
-				get_stylesheet_directory_uri().'/index.php',
-				array('timeout' => 0, 'sslverify' => false,)
-			);
-
-			// $res can be Wp_Error object
-			if (is_object($res) || empty($res['body'])) return;
-
-			if (strpos($res['body'], 'get_header') !== false)
+            $body = self::diagnosticBody(get_stylesheet_directory_uri() . '/index.php');
+            if ($body === null) return;
+			if (strpos($body, 'get_header') !== false)
 			{
 					add_action('admin_notices', function ()
 					{
@@ -110,7 +104,12 @@ trait NotationHeavey
 	{
 		if ( ! get_option('dashi_allow_xmlrpc') || ! get_transient('dashi_notation_xmlrpc_denied'))
 		{
-			if (Util::is_url_exists(site_url('xmlrpc.php'), 'post'))
+			$result = Util::is_url_exists(site_url('xmlrpc.php'), 'post');
+            if ($result === null) {
+                self::unknownDiagnostic();
+                return;
+            }
+            if ($result)
 			{
 					add_action('admin_notices', function ()
 					{
@@ -133,7 +132,12 @@ trait NotationHeavey
 	{
 		if ( ! get_transient('dashi_notation_directory_listing_denied'))
 		{
-			if (Util::is_url_exists(site_url('wp-admin/includes')))
+			$result = Util::is_url_exists(site_url('wp-admin/includes'));
+            if ($result === null) {
+                self::unknownDiagnostic();
+                return;
+            }
+            if ($result)
 			{
 					add_action('admin_notices', function ()
 					{
@@ -156,7 +160,12 @@ trait NotationHeavey
 	{
 		if ( ! get_transient('dashi_notation_http_wpconfig_denied'))
 		{
-			if (Util::is_url_exists(site_url('wp-config.php')))
+			$result = Util::is_url_exists(site_url('wp-config.php'));
+            if ($result === null) {
+                self::unknownDiagnostic();
+                return;
+            }
+            if ($result)
 			{
 					add_action('admin_notices', function ()
 					{
@@ -182,15 +191,12 @@ trait NotationHeavey
 			! get_option('dashi_no_need_analytics')
 		)
 		{
-			$res = wp_remote_get(home_url(), array('timeout' => 10, 'sslverify' => false,));
-
-			// $res can be Wp_Error object
-			if (is_object($res) || empty($res['body'])) return;
-
+            $body = self::diagnosticBody(home_url());
+            if ($body === null) return;
 			// check
 			if (
-				strpos($res['body'], 'analytics.js') === false &&
-				strpos($res['body'], 'www.googletagmanager.com/gtag/js?id=UA-') === false
+				strpos($body, 'analytics.js') === false &&
+				strpos($body, 'www.googletagmanager.com/gtag/js?id=UA-') === false
 			)
 			{
 					add_action('admin_notices', function ()
@@ -209,4 +215,27 @@ trait NotationHeavey
 			set_transient('dashi_notation_check_google_analytics', true, 24 * HOUR_IN_SECONDS);
 		}
 	}
+    private static function diagnosticBody($url)
+    {
+        $response = Util::diagnosticGet($url);
+        $status = (int) wp_remote_retrieve_response_code($response);
+        if (is_wp_error($response) || $status < 200 || $status >= 300) {
+            self::unknownDiagnostic();
+            return null;
+        }
+        return wp_remote_retrieve_body($response);
+    }
+
+    private static function unknownDiagnostic()
+    {
+        static $scheduled = false;
+        if ($scheduled) return;
+        $scheduled = true;
+        add_action('admin_notices', static function () {
+            echo '<div class="notice notice-warning"><p>'
+                . esc_html__('Some Dashi checks could not be completed. Check the site address and HTTPS configuration.', 'dashi')
+                . '</p></div>';
+        });
+    }
+
 }

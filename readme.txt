@@ -6,7 +6,7 @@ Tested up to: 7.1
 Stable tag: 3.4.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Requires PHP: 7.0
+Requires PHP: 7.1
 
 Useful classes for creating a custom post type. Creates Page Parts custom post type. Designed for theme developers.
 
@@ -31,6 +31,78 @@ This plugin read specified directory called `posttypes' in your theme directory.
 please check `Settings' -> `Dashi' to know how to add custom post types.
 
 [translate by using GlotPress](https://translate.wordpress.org/projects/wp-plugins/dashi)
+
+= Public form attachments =
+
+Public form attachments are stored in the WordPress database. The limits are 1 MiB per file, 4 MiB across unsubmitted files for a form in one browser session, 16 MiB for unsubmitted files per site, and 48 MiB reserved for attachments awaiting review, including uploads reserved for submission. Approved attachments use the shared 128 MiB site storage limit. Smaller WordPress upload limits still apply. The Dashi settings screen shows unsubmitted, review, and approved usage separately. Exclude public form and attachment URLs from page caching. Opening a public form for the first time issues short-lived signed tokens. Dashi starts a browser session when the first validated submission or upload passes its rate limit. Confirmation, final submission, and uploads each allow up to ten requests per IP address per minute. IPv6 also has a limit of sixty requests per /64 network per minute for each operation. Automatic replies are attempted only after the administrator notification has been accepted for sending. Automatic replies have separate limits and their result does not decide whether the form has been accepted.
+
+If the form requires image metadata removal, it needs Imagick. Images are rejected when metadata cannot be removed. Dashi checks storage availability before converting an image and processes one image at a time per site. Image processing is limited to 4,096 pixels per side, 32 frames, and 16,777,216 pixels across all frames. The form does not include original EXIF data in its mail when removal is required. Pending images whose metadata removal has not been verified remain in temporary storage and must be uploaded again before they can be published.
+
+Reopening a form keeps the current draft in that browser session. Use Discard draft to clear it and release storage occupied by its unsubmitted uploads. A form rendered after HTTP headers have been sent can start a session from a same-origin form submission.
+
+The most recent confirmation for a form in a browser session is valid for 30 minutes. Going back to edit or completing the submission invalidates that confirmation. Confirmation requests are limited to 10 per minute per IP address. Confirmation input is limited to 256 submitted values, 16 KiB per value, and 64 KiB of submitted field data before processing. Attachment bytes count toward the separate upload limits.
+
+Attachment upload grants last 30 minutes and are tied to the page hosting the form. Both grant issuance and upload acceptance check the page's publication status, password protection, post query restrictions, and the `dashi_search_can_show_result` visibility filter. For access rules that run only when rendering pages, also apply the rule to the supplied `WP_Post` through this visibility filter so it applies to uploads.
+
+Editing the hosting page's saved content or changing its publication status or password invalidates its existing upload grants. Restoring the page's previous state still requires new grants. If a theme or a separate Page Part renders the form, use the `dashi_public_form_upload_revision` filter (revision string, hosting `WP_Post`, form name). Return a stable string that changes when that form's configuration changes, or return false to disable upload grants for that form and page.
+
+Unsubmitted attachments expire after 24 hours by default and are deleted by WP-Cron. A temporary preview link requires the same browser session that uploaded the file. If an attachment is included in a notification without an associated post, the notification contains a separate expiring link that requires a signed-in user with the WordPress `manage_options` capability. After the administrator notification is accepted for sending, Dashi aligns the temporary attachment’s storage deadline with the mail link. If sending fails, the attachment retains its previous deadline for retry. Expired temporary files do not count against the active upload quota. A file field can opt into public downloads with `public_form_publish_attachment => true`. Dashi keeps the bytes in the database and checks the current submission and field settings on each public download. The submission must be published and publicly viewable, without a password or an applicable access policy. The download route loads the parent post before the standard template redirect hooks run. Use the `dashi_public_form_can_publish_attachment` filter for access rules enforced elsewhere, such as content renderers. Other downloads require a signed editor link and permission to edit the submission. Dashi does not create a Media Library item or featured image when approving these files. Legacy temporary files remain editor-only. Static files already made public by older versions remain accessible under their original URLs until removed from public storage.
+
+`store_data => false` excludes a field from submission storage, including title and content mappings and attachment associations. Temporary attachments supplied solely for notification remain subject to the temporary upload expiry. `public_form_allow_send_by_mail => false` excludes a field from both the administrator notification and the automatic reply.
+
+Automatic replies use a fixed acknowledgement by default and have a per-site limit of three attempts per recipient per hour. Admin notification mail uses the configured sender or the WordPress administration address. A valid address entered by the visitor is used as Reply-To. Dashi stores submission progress and rate counters in a site-specific database table with indexed expiration. The table is limited to 16,384 active records, including at most 8,192 rate counters. When a temporary database failure prevents checking a recipient's limit, the reply stays pending and the same confirmation may be retried. When the same confirmation is retried, Dashi reuses its saved post and skips mail already accepted. If an interruption leaves the result uncertain, Dashi asks the visitor to contact the site administrator before submitting again.
+
+Public form values mapped to post content are stored as plain text. If a form requires a post and it cannot be saved, the form returns to confirmation without sending notification mail. Dashi blocks post replacement while either post holds private public-form attachments, so the original file and its authorization are retained.
+
+An admin-only field group also excludes its children from the public form. Removing a private attachment reference blocks download immediately. Saving the submission deletes the detached file while keeping other attachments.
+
+Moving a submission to the trash frees its space in the review queue. Its attachments remain available for restoration and still count toward the site's total attachment storage limit until the submission is permanently deleted.
+
+Uploads received before the database storage change remain in their original storage. Dashi leaves those files in place during post saves and scheduled cleanup. Review them before removing or migrating them manually. Use the link in the submission editor to download a previously submitted legacy file. Unsubmitted legacy files may need to be uploaded again. Keep direct HTTP access to the legacy `dashi_uploads` directory blocked at the web server while these files remain. Dashi supplies an Apache access file when one is missing. For Nginx, a proxy, or a CDN that serves the uploads directly, configure and verify the restriction separately. The Dashi administration screen warns while legacy files remain.
+
+= HTTPS enforcement =
+
+When the Dashi HTTPS setting is enabled, HTTP requests for frontend pages are redirected for GET and HEAD. Public form submissions, uploads, direct attachment downloads, and postal-code lookups require HTTPS. Configure your trusted reverse proxy or web server so that WordPress recognizes HTTPS correctly. User-Agent values do not bypass the check.
+
+= Copies of restricted posts =
+
+Copying a private or password-protected post requires publishing permission for that post type. Dashi opens the copy in the classic editor with the source visibility selected. The editor can change the visibility before publishing the copy. If a Dashi search visibility filter, a replacement visibility filter, or a WordPress password filter is active, Dashi requires explicit approval to copy a post. Integrate other membership rules using `dashi_can_copy_post_visibility` (decision, source `WP_Post`). Return true only when copying this source is safe under the site’s access rules. Return false to disable copying for that source. Approval still requires the standard WordPress capabilities.
+
+= Scheduled post replacements =
+
+Scheduled post replacements require approval of the original post, replacement post, and the exact content, custom fields, and terms being applied. A user with publishing and replacement permissions must reopen and save replacements scheduled before this update to renew approval before their publication date. A changed, password-protected, private, or unapproved replacement is held for review. Post, metadata, and taxonomy changes are applied in a database transaction. The WordPress post and taxonomy tables must use InnoDB. A scheduled maintenance task recovers at most 20 overdue replacements per run.
+
+Publishing a linked replacement through the REST API leaves it pending. Use `Dashi\Core\Posttype\Another::canPublishDirectly($post_id) === true` before calling `wp_publish_post()` from an integration. A direct publication of a replacement ends that request with HTTP 409 before default term relationships are added or publication hooks run. The classic replacement editor can apply the change directly when the user has publishing and replacement permissions. Use the `dashi_replacement_committed` action for integrations after a replacement commits. Transactional replacements use this dedicated action in place of the standard post save actions. The arguments are the original post ID, the replacement post ID, and a callable that returns a freshly verified public post or null. Register the callback with three accepted arguments and call the verifier immediately before each external delivery. Skip delivery if the callable returns null. Per-field and taxonomy write hooks are not dispatched for the transactional copy. An applied replacement is kept as a draft and excluded from active replacement candidates. Notification processing never deletes the source. Editing or deleting an archived source that was scheduled or published requires the corresponding published-post capability for that post type. Dashi checks the current post and its visibility again between notification stages. Only one worker processes each notification at a time. An interrupted notification is retried by maintenance when it becomes due. Built-in mail retries are limited to recipients with a confirmed failure. If a mail attempt is interrupted before its result is recorded, Dashi uses the server error log to report the uncertain delivery without queuing another send for that recipient. Each maintenance run reserves capacity for overdue replacements separately from notification retries. If the original changes after commit, including a change to visibility, Dashi clears the stale event without sending external notifications. Legacy records without a version are processed for local cleanup only. Dashi records completion for callbacks executed by `dashi_replacement_committed`, including callbacks added during execution. Register callbacks in each request so they are available on retries. Integrations can deduplicate an interrupted delivery using the original and replacement IDs.
+
+Use `dashi_can_replace_post_visibility` (decision, original post, replacement post) to check membership or other custom access rules. Return true where the destination's visibility is appropriate and false to hold the replacement. If a Dashi search access filter or a post password filter is registered, Dashi requires an explicit decision. Other membership rules must be connected to this filter by the site. Password-protected and private replacement sources remain held. External replacement notifications are limited to published, publicly viewable posts without passwords. Use `dashi_can_dispatch_replacement_notification` (decision, current original post, replacement post ID) to check custom access rules immediately before sending. Return true only if external delivery is allowed. When a Dashi visibility or search filter or a WordPress password filter is active, an explicit allow decision is required.
+
+= Search and membership restrictions =
+
+When Dashi search enrichment is enabled, body and excerpt matches use indexed visible text. Existing published posts are reindexed in batches by WordPress cron. Until a post is reindexed, HTML in its body and excerpt is omitted from matching. Configure public-search restrictions in field definitions or in a `dashi_mod_custom_fields` callback registered for admin, frontend, and cron requests. Fields with callable options are excluded from the public supplementary index. Dashi skips supplementary matches for a slug when its field definition cannot be loaded.
+
+For site-specific access control, use the `dashi_search_can_show_result` filter (arguments: whether to show the result, and the `WP_Post`) to hide result entries from users who cannot read them. Registering this filter or a `post_password_required` filter disables Dashi's additional index matches, including Page Parts, because PHP access checks are not available inside the SQL query. Apply the same restrictions to the WordPress search query to control result counts, pagination, and matching against WordPress's regular search columns. Dashi also applies these visibility checks and WordPress query filters to the post reference picker and Dashi’s HTML sitemap. The Page Part shortcode checks the same visibility filter before rendering a referenced post. CSV exports honor WordPress query filters and this visibility filter in addition to edit permissions. Editable help tabs also check this visibility filter. Cyclic references are skipped. Embeddings are limited to 16 levels and 128 Page Part render attempts per request.
+
+Page Parts are excluded from public search by default, including matches through pages that embed them. To include Page Parts whose content is public to everyone, return an array of integer post IDs from the `dashi_search_indexed_pagepart_ids` filter. Include only Page Parts whose content can be indexed regardless of any rules applied by `the_content` filters.
+
+= Date and time input =
+
+Dashi loads its legacy picker assets when it renders a field with the `dashi_datepicker` or `dashi_datetimepicker` class. If your theme writes the input markup directly, call `Dashi\Core\Field::enqueueDatePicker()` before WordPress prints the footer scripts. Pass `true` to include the time picker.
+
+Dashi indexes only HTML or XHTML responses. It discovers links from home page anchor elements outside hidden elements and templates when the PHP DOM extension is available. URLs listed in Dashi settings are checked independently. Relative links use the document base URL. All crawl URLs must be within the origin and path of the WordPress home URL. Home URL changes, including through `WP_HOME`, invalidate old snapshots and crawl candidates when WordPress runs. Restoring an earlier URL requires a fresh crawl. Public queries also exclude snapshots whose source URL, title, or body differs from the crawled version. When the home page is unavailable, the crawler uses its last verified links and the current settings. Until links have been verified, an existing entry is checked for access denial but is refreshed only if explicitly configured or if it is the home page. Entries that are no longer eligible are hidden. The crawler requests revalidation and skips successful responses identified as cache hits. It hides entries on HTTP 401, 403, 404, or 410 and redirects to the WordPress login endpoint. It also hides pages with a general `noindex` directive in the HTTP headers or the HTML head. For other access-denied redirects, use the `dashi_crawl_access_denied_redirect` filter (decision, crawled URL, absolute redirect destination, HTTP status). Return true to hide the entry. Public WordPress queries exclude older index formats until refreshed and expire entries after seven days without a successful refresh.
+
+= WordPress cron =
+
+If WordPress cannot reach its own cron URL, enable “Use WordPress alternate cron spawning” in Dashi settings. This turns on the WordPress core `ALTERNATE_WP_CRON` behavior for that site. It applies to WordPress scheduled tasks, including scheduled posts and any enabled automatic updates. The option defaults to off. Constants in `wp-config.php` take precedence. A page request must reach WordPress to start cron, and the browser may be redirected to a URL containing `doing_wp_cron`.
+
+== External Services ==
+
+= jPostal =
+
+Dashi uses [Ninton's jPostal service](https://www.ninton.co.jp/archives/1603) to fill in Japanese addresses on forms configured for postal-code lookup. When the user enters the first three digits of a postal code, the site’s WordPress server sends that prefix over HTTPS to `jpostal-1006.appspot.com` when the result is absent from its cache. Per minute, 25 public and five admin fetches per site, five per user or IP. Cache hits are exempt. The service receives the server's IP address as part of the request. The server validates the address data and returns JSON to the form. The full postal code is matched in the browser. No account is required. See the [jPostal project documentation](https://github.com/ninton/jquery.jpostal.js). A service-specific privacy policy or terms of use could not be located.
+
+= Google Maps =
+
+Dashi uses [Google Maps Platform](https://mapsplatform.google.com/) to display map fields and look up addresses. Configuring the Google Maps API key in Dashi enables loading the Maps JavaScript API in the browser. Google receives the API key when the script loads and any address submitted for geocoding. When a public form confirmation displays an embedded map, the browser sends the map coordinates and zoom level to Google. Google also receives the browser's IP address when these requests are made. See the [Google Maps Platform Terms of Service](https://cloud.google.com/maps-platform/terms) and [Google Privacy Policy](https://policies.google.com/privacy).
 
 == Installation ==
 
@@ -721,5 +793,18 @@ first commit.
 Security update for search, previews, copying, sitemap output and public uploads. Review legacy pending attachments before updating. Files selected in existing forms may need to be uploaded again.
 
 == Frequently Asked Questions ==
+
+= What database storage do public form attachments require? =
+
+Submitting a public form with database-backed attachments requires InnoDB for the WordPress posts and postmeta tables and the Dashi upload table. Dashi uses its own database transaction to confirm attachment references and transfer ownership together. Integrations must finish any open database transaction before submitting a public form.
+
+= How do postal lookup limits work behind a reverse proxy? =
+
+Configure the web server to restore the visitor IP in `REMOTE_ADDR` when possible. Otherwise, define `DASHI_POSTAL_TRUSTED_PROXIES` in `wp-config.php` as an array of exact proxy IP addresses. Configure those proxies to overwrite `X-Dashi-Client-IP` with a single verified visitor IP for every request and strip any client-provided value. The postal limiter accepts that header only from a listed proxy. Public IPv6 fetches are limited by /64. The default trusts the web server's `REMOTE_ADDR`.
+
+
+= How do I invalidate crawl snapshots when changing WP_HOME? =
+
+When changing or restoring `WP_HOME` in `wp-config.php`, set `DASHI_CRAWL_CONFIG_EPOCH` to a new value in the same deployment, for example `define('DASHI_CRAWL_CONFIG_EPOCH', '2026-11-22-1');`. Use a value that has never been used for that site, even when rolling back the URL. This prevents reuse of previous snapshots even if WordPress could not record the URL change in the database. Snapshots become searchable again after a fresh crawl.
 
 not yet.

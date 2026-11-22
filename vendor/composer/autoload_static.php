@@ -65,6 +65,8 @@ class ComposerStaticInit09cca36ce09a8fb0dbb6c6e9ad6e43ac
         'Dashi\\Core\\Posttype\\PosttypeVirtualRegistry' => __DIR__ . '/../..' . '/classes/Posttype/PosttypeVirtualRegistry.php',
         'Dashi\\Core\\Posttype\\Preview' => __DIR__ . '/../..' . '/classes/Posttype/Preview.php',
         'Dashi\\Core\\Posttype\\PublicForm' => __DIR__ . '/../..' . '/classes/Posttype/PublicForm.php',
+        'Dashi\\Core\\Posttype\\PublicFormState' => __DIR__ . '/../..' . '/classes/Posttype/PublicFormState.php',
+        'Dashi\\Core\\Posttype\\PublicUploadBlob' => __DIR__ . '/../..' . '/classes/Posttype/PublicUploadBlob.php',
         'Dashi\\Core\\Posttype\\PublicUploadStore' => __DIR__ . '/../..' . '/classes/Posttype/PublicUploadStore.php',
         'Dashi\\Core\\Posttype\\Redirect' => __DIR__ . '/../..' . '/classes/Posttype/Redirect.php',
         'Dashi\\Core\\Posttype\\Revisions' => __DIR__ . '/../..' . '/classes/Posttype/Revisions.php',

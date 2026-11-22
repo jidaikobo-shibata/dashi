@@ -20,10 +20,7 @@ Jpostal.Database = function () {
 
     this.address = [];    // database cache
     this.map     = {};
-    this.url     = {
-        'http'  : '//jpostal-1006.appspot.com/json/',
-        'https' : '//jpostal-1006.appspot.com/json/'
-    };
+    this.requests = {};
 };
 
 Jpostal.Database.prototype.find = function (i_postcode) {
@@ -43,105 +40,72 @@ Jpostal.Database.prototype.find = function (i_postcode) {
 Jpostal.Database.prototype.get = function (i_postcode) {
     "use strict";
 
-    //    --------------------------------------------------
-    //    i_postcode    find()    find()    result
-    //                1234567    123
-    //    --------------------------------------------------
-    //    1             -        -        defaults
-    //    12            -        -        defaults
-    //    123           -        Y        find( '123' )
-    //    123           -        N        defaults
-    //    1234          -        Y        find( '123' )
-    //    1234          -        N        defaults
-    //    1234567       Y        -        find( '1234567' )
-    //    1234567       N        Y        find( '123' )
-    //    1234567       N        N        defaults
-    //    --------------------------------------------------
-    var defaults = ['', '', '', '', '', '', '', '', ''],
-        address,
-        head3;
+    var address = [];
 
-    switch (i_postcode.length) {
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-        head3 = i_postcode.substr(0, 3);
-        address = this.find(head3);
-        address = jQuery.extend(defaults, address);
-        break;
-
-    case 7:
-        address = this.find(i_postcode);
-        if (address.length === 0) {
-            head3 = i_postcode.substr(0, 3);
-            address = this.find(head3);
-        }
-        address = jQuery.extend(defaults, address);
-        break;
-
-    default:
-        address = defaults;
-        break;
+    if (i_postcode.length === 7) address = this.find(i_postcode);
+    if (!address.length && i_postcode.length >= 3 && i_postcode.length <= 7) {
+        address = this.find(i_postcode.substr(0, 3));
     }
 
-    return address;
-};
-
-Jpostal.Database.prototype.getUrl = function (i_head3) {
-    "use strict";
-
-    var url = '';
-
-    switch (this.getProtocol()) {
-    case 'http:':
-        url = this.url.http;
-        break;
-
-    case 'https:':
-        url = this.url.https;
-        break;
-    }
-    url = url + i_head3 + '.json';
-
-    return url;
+    return address.length ? jQuery.extend(['', '', '', '', '', '', '', '', ''], address) : null;
 };
 
 Jpostal.Database.prototype.request = function (i_postcode, i_callback) {
     "use strict";
 
     var head3,
-        url,
-        options;
+        database = this;
 
     head3 = i_postcode.substr(0, 3);
 
-    if (i_postcode.length <= 2 || this.getStatus(head3) !== 'none' || head3.match(/\D/)) {
+    if (i_postcode.length <= 2 || head3.match(/\D/) || typeof DashiPostal === 'undefined') {
         return false;
     }
-    this.setStatus(head3, 'waiting');
+    var pending = this.requests[head3];
+    if (!pending) {
+        if (this.getStatus(head3) !== 'none') return false;
+        this.setStatus(head3, 'waiting');
 
-    url = this.getUrl(head3);
-
-    options = {
-        async         : false,
-        dataType      : 'jsonp',
-        jsonpCallback : 'jQuery_jpostal_callback',
-        type          : 'GET',
-        url           : url,
-        success       : function () {    // function(i_data, i_dataType
-            i_callback();
-        },
-        timeout : 5000    // msec
-    };
-    this.ajax(options);
-    return true;
+        pending = this.ajax({
+            dataType: 'json',
+            jsonp: false,
+            type: 'GET',
+            url: DashiPostal.endpoint,
+            headers: DashiPostal.nonce ? { 'X-Dashi-Postal-Nonce': DashiPostal.nonce } : {},
+            data: { action: 'dashi_postal_lookup', prefix: head3 },
+            success: function (result) {
+                if (!result || result.success !== true || !Array.isArray(result.data)) return;
+                database.save(result.data);
+                database.setStatus(head3, 'complete');
+            },
+            timeout: 7000
+        });
+        this.requests[head3] = pending;
+        pending.always(function () { delete database.requests[head3]; });
+    }
+    pending.done(function () {
+        if (database.getStatus(head3) === 'complete') i_callback();
+    });
+    return pending;
 };
 
 Jpostal.Database.prototype.ajax = function (options) {
     "use strict";
 
-    jQuery.ajax(options);
+    var result = jQuery.Deferred();
+    function send(retryAllowed) {
+        jQuery.ajax(options).done(function () {
+            result.resolve();
+        }).fail(function (response) {
+            if (retryAllowed && response.status === 503) {
+                window.setTimeout(function () { send(false); }, 1000);
+                return;
+            }
+            result.reject();
+        });
+    }
+    send(true);
+    return result.promise();
 };
 
 Jpostal.Database.prototype.save = function (i_data) {
@@ -200,25 +164,10 @@ Jpostal.Database.prototype.getStatus = function (i_postcode) {
     return st;
 };
 
-Jpostal.Database.prototype.setStatus = function (i_postcode) {
+Jpostal.Database.prototype.setStatus = function (i_postcode, state) {
     "use strict";
 
-    var postcode = '_' + i_postcode;
-
-    if (this.map[postcode] === undefined) {
-        this.map[postcode] = {
-            state : 'waiting',
-            time  : 0
-        };
-    }
-
-    this.map[postcode].time = this.getTime();
-};
-
-Jpostal.Database.prototype.getProtocol = function () {
-    "use strict";
-
-    return window.location.protocol;
+    this.map['_' + i_postcode] = {state: state, time: this.getTime()};
 };
 
 Jpostal.Database.prototype.getTime = function () {
@@ -248,9 +197,11 @@ Jpostal.Jpostal = function (i_JposDb) {
     this.options  = {};
     this.postcode = '';
     this.minLen   = 3;
+    this.lookup   = null;
+    this.scope    = document;
 };
 
-Jpostal.Jpostal.prototype.displayAddress = function () {
+Jpostal.Jpostal.prototype.displayAddress = function (fields) {
     "use strict";
 
     var that = this;
@@ -259,90 +210,58 @@ Jpostal.Jpostal.prototype.displayAddress = function () {
         this.address[2] += ' ' + this.getScriptSrc();
     }
 
-    Object.keys(this.options.address).forEach(function (key) {
-        var format = that.options.address[key],
-            value = that.formatAddress(format, that.address);
+    fields.forEach(function (field) {
+        if (!document.documentElement.contains(field.element)
+            || field.element.readOnly || jQuery(field.element).is(':disabled')
+            || (field.element.form && field.element.form !== that.scope)
+            || (jQuery(field.element).closest('form')[0] || document) !== that.scope
+            || JSON.stringify(jQuery(field.element).val()) !== field.original) return;
 
-        if (that.isSelectTagForPrefecture(key, format)) {
-            that.setSelectTagForPrefecture(key, value);
+        var value = that.formatAddress(field.format, that.address);
+        if (value === null) return;
+        if (field.element.tagName === 'SELECT') {
+            that.setSelectAddress(field.element, value, /^(?:%3|%p|%prefecture)$/.test(field.format));
         } else {
-            jQuery(key).val(value);
+            jQuery(field.element).val(value);
         }
     });
 };
 
-Jpostal.Jpostal.prototype.isSelectTagForPrefecture = function (i_key, i_fmt) {
+Jpostal.Jpostal.prototype.setSelectAddress = function (element, value, matchLabel) {
     "use strict";
 
-    // 都道府県のSELECTタグか？
-    var f;
-
-    switch (i_fmt) {
-    case '%3':
-    case '%p':
-    case '%prefecture':
-        if (jQuery(i_key).get(0).tagName.toUpperCase() === 'SELECT') {
-            f = true;
-        } else {
-            f = false;
-        }
-        break;
-
-    default:
-        f = false;
-        break;
+    var options = Array.prototype.filter.call(element.options, function (option) {
+        return !option.disabled && !jQuery(option).parent('optgroup:disabled').length;
+    });
+    var match = options.find(function (option) { return option.value === value; });
+    // 都道府県コードを値にしている選択肢では、ラベルから探す。
+    if (!match && matchLabel) {
+        var matches = options.filter(function (option) { return option.text.indexOf(value) >= 0; });
+        if (matches.length === 1) match = matches[0];
     }
-    return f;
+    if (match) jQuery(element).val(match.value);
 };
 
-Jpostal.Jpostal.prototype.setSelectTagForPrefecture = function (i_key, i_value) {
+Jpostal.Jpostal.prototype.formatAddress = function (format, address) {
     "use strict";
 
-    var value,
-        el;
-
-    // 都道府県のSELECTタグ
-    // ケース1: <option value="東京都">東京都</option>
-    jQuery(i_key).val(i_value);
-    if (jQuery(i_key).val() === i_value) {
-        return;
-    }
-
-    // ケース2: valueが数値(自治体コードの場合が多い)
-    //    テキストが「北海道」を含むかどうかで判断する
-    //    <option value="01">北海道(01)</option>
-    //    <option value="1">1.北海道</option>
-    value = '';
-    el = jQuery(i_key)[0];
-    Object.keys(el.options).forEach(function (i) {
-        var p = String(el.options[i].text).indexOf(i_value);
-        if (0 <= p) {
-            value = el.options[i].value;
-        }
+    var indexes = {
+        '%prefecture': 1, '%3': 1, '%p': 1,
+        '%city': 2, '%4': 2, '%c': 2,
+        '%town': 3, '%5': 3, '%t': 3,
+        '%address': 4, '%6': 4, '%a': 4,
+        '%name': 5, '%7': 5, '%n': 5,
+        '%8': 6, '%9': 7, '%10': 8
+    };
+    var missingAddressPart = false;
+    var result = format.replace(/%prefecture|%address|%city|%town|%name|%10|%[3-9pctan]/g, function (placeholder) {
+        var value = address[indexes[placeholder]];
+        if (typeof value === 'string' && value.trim()) return value;
+        missingAddressPart = true;
+        return '';
     });
 
-    if (value !== '') {
-        jQuery(i_key).val(value);
-    }
-
-};
-
-Jpostal.Jpostal.prototype.formatAddress = function (i_fmt, i_address) {
-    "use strict";
-
-    var    s = i_fmt;
-
-    s = s.replace(/%3|%p|%prefecture/, i_address[1]);
-    s = s.replace(/%4|%c|%city/,       i_address[2]);
-    s = s.replace(/%5|%t|%town/,       i_address[3]);
-    s = s.replace(/%6|%a|%address/,    i_address[4]);
-    s = s.replace(/%7|%n|%name/,       i_address[5]);
-
-    s = s.replace(/%8/,  i_address[6]);
-    s = s.replace(/%9/,  i_address[7]);
-    s = s.replace(/%10/, i_address[8]);
-
-    return s;
+    return !missingAddressPart && result.trim() ? result : null;
 };
 
 Jpostal.Jpostal.prototype.getScriptSrc = function () {
@@ -385,151 +304,113 @@ Jpostal.Jpostal.prototype.init = function (i_options) {
     }
 
     this.options.address = i_options.address;
-
-    if (i_options.url !== undefined) {
-        this.jposDb.url = i_options.url;
-    }
 };
 
 Jpostal.Jpostal.prototype.main = function () {
     "use strict";
 
-    var that,
-        f;
+    var that = this,
+        lookup,
+        fields = [],
+        postcode,
+        requested;
 
     this.scanPostcode();
     if (this.postcode.length < this.minLen) {
-        // git hub issue #4: 郵便番号欄が0～2文字のとき、住所欄を空欄にせず、入力内容を維持してほしい
+        this.lookup = null;
         return;
     }
+    postcode = this.postcode;
+    // 同じ郵便番号で keyup と change が続いても、最初の照会時の入力値を保持する。
+    if (this.lookup && this.lookup.postcode === postcode) return;
+    lookup = { postcode: postcode };
+    this.lookup = lookup;
 
-    that = this;
-    f = this.jposDb.request(this.postcode, function () {
-        that.callback();
+    Object.keys(this.options.address).forEach(function (selector) {
+        that.findFields(selector).each(function () {
+            fields.push({
+                element: this,
+                format: that.options.address[selector],
+                original: JSON.stringify(jQuery(this).val())
+            });
+        });
     });
-    if (!f) {
-        this.callback();
+
+    requested = this.jposDb.request(postcode, function () {
+        that.scanPostcode();
+        if (that.lookup === lookup && that.postcode === postcode) that.callback(fields);
+    });
+    if (requested) {
+        requested.always(function () {
+            if (that.lookup === lookup) that.lookup = null;
+        });
+    } else {
+        this.lookup = null;
+        if (this.jposDb.getStatus(postcode.substr(0, 3)) === 'complete') this.callback(fields);
     }
 };
 
-Jpostal.Jpostal.prototype.callback = function () {
+Jpostal.Jpostal.prototype.callback = function (fields) {
     "use strict";
 
     this.address = this.jposDb.get(this.postcode);
-    this.displayAddress();
+    if (this.address) this.displayAddress(fields);
+};
+
+Jpostal.Jpostal.prototype.findFields = function (selector) {
+    "use strict";
+
+    var scope = this.scope;
+    return jQuery(scope).find(selector).filter(function () {
+        return (!this.form || this.form === scope) && (jQuery(this).closest('form')[0] || document) === scope;
+    });
 };
 
 Jpostal.Jpostal.prototype.scanPostcode = function () {
     "use strict";
 
-    var s = '',
-        s3,
-        s4;
+    var prefix = String(this.findFields(this.options.postcode[0]).val() || ''),
+        suffix,
+        parts;
 
-    switch (this.options.postcode.length) {
-    case 0:
-        break;
-
-    case 1:
-        //    github issue #8: 1つ目を空欄、2つ目を「001」としても、「001」として北海道札幌市を表示してしまう
-        //    ----------------------------------------
-        //    case    postcode    result
-        //    ----------------------------------------
-        //    1        ''            ''
-        //    1        12            ''
-        //    2        123           123
-        //    2        123-          123
-        //    2        123-4         123
-        //    3        123-4567      1234567
-        //    2        1234          123
-        //    4        1234567       1234567
-        //    ----------------------------------------
-        s = String(jQuery(this.options.postcode[0]).val());
-        if (0 <= s.search(/^([0-9]{3})([0-9A-Za-z]{4})/)) {
-            // case 4
-            s = s.substr(0, 7);
-        } else if (0 <= s.search(/^([0-9]{3})-([0-9A-Za-z]{4})/)) {
-            // case 3
-            s = s.substr(0, 3) + s.substr(4, 4);
-        } else if (0 <= s.search(/^([0-9]{3})/)) {
-            // case 2
-            s = s.substr(0, 3);
-        } else {
-            // case 1
-            s = '';
-        }
-        break;
-
-    case 2:
-        //    github issue #8: 1つ目を空欄、2つ目を「001」としても、「001」として北海道札幌市を表示してしまう
-        //    ----------------------------------------
-        //    case    post1    post2    result
-        //    ----------------------------------------
-        //    1        ''        ---        ''
-        //    1        12        ---        ''
-        //    2        123        ''        123
-        //    2        123        4         123
-        //    3        123        4567      1234567
-        //    ----------------------------------------
-        s3 = String(jQuery(this.options.postcode[0]).val());
-        s4 = String(jQuery(this.options.postcode[1]).val());
-        if (0 <= s3.search(/^[0-9]{3}$/)) {
-            if (0 <= s4.search(/^[0-9A-Za-z]{4}$/)) {
-                // case 3
-                s = s3 + s4;
-            } else {
-                // case 2
-                s = s3;
-            }
-        } else {
-            // case 1
-            s = '';
-        }
-        break;
+    this.postcode = '';
+    if (this.options.postcode.length === 1) {
+        parts = /^([0-9]{3})-?([0-9]{0,4})$/.exec(prefix);
+        if (!parts) return;
+        prefix = parts[1];
+        suffix = parts[2];
+    } else if (this.options.postcode.length === 2) {
+        suffix = String(this.findFields(this.options.postcode[1]).val() || '');
+        if (!/^[0-9]{3}$/.test(prefix) || !/^[0-9]{0,4}$/.test(suffix)) return;
+    } else {
+        return;
     }
-
-    this.postcode = s;
-};
-
-//    MEMO: For the following reason, JposDb was put on the global scope, not local scope.
-//    ---------------------------------------------------------------------
-//     data file    callback            JposDb scope
-//    ---------------------------------------------------------------------
-//    001.js        JposDb.save            global scope
-//    001.js.php    $_GET['callback']    local scopde for function($){}
-//    ---------------------------------------------------------------------
-var jQuery_jpostal_callback = function (i_data) {
-    "use strict";
-
-    Jpostal.Database.getInstance().save(i_data);
+    this.postcode = suffix.length === 4 ? prefix + suffix : prefix;
 };
 
 (function ($) {
     "use strict";
 
     $.fn.jpostal = function (i_options) {
-        var Jpos,
-            selector;
-
-        Jpos = new Jpostal.Jpostal(Jpostal.Database.getInstance());
-        Jpos.init(i_options);
-
-        if (typeof i_options.click === 'string' && i_options.click !== '') {
-            $(i_options.click).bind('click', function () {
-                Jpos.main();
-            });
-        } else {
-            selector = Jpos.options.postcode[0];
-            $(selector).bind('keyup change', function () {
-                Jpos.main();
-            });
-
-            if (1 <= Jpos.options.postcode.length) {
-                selector = Jpos.options.postcode[1];
-                $(selector).bind('keyup change', function () {
-                    Jpos.main();
-                });
+        return this.each(function () {
+            var Jpos = new Jpostal.Jpostal(Jpostal.Database.getInstance());
+            Jpos.scope = $(this).closest('form')[0] || document;
+            Jpos.init(i_options);
+            if (Jpos.scope !== document) {
+                $(Jpos.scope).on('reset', function () { Jpos.lookup = null; });
             }
-        }
+
+            function lookup() {
+                Jpos.main();
+            }
+            if (typeof i_options.click === 'string' && i_options.click !== '') {
+                Jpos.findFields(i_options.click).on('click', lookup);
+            } else {
+                $(this).on('keyup change', lookup);
+                if (Jpos.options.postcode.length === 2) {
+                    Jpos.findFields(Jpos.options.postcode[1]).on('keyup change', lookup);
+                }
+            }
+        });
     };
 }(jQuery));

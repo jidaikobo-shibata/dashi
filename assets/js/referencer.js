@@ -84,8 +84,8 @@ jQuery(function($)
 				for (var key in result.data)
 				{
 					var row_data = result.data[key];
-					var row_elm = $('<li>' + row_data.post_title + '</li>')
-					var row_button = $('<input style="width:25%;float:right;" type="button" value="' + row_data.ID + '">');
+					var row_elm = $('<li>').text(row_data.post_title);
+					var row_button = $('<input>', { type: 'button' }).css({ width: '25%', float: 'right' }).val(row_data.ID);
 					row_button.on('click', function()
 					{
 						$('.dashi_referencer_focus').val($(this).val());

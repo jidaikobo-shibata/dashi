@@ -26,6 +26,11 @@ class Session
 		static::ensureStarted(true, $session_name);
 	}
 
+    public static function resume()
+    {
+        return static::ensureStarted(false, self::DEFAULT_SESSION_NAME);
+    }
+
 	/**
 	 * started?
 	 *
@@ -334,10 +339,10 @@ class Session
 			return true;
 		}
 
-		if (!$force_create && !static::hasSessionCookie($session_name))
-		{
-			return false;
-		}
+        $cookie = Input::cookie($session_name);
+        if (!$force_create && (!is_string($cookie) || !preg_match('/\A[a-zA-Z0-9,-]{1,256}\z/', $cookie))) {
+            return false;
+        }
 
 		if (headers_sent())
 		{
@@ -369,8 +374,23 @@ class Session
 		// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- セッション設定の明示。
 		ini_set('session.use_only_cookies', 1);
 //		session_save_path('/var/tmp');
-		session_name($session_name);
-		session_start();
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- 未発行のセッションIDを受け入れない。
+        ini_set('session.use_strict_mode', '1');
+        session_name($session_name);
+        if (!$force_create) {
+            // PHPの厳格モードが失効済みIDを再発行しても、Cookieやセッションを残さない。
+            $useCookies = ini_get('session.use_cookies');
+            session_id($cookie);
+            if (session_start(['use_cookies' => 0])) {
+                if (hash_equals($cookie, session_id())) return true;
+                session_destroy();
+            }
+            session_id('');
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- 正規の新規作成時に通常のCookie設定を使う。
+            ini_set('session.use_cookies', $useCookies);
+            return false;
+        }
+        if (!session_start()) return false;
 
 		if (!$has_cookie)
 		{

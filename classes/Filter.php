@@ -86,6 +86,15 @@ class Filter
 	public static function datetime($val)
 	{
 		if (is_array($val)) return array_map(array('\\Dashi\\Core\\Filter', 'datetime'), $val);
-		return $val ? wp_date('Y-m-d H:i:s', strtotime($val)) : '';
+		if (!$val) return '';
+
+		// タイムゾーンの指定がない入力は、サイトの現地時刻として解釈する。
+		try {
+			$datetime = new \DateTimeImmutable($val, wp_timezone());
+		} catch (\Exception $e) {
+			return false;
+		}
+
+		return wp_date('Y-m-d H:i:s', $datetime->getTimestamp());
 	}
 }

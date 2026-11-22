@@ -5,6 +5,9 @@ if (!defined('ABSPATH')) exit;
 
 class Save
 {
+    private static $bulkSearchDeletions = [];
+    private static $incompleteBulkSearchDeletions = [];
+    public const SEARCH_GENERATION_RETRY = 'dashi_search_generation_retry';
 	private static $duplicateds = array();
 
 	/**
@@ -16,29 +19,19 @@ class Save
 	{
 		global $pagenow;
 		if ($pagenow != 'post.php') return; // 編集ページのみで動作
-		if ( ! Input::post()) return;
-		if (wp_is_post_revision($post_id)) return $post_id;
 		$post_values = Input::post();
-
-		// _dashi_pubic_form_pending_process の際は pendingToPublish で file の値が update
-		// されているので file は update された値を使用する
-		if(get_post_meta($post_id, '_dashi_pubic_form_pending_process', true))
-		{
-			$post = get_post($post_id);
-			$class = \Dashi\Core\Posttype\Posttype::posttype2class($post->post_type);
-			foreach ($class::getFlatCustomFields() as $k => $v)
-			{
-				if ( ! isset($v['type'])) continue;
-				if ($v['type'] != 'file') continue;
-
-				$post_values[$k] = $post->{$k};
-					// error_log($post->{$k});
-			}
-
-			delete_post_meta($post_id, '_dashi_pubic_form_pending_process');
-		}
+		if (wp_is_post_revision($post_id) || !current_user_can('edit_post', $post_id)) return;
+		$submitted_id = filter_var($post_values['post_ID'] ?? '', FILTER_VALIDATE_INT);
+		$nonce = $post_values['_wpnonce'] ?? '';
+		if ($submitted_id !== (int) $post_id || !is_string($nonce)
+			|| !wp_verify_nonce($nonce, 'update-post_' . $post_id)) return;
 
 		static::_updateCustomFields($post_id, $post_values);
+
+		// メディアの説明文は、編集画面の保存からだけ更新する。
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 値は updateFileMediaText() で検証する。
+		$texts = wp_unslash($_POST['dashi_file_media_text'] ?? []);
+		if (is_array($texts)) self::updateFileMediaText($texts);
 	}
 
 	/**
@@ -124,55 +117,20 @@ class Save
      *
      * @return void
      */
-    private static function updateFileMediaText()
+    private static function updateFileMediaText(array $texts)
     {
-        $dashi_file_media_texts = filter_input(
-            INPUT_POST,
-            'dashi_file_media_text',
-            FILTER_DEFAULT,
-            FILTER_REQUIRE_ARRAY
-        );
-        $dashi_file_media_metas = filter_input(
-            INPUT_POST,
-            'dashi_file_media_meta',
-            FILTER_DEFAULT,
-            FILTER_REQUIRE_ARRAY
-        );
+        foreach ($texts as $media_id => $text) {
+            $media_id = filter_var($media_id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if (!$media_id || !is_string($text) || !current_user_can('edit_post', $media_id)) continue;
+            $attachment = get_post($media_id);
+            if (!$attachment || $attachment->post_type !== 'attachment') continue;
 
-        if (empty($dashi_file_media_texts)) return;
-
-        // 保存処理
-        foreach ($dashi_file_media_texts as $media_id => $v) {
-            $media_id = intval($media_id);
-            if ($media_id <= 0) continue;
-
-            // 権限確認（重要）
-            if (!current_user_can('edit_post', $media_id)) continue;
-
-            // ファイルがなかったらスキップ
-            if (empty($dashi_file_media_metas[$media_id])) continue;
-            $media_url = $dashi_file_media_metas[$media_id];
-
-            // ファイルの種類の判定
-            $media_url_path = wp_parse_url($media_url, PHP_URL_PATH);
-            $ext = strtolower(pathinfo((string) $media_url_path, PATHINFO_EXTENSION));
-            $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
-
-            $safe_value = sanitize_text_field($v);
-
-            // update
-            if ($isImg) {
-                update_post_meta(
-                    $media_id,
-                    '_wp_attachment_image_alt',
-                    $safe_value
-                );
-            } else {
-                wp_update_post([
-                        'ID' => $media_id,
-                        'post_title' => $safe_value
-                    ]
-                );
+            $value = sanitize_text_field($text);
+            // 画像かどうかは、リクエストのファイル名ではなく登録済みの添付から判定する。
+            if (wp_attachment_is_image($attachment)) {
+                update_post_meta($media_id, '_wp_attachment_image_alt', wp_slash($value));
+            } elseif ($attachment->post_title !== $value) {
+                wp_update_post(['ID' => $media_id, 'post_title' => wp_slash($value)]);
             }
         }
     }
@@ -233,26 +191,38 @@ class Save
 	 *
 	 * @return Void
 	 */
-	public static function _updateCustomFields($post_id, $values)
+	public static function _updateCustomFields($post_id, $values, $verify = false)
 	{
-		if (wp_is_post_revision($post_id)) return;
+		if (wp_is_post_revision($post_id)) return $verify ? false : null;
 		$post_type = get_post($post_id)->post_type;
 		$class = Posttype::getInstance($post_type);
 		$is_default = in_array($post_type, array('page', 'post'));
-		if ( ! $class && ! $is_default) return;
+		if ( ! $class && ! $is_default) return $verify ? false : null;
 		$e = new \WP_Error();
+		$expected = [];
+		$write = static function ($key, $value, $serialize = false) use ($post_id, $verify, &$expected) {
+			if (!$verify) {
+				static::cudPostmeta($post_id, $key, $value, $serialize);
+				return;
+			}
+			$values = is_array($value) && !$serialize ? array_values($value) : [$value];
+			$expected[$key] = self::writeVerifiedCustomField($post_id, $key, $values);
+		};
 
 		// duplicatedなmetaboxの削除および順序制御
 		$values = self::deleteDuplicatedMetaBox($class, $values);
 		$values = self::fixOrderDuplicatedMetaBox($class, $values);
 
-		// メディア管理を更新
-		self::updateFileMediaText();
-
 		// database
 		if ($class)
 		{
-			foreach($class::getCustomFieldsKeys() as $key)
+			$keys = $verify ? CustomFieldExpectedKeyBuilder::build(
+				$class::get('custom_fields'),
+				$class::get('is_redirect'),
+				$class::get('is_use_sticky'),
+				$class::get('is_searchable')
+			) : $class::getCustomFieldsKeys();
+			foreach($keys as $key)
 			{
 				// search
 				if ($key == 'dashi_search') continue;
@@ -335,26 +305,87 @@ class Save
 					is_array($val)
 				)
 				{
-					static::cudPostmeta($post_id, $key.'_lat',   @$val['lat'], false);
-					static::cudPostmeta($post_id, $key.'_lng',   @$val['lng'], false);
-					static::cudPostmeta($post_id, $key.'_zoom',  @$val['zoom'], false);
-					static::cudPostmeta($post_id, $key.'_place', @$val['place'], false);
+					$write($key.'_lat',   @$val['lat'], false);
+					$write($key.'_lng',   @$val['lng'], false);
+					$write($key.'_zoom',  @$val['zoom'], false);
+					$write($key.'_place', @$val['place'], false);
 					$is_serialize = true;
 				}
 
 				// creat update and delete
-				static::cudPostmeta($post_id, $key, $val, $is_serialize);
+				$write($key, $val, $is_serialize);
 			}
 		}
 
-		if ($e->get_error_messages())
-		{
-			set_transient('dashi_errors', $e->get_error_messages(), 10);
+		$messages = $e->get_error_messages();
+		if (!$verify && $messages && get_current_user_id() && current_user_can('edit_post', $post_id)) {
+			set_transient(self::saveNoticeKey($post_id), $messages, 10);
+		}
+
+		if ($verify) {
+			// 受け取った入力が保存対象のキー一覧から漏れた場合も送信失敗とする。
+			if (array_diff_key($values, $expected, ['dashi_search' => true])
+				|| !self::verifyStoredPostMeta($post_id, $expected)) return false;
 		}
 
 		// search
 		self::updateSearch($class, $is_default, $post_id);
+		if ($verify) return true;
 	}
+
+
+    private static function writeVerifiedCustomField($postId, $key, array $values)
+    {
+        delete_post_meta($postId, $key);
+
+        $written = [];
+        // WordPress がサニタイズして保存した値を、再サニタイズせずに取得する。
+        $capture = static function ($metaId, $objectId, $metaKey, $value) use ($postId, $key, &$written) {
+            if ((int) $objectId === (int) $postId && $metaKey === $key) {
+                $value = maybe_serialize($value);
+                $written[$metaId] = $value === null ? null : (string) $value;
+            }
+        };
+        add_action('added_post_meta', $capture, PHP_INT_MIN, 4);
+        try {
+            $expected = [];
+            foreach ($values as $value) {
+                $metaId = add_post_meta($postId, $key, $value);
+                if (!$metaId || !array_key_exists($metaId, $written)) return null;
+                $expected[] = $written[$metaId];
+            }
+            return $expected;
+        } finally {
+            remove_action('added_post_meta', $capture, PHP_INT_MIN);
+        }
+    }
+
+    /** キーごとに、DB上の文字列または NULL の一覧を照合する。 */
+    public static function verifyStoredPostMeta($postId, array $expected, $lockRows = false)
+    {
+        global $wpdb;
+        $lock = $lockRows ? ' FOR UPDATE' : '';
+        // 読み取りフィルターやキャッシュを経由せず、実際に書き込まれた行を照合する。
+        // SQL の末尾に追加できるのは固定の FOR UPDATE 句だけ。
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id = %d ORDER BY meta_id ASC{$lock}",
+            $postId
+        ), ARRAY_A);
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+        if ($wpdb->last_error !== '' || !is_array($rows)) return false;
+        $stored = [];
+        foreach ($rows as $row) {
+            if (array_key_exists($row['meta_key'], $expected)) {
+                $stored[$row['meta_key']][] = $row['meta_value'];
+            }
+        }
+        foreach ($expected as $key => $values) {
+            if ($values !== ($stored[$key] ?? [])) return false;
+        }
+        return true;
+    }
+
 
 	/**
 	 * Google Map の値を保存前に型・範囲検証する。
@@ -507,7 +538,18 @@ class Save
 	{
 		if (($class && $class::get('is_searchable')) || $is_default)
 		{
-			$str = static::searchStr($class, $post_id);
+			$post = get_post($post_id);
+			if (!$post) return;
+			// フィールドを読む前の世代を索引に記録する。書き込み順が逆転しても旧世代は一致しない。
+			$generation = get_post_meta($post_id, Search::FIELD_GENERATION_META, true);
+			$fields = self::publicSearchFields($class, $post->post_name);
+			if ($fields === null) return;
+			$policy = self::publicSearchPolicy($class, $post->post_name, $fields);
+			$epoch = Search::savedIndexEpoch();
+			$str = static::searchStr($class, $post, $fields);
+			wp_cache_delete($post_id, 'post_meta');
+			if ($generation !== get_post_meta($post_id, Search::FIELD_GENERATION_META, true)) return;
+
 			if ($str)
 			{
 				static::cudPostmeta(
@@ -515,13 +557,141 @@ class Save
 					'dashi_search',
 					$str
 				);
+                $source = $post->post_title . "\0" . $post->post_content . "\0" . $generation . $policy . $epoch;
+                update_post_meta($post_id, Search::TEXT_INDEX_META, wp_slash(Search::packIndexValue($source, $str)));
 			}
 			else
 			{
 				delete_post_meta($post_id, 'dashi_search');
+                delete_post_meta($post_id, Search::TEXT_INDEX_META);
 			}
 		}
 	}
+
+    public static function refreshSearchIndex($post)
+    {
+        $class = P::post2class($post);
+        self::updateSearch($class, in_array($post->post_type, ['page', 'post'], true), $post->ID);
+    }
+
+    public static function refreshSearchAfterMetaChange($metaId, $postId, $key)
+    {
+        if (!self::canAffectSearchGeneration($key)) return;
+        if (!$postId) {
+            $batch = get_current_blog_id() . ':' . $key;
+            $posts = self::$bulkSearchDeletions[$batch] ?? [];
+            unset(self::$bulkSearchDeletions[$batch]);
+            if (isset(self::$incompleteBulkSearchDeletions[$batch])) {
+                unset(self::$incompleteBulkSearchDeletions[$batch]);
+                Search::invalidateSavedIndexEpoch();
+            }
+            foreach ($posts as $id) self::refreshSearchAfterMetaChange(null, $id, $key);
+            return;
+        }
+        $post = get_post($postId);
+        if (!$post || $post->post_type === 'revision') return;
+        $class = P::post2class($post);
+        if (!$class) return;
+        // 定義から外れているキーも、再登録されると旧索引に一致し得る。
+        self::rotateSearchGeneration($post);
+    }
+
+    private static function canAffectSearchGeneration($key)
+    {
+        return strpos($key, '_dashi_search_') !== 0
+            && !in_array($key, ['dashi_search', 'dashi_redirect_to', 'dashi_sticky', 'dashi_workflow',
+                'dashi_original_id', '_edit_lock', '_edit_last'], true);
+    }
+
+    public static function captureBulkSearchDeletion($delete, $postId, $key, $value, $deleteAll)
+    {
+        if ($delete !== null || !$deleteAll || !self::canAffectSearchGeneration($key)) {
+            return $delete;
+        }
+        global $wpdb;
+        $batch = get_current_blog_id() . ':' . $key;
+        unset(self::$bulkSearchDeletions[$batch]);
+        unset(self::$incompleteBulkSearchDeletions[$batch]);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 削除前の所有投稿の照合とDBエラーの検出。
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT meta_id, post_id FROM {$wpdb->postmeta} WHERE meta_key = %s",
+            $key
+        ));
+        if ($wpdb->last_error !== '' || !is_array($rows)) return false;
+        self::$bulkSearchDeletions[$batch] = array_column($rows, 'post_id', 'meta_id');
+        return $delete;
+    }
+
+    public static function matchBulkSearchDeletion($metaIds, $postId, $key)
+    {
+        if ($postId || !self::canAffectSearchGeneration($key)) return;
+        $batch = get_current_blog_id() . ':' . $key;
+        $known = self::$bulkSearchDeletions[$batch] ?? [];
+        $posts = [];
+        foreach ($metaIds as $metaId) {
+            $id = $known[$metaId] ?? null;
+            if (!$id) {
+                $row = get_metadata_by_mid('post', $metaId);
+                if (!$row) {
+                    // 削除対象を確認できないときは旧補助索引を一括で無効化する。
+                    self::$incompleteBulkSearchDeletions[$batch] = true;
+                    continue;
+                }
+                $id = $row->post_id;
+            }
+            $posts[$id] = $id;
+        }
+        self::$bulkSearchDeletions[$batch] = $posts;
+        if (isset(self::$incompleteBulkSearchDeletions[$batch])) Search::invalidateSavedIndexEpoch();
+    }
+
+    public static function publicSearchPolicy($class, $slug = null, $fields = null, $slugFields = null)
+    {
+        $fields = $fields ?? self::publicSearchFields($class, $slug, $slugFields);
+        if ($fields === null) return null;
+        $policy = [];
+        foreach ($fields as $key => $field) {
+            $policy[$key] = [isset($field['type']), $field['label'] ?? '', $field['options']];
+        }
+        ksort($policy, SORT_STRING);
+        return hash('sha256', $policy ? serialize($policy) : '');
+    }
+
+    public static function retrySearchGeneration($postId)
+    {
+        $post = get_post($postId);
+        if ($post && get_option(Search::FIELD_BLOCK_OPTION_PREFIX . $post->ID)) {
+            self::rotateSearchGeneration($post);
+        }
+    }
+
+    private static function rotateSearchGeneration($post)
+    {
+        $option = Search::FIELD_BLOCK_OPTION_PREFIX . $post->ID;
+        $blocked = get_option($option);
+        $args = [(int) $post->ID];
+        if (!update_post_meta($post->ID, Search::FIELD_GENERATION_META, wp_generate_uuid4())) {
+            update_option($option, wp_generate_uuid4(), false);
+            delete_post_meta($post->ID, Search::TEXT_INDEX_META);
+            if (!wp_next_scheduled(self::SEARCH_GENERATION_RETRY, $args)) {
+                wp_schedule_single_event(time() + MINUTE_IN_SECONDS, self::SEARCH_GENERATION_RETRY, $args);
+            }
+            return;
+        }
+
+        self::refreshSearchIndex($post);
+        if (!$blocked) return;
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 並行処理が追加した新しい停止状態は解除しない。
+        $cleared = $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s",
+            $option, $blocked
+        ));
+        if ($cleared) wp_cache_delete($option, 'options');
+        if (!$cleared && !wp_next_scheduled(self::SEARCH_GENERATION_RETRY, $args)) {
+            wp_schedule_single_event(time() + MINUTE_IN_SECONDS, self::SEARCH_GENERATION_RETRY, $args);
+        }
+    }
 
 	/**
 	 * update custom_fields
@@ -553,18 +723,12 @@ class Save
 	 *
 	 * @return Void
 	 */
-	private static function searchStr($class, $post_id)
+	private static function searchStr($class, $post, $fields = null)
 	{
-		$custom_fields = $class ? $class::get('custom_fields') : array();
-
+		$post_id = $post->ID;
 		// closure
 		$genStr = function ($post_id, $field_name, $fields, $strs)
 		{
-			// ★ options を解決
-			if (isset($fields['options'])) {
-				$fields['options'] = \Dashi\Core\Util::resolveOptions($fields['options']);
-			}
-
 			// stored value
 			$val = get_post_meta($post_id, $field_name);
 
@@ -575,7 +739,7 @@ class Save
 				{
 					foreach ($val as $v)
 					{
-						if (isset($fields['options'][$v]))
+						if ((is_int($v) || is_string($v)) && isset($fields['options'][$v]))
 						{
 							$strs[] = $fields['options'][$v];
 						}
@@ -583,13 +747,14 @@ class Save
 				}
 				else
 				{
-					if (isset($val[0]) && isset($fields['options'][$val[0]]))
+					if ((is_int($val[0] ?? null) || is_string($val[0] ?? null)) && isset($fields['options'][$val[0]]))
 					{
 						$strs[] = $fields['options'][$val[0]];
 					}
 					elseif (isset($val[0]))
 					{
-						$strs[] = is_array($val[0]) ? join(' ', $val[0]) : $val[0];
+						$strs[] = is_array($val[0]) ? join(' ', array_filter($val[0], 'is_scalar'))
+							: (is_scalar($val[0]) ? $val[0] : '');
 					}
 				}
 			}
@@ -604,39 +769,47 @@ class Save
 
 		// main loop
 		$strs = array();
-		foreach ($custom_fields as $field_name => $fields)
-		{
-			if (in_array($field_name, array('dashi_search', 'dashi_redirect_to', 'dashi_sticky', 'dashi_workflow'))) continue;
-			if (isset($fields['is_public_searchable']) && $fields['is_public_searchable'] === false) continue;
-
-			if (isset($fields['fields']))
-			{
-				foreach ($fields['fields'] as $inner_field_name => $inner_fields)
-				{
-					if (isset($inner_fields['is_public_searchable']) && $inner_fields['is_public_searchable'] === false) continue;
-					$strs = $genStr($post_id, $inner_field_name, $inner_fields, $strs);
-				}
-			}
-			else
-			{
-				$strs = $genStr($post_id, $field_name, $fields, $strs);
-			}
+		foreach (($fields ?? self::publicSearchFields($class, $post->post_name)) ?? [] as $field_name => $attributes) {
+			$strs = $genStr($post_id, $field_name, $attributes, $strs);
 		}
 		// add title
-		$post = get_post($post_id);
 		$strs[] = $post->post_title;
 
-		// expose shortcode
-		if (preg_match_all('/'.get_shortcode_regex().'/s', $post->post_content, $ms))
-		{
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
-				$strs[] = Search::generateSearchStr(apply_filters('the_content', $post->post_content));
-			}
+        // 索引には保存済みテキストだけを使い、ショートコードを実行しない。
+        $strs[] = Search::savedText($post->post_content);
 
 		$ret = join(' ', $strs);
 		$ret = Search::generateSearchStr($ret);
 
 		return $ret;
+	}
+
+	private static function publicSearchFields($class, $slug = null, $slugFields = null)
+	{
+		$definitions = $class ? CustomFields::searchFieldsForSlug($class, $slug, $slugFields) : [];
+		if ($definitions === null) return null;
+		$result = [];
+		foreach ($definitions as $key => $fields) {
+			if (!self::canAffectSearchGeneration($key) || !self::isPublicSearchField($fields)) continue;
+			foreach ($fields['fields'] ?? [$key => $fields] as $field => $attributes) {
+				if (!self::canAffectSearchGeneration($field) || !self::isPublicSearchField($attributes)) continue;
+				$options = $attributes['options'] ?? null;
+				// 動的な選択肢は、公開検索で実行せずにラベルの公開範囲を検証できない。
+				if (is_callable($options)) continue;
+				$attributes['options'] = is_array($options) ? array_filter($options, 'is_scalar') : [];
+				if (isset($attributes['label']) && !is_scalar($attributes['label'])) unset($attributes['label']);
+				ksort($attributes['options'], SORT_STRING);
+				$result[$field] = $attributes;
+			}
+		}
+		return $result;
+	}
+
+	private static function isPublicSearchField(array $field)
+	{
+		$searchable = $field['is_public_searchable'] ?? null;
+		return ($field['store_data'] ?? true) != false && $searchable !== false
+			&& (empty($field['private_form_only']) || $searchable === true);
 	}
 
 	/**
@@ -646,9 +819,11 @@ class Save
 	 */
 	public static function showMessages()
 	{
-		if (!current_user_can('edit_posts')) return;
+		$post_id = filter_var(Input::get('post'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+		if (!$post_id || !get_current_user_id() || !current_user_can('edit_post', $post_id)) return;
 
-		$messages = get_transient('dashi_errors');
+		$key = self::saveNoticeKey($post_id);
+		$messages = get_transient($key);
 		if ($messages)
 		{
 			$html = '<div class="notice error is-dismissible"><section><ul>';
@@ -658,8 +833,13 @@ class Save
 			}
 			$html.= '</ul></section></div>';
 				echo wp_kses_post($html);
-			delete_transient('dashi_errors');
+			delete_transient($key);
 		}
+	}
+
+	private static function saveNoticeKey($post_id)
+	{
+		return 'dashi_errors_' . get_current_user_id() . '_' . (int) $post_id;
 	}
 
 	/*
@@ -674,19 +854,33 @@ class Save
 	 */
 	public static function autoPostSlug ($override_slug, $slug, $post_ID, $post_status, $post_type, $post_parent)
 	{
+		static $checking = false;
+		if ($checking || $override_slug !== null) return $override_slug;
 		$class = Posttype::getInstance($post_type);
-		if ( ! $class || ! $class::get('is_use_force_ascii_slug')) return $override_slug;
+		if (!$class || !$class::get('is_use_force_ascii_slug')) return $override_slug;
 
-		if (Input::post('dashi_bind_slug'))
-		{
-			$slug = esc_html(Input::post('dashi_bind_slug'));
-			return $slug;
+		$candidate = '';
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- 候補は sanitize_title() に通す。
+		$bound = wp_unslash($_POST['dashi_bind_slug'] ?? '');
+		if (is_string($bound) && $bound !== '' && is_admin() && current_user_can('edit_post', $post_ID)) {
+			$request = Input::post();
+			$nonce = $request['_wpnonce'] ?? '';
+			if (filter_var($request['post_ID'] ?? '', FILTER_VALIDATE_INT) === (int) $post_ID
+				&& is_string($nonce) && wp_verify_nonce($nonce, 'update-post_' . $post_ID)) {
+				$candidate = sanitize_title($bound);
+			}
 		}
-		elseif (preg_match('/(%[0-9a-f]{2})+/', $slug))
-		{
-			$slug = utf8_uri_encode($post_type) . '-' . $post_ID;
-			return $slug;
+		if ($candidate === '' && preg_match('/(%[0-9a-f]{2})+/', $slug)) {
+			$candidate = utf8_uri_encode($post_type) . '-' . $post_ID;
 		}
-		return $override_slug;
+		if ($candidate === '' || $candidate === $slug) return $override_slug;
+
+		// 候補を差し替えた後も、WordPressの重複・予約語チェックを通す。
+		$checking = true;
+		try {
+			return wp_unique_post_slug($candidate, $post_ID, $post_status, $post_type, $post_parent);
+		} finally {
+			$checking = false;
+		}
 	}
 }

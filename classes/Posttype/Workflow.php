@@ -39,9 +39,11 @@ class Workflow
 	 *
 	 * @return  void
 	 */
-	public static function _addLinkOnTopPosts ()
+	public static function _addLinkOnTopPosts ($query)
 	{
+		if (!$query->is_main_query()) return;
 		$screen = get_current_screen();
+		if (!$screen || $screen->base !== 'edit') return;
 		add_filter(
 			'views_'.$screen->id,
 			array('\\Dashi\\Core\\Posttype\\Workflow', 'addLinkOnTopPosts')
@@ -59,48 +61,37 @@ class Workflow
 		if ( ! is_admin()) return $views;
 		if (count($views) == 0) return $views;
 
-		global $wp_query, $wpdb;
-
-		if ( ! isset($wp_query->query['post_type'])) return $views;
-
-		$post_type = $wp_query->query['post_type'];
-
-		// edit_others_postsかそれに準じたhas_cap
-		if (
-			! current_user_can('edit_others_posts') &&
-			! current_user_can('edit_others_'.$post_type)
-		) return $views;
+        global $wp_query;
+        $post_type = $wp_query->get('post_type');
+        if (!self::canReview($post_type)) return $views;
 
 		// 生成
 		$tail = array_slice($views, -1, 1, true);
 		$views = array_slice($views, 0, -1, true);
 
-		// count
-			$waiting = new \Wp_Query(array(
-				'post_type'  => $post_type,
-				'status'     => 'draft',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_key'   => 'dashi_workflow',
-				'compare'    => '=',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-				'meta_value' => 'waiting',
-			));
+        // 承認待ちと通常の下書きを、対象投稿タイプの権限で閲覧できる利用者に数える。
+        $count_args = [
+            'post_type' => $post_type,
+            'post_status' => 'draft',
+            'posts_per_page' => 1,
+            'fields' => 'ids',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+            'meta_key' => 'dashi_workflow',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+            'meta_value' => 'waiting',
+        ];
+        $waiting = new \WP_Query($count_args);
+        $draft = new \WP_Query($count_args + ['meta_compare' => '!=']);
 
-			$draft = new \Wp_Query(array(
-				'post_type'  => $post_type,
-				'status'     => 'draft',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_key'   => 'dashi_workflow',
-				'compare'    => '!=',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-				'meta_value' => 'waiting',
-			));
-
-		// link for approve
-		if ($waiting->post_count)
-		{
-			$views['waiting'] = '<a href="edit.php?post_status=draft&amp;post_type='.$post_type.'&amp;dashi_workflow=1">'.__('Approve', 'dashi').'</a> ('.$waiting->post_count.')';
-		}
+        if ($waiting->found_posts) {
+            $url = add_query_arg([
+                'post_status' => 'draft',
+                'post_type' => $post_type,
+                'dashi_workflow' => '1',
+            ], admin_url('edit.php'));
+            $views['waiting'] = '<a href="' . esc_url($url) . '">' . esc_html__('Approve', 'dashi')
+                . '</a> (' . (int) $waiting->found_posts . ')';
+        }
 
 		// recover
 		$views[key($tail)] = $tail[key($tail)];
@@ -116,7 +107,7 @@ class Workflow
 			}
 
 			// currentを与える
-			if (isset($views['draft']))
+			if (isset($views['waiting']))
 			{
 				$views['waiting'] = str_replace('<a ', '<a class="current"', $views['waiting']);
 			}
@@ -127,7 +118,7 @@ class Workflow
 		{
 			$views['draft'] = preg_replace(
 				'/\(\d+\)/',
-				'('.$draft->post_count.')',
+				'('.$draft->found_posts.')',
 				$views['draft']
 			);
 		}
@@ -140,29 +131,29 @@ class Workflow
 	 *
 	 * @return  void
 	 */
-	public static function setQueryShowWaiting ()
-	{
-		if ( ! is_admin()) return;
-		global $wp_query, $wpdb;
+    public static function setQueryShowWaiting ($query)
+    {
+        if (!is_admin() || !$query->is_main_query() || $query->get('post_status') !== 'draft') return;
+        $screen = get_current_screen();
+        if (!$screen || $screen->base !== 'edit' || $screen->post_type !== $query->get('post_type')) return;
 
-		if ( ! isset($wp_query->query['post_type'])) return;
-		$post_type = $wp_query->query['post_type'];
+        $workflow = filter_input(INPUT_GET, 'dashi_workflow', FILTER_UNSAFE_RAW);
+        $showWaiting = $workflow !== null && $workflow !== false && self::canReview($screen->post_type);
 
-		// dashi_workflowの有無でdraftの表示内容を変更する
-		if(isset($wp_query->query['post_status']) && $wp_query->query['post_status'] == 'draft')
-		{
-				$dashi_workflow = filter_input(INPUT_GET, 'dashi_workflow', FILTER_UNSAFE_RAW);
-				$comparison_operator = ($dashi_workflow !== null && $dashi_workflow !== false) ? '=' : '!=';
-			$wp_query->set('meta_query', array(
-				array(
-					'key'     => 'dashi_workflow',
-					'compare' => $comparison_operator,
-					'value'   => 'waiting',
-				),
-			));
-		}
-	}
+        $condition = [
+            'key' => 'dashi_workflow',
+            'compare' => $showWaiting ? '=' : '!=',
+            'value' => 'waiting',
+        ];
+        $existing = $query->get('meta_query');
+        $query->set('meta_query', $existing ? ['relation' => 'AND', $existing, $condition] : [$condition]);
+    }
 
-
-
+    private static function canReview($post_type)
+    {
+        if (!is_string($post_type) || $post_type === '') return false;
+        $type = get_post_type_object($post_type);
+        return $type && current_user_can($type->cap->edit_posts)
+            && current_user_can($type->cap->edit_others_posts);
+    }
 }

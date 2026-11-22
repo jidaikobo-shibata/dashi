@@ -24,6 +24,9 @@ if (have_posts()):
 <?php
 while (have_posts()): the_post();
 
+$dashi_summary = \Dashi\Core\Posttype\Search::resultSummary($post);
+if ($dashi_summary === null) continue;
+
 // post type
 $dashi_additional_information = '';
 $dashi_post_type = get_post_type($post);
@@ -46,10 +49,6 @@ if ( ! in_array($dashi_post_type, array('post', 'page')))
     }
 }
 
-// summary
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook を利用。
-$dashi_summary = $post->post_excerpt ?: apply_filters('the_content', $post->post_content);
-$dashi_summary = trim($dashi_summary);
 ?>
 
 <dt><a href="<?php echo esc_url(get_permalink($post->ID)); ?>"><?php echo esc_html($post->post_title ?: __('(No Subject)', 'dashi')); ?></a><?php echo wp_kses_post($dashi_additional_information); ?></dt>

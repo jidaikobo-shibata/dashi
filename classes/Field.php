@@ -22,6 +22,21 @@ class Field
             '" data-dashi-filter-target="' . esc_attr($filter_id) . '" placeholder="' .
             esc_attr($label) . '" />';
     }
+    /** テーマが直接出力する旧ピッカー欄にも使える。 */
+    public static function enqueueDatePicker($withTime = false)
+    {
+        wp_enqueue_style('dashi_date_picker', plugins_url('assets/css/date-picker.css', DASHI_FILE), [], '1.0');
+        wp_enqueue_script('dashi_date_picker', plugins_url('assets/js/date-picker.js', DASHI_FILE), ['jquery-ui-datepicker'], '1.0', true);
+        if ($withTime) {
+            wp_enqueue_style('dashi_datetimepicker_css', plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE), ['dashi_date_picker'], '1.1');
+            wp_enqueue_script('dashi_js_timepicker', plugins_url('assets/js/jquery-ui-timepicker-addon.js', DASHI_FILE), ['jquery-ui-datepicker'], '1.1', true);
+            $scripts = wp_scripts();
+            if (!in_array('dashi_js_timepicker', $scripts->registered['dashi_date_picker']->deps, true)) {
+                $scripts->registered['dashi_date_picker']->deps[] = 'dashi_js_timepicker';
+            }
+        }
+    }
+
     /*
      * input_base
      */
@@ -34,6 +49,10 @@ class Field
         $template = ''
     )
     {
+        $classes = preg_split('/\s+/', is_string($attrs['class'] ?? null) ? $attrs['class'] : '', -1, PREG_SPLIT_NO_EMPTY);
+        $withTime = in_array('dashi_datetimepicker', $classes, true);
+        if ($withTime || in_array('dashi_datepicker', $classes, true)) self::enqueueDatePicker($withTime);
+
         if ( ! isset($attrs['style']) && ! isset($attrs['size'])) $attrs['style'] = 'width:100%;';
         $template = $template ?: '<span class="dashi_description">{description}</span>
 <input type="{type}" name="{name}" value="{value}" {attr}>';

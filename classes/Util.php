@@ -14,6 +14,31 @@ if (!defined('ABSPATH')) exit;
 
 class Util
 {
+    /** クエリーを実行せず、コールバックの間だけ個別投稿の条件分岐を使えるようにする。 */
+    public static function withSingularPostQuery(\WP_Post $post, callable $callback)
+    {
+        $context = new \WP_Query();
+        $context->queried_object = $post;
+        $context->queried_object_id = $post->ID;
+        $context->is_singular = true;
+        $context->is_page = $post->post_type === 'page';
+        $context->is_attachment = $post->post_type === 'attachment';
+        $context->is_single = !$context->is_page;
+
+        $hadQuery = array_key_exists('wp_query', $GLOBALS);
+        $previous = $GLOBALS['wp_query'] ?? null;
+        $GLOBALS['wp_query'] = $context;
+        try {
+            return $callback();
+        } finally {
+            if ($hadQuery) {
+                $GLOBALS['wp_query'] = $previous;
+            } else {
+                unset($GLOBALS['wp_query']);
+            }
+        }
+    }
+
 	/**
 	 * 旧自前オートローダー互換用
 	 *
@@ -292,10 +317,88 @@ class Util
 	 */
 	public static function is_url_exists($url, $method = 'header')
 	{
-	//	$response = static::curl($method, $url);
-		$response = wp_remote_get($url, array('timeout' => 10, 'sslverify' => false,));
-		return $response['headers']['status'] == '200 OK';
+        $response = self::diagnosticGet($url);
+        if (is_wp_error($response)) return null;
+        $status = (int) wp_remote_retrieve_response_code($response);
+        if (($status >= 200 && $status < 300) || ($method === 'post' && $status === 405)) return true;
+        return in_array($status, [401, 403, 404, 410], true) ? false : null;
 	}
+
+    public static function diagnosticGet($url)
+    {
+        return self::getUncompressedResponse($url, 5, 128 * 1024);
+    }
+
+    public static function getUncompressedResponse($url, $timeout, $maxBytes, array $headers = [])
+    {
+        $disableCurlDecoding = static function ($handle, $args, $requestUrl) use ($url) {
+            if ($requestUrl === $url && defined('CURLOPT_HTTP_CONTENT_DECODING')) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt -- WordPress HTTP API が管理する接続で自動展開だけを止める。
+                curl_setopt($handle, CURLOPT_HTTP_CONTENT_DECODING, false);
+            }
+        };
+        $validateResponse = static function (&$raw, $requestUrl) use ($url, $maxBytes) {
+            if (!is_string($raw) || ($requestUrl !== $url && $requestUrl !== self::normalizeRequestsUrl($url))) return;
+            $end = strpos($raw, "\r\n\r\n");
+            // Requests はこのフックの後に本文を展開するため、ここで符号化された応答を拒否する。
+            if ($end === false || strlen($raw) - $end - 4 >= $maxBytes
+                || preg_match('/(?:\A|\r\n)Content-Encoding[ \t]*:/i', substr($raw, 0, $end))) {
+                $raw = self::discardUnsafeResponseBody($end === false ? '' : substr($raw, 0, $end));
+            }
+        };
+        add_action('http_api_curl', $disableCurlDecoding, 10, 3);
+        add_action('requests-requests.before_parse', $validateResponse, 10, 2);
+        try {
+            return wp_safe_remote_get($url, [
+                'timeout' => $timeout,
+                'sslverify' => true,
+                'redirection' => 0,
+                'limit_response_size' => $maxBytes,
+                'decompress' => false,
+                'headers' => ['Accept-Encoding' => 'identity'] + $headers,
+            ]);
+        } finally {
+            remove_action('requests-requests.before_parse', $validateResponse, 10);
+            remove_action('http_api_curl', $disableCurlDecoding, 10);
+        }
+    }
+
+    private static function discardUnsafeResponseBody($head)
+    {
+        $lines = explode("\r\n", $head);
+        $status = array_shift($lines);
+        // 本文なしの成功応答を返すと、呼び出し元が取得成功と判断してしまう。
+        if (!preg_match('/\AHTTP\/[0-9.]+ [345][0-9]{2}(?:[ \t][^\r\n]*)?\z/', $status)) {
+            $status = 'HTTP/1.1 502 Bad Gateway';
+        }
+        $headers = [];
+        foreach ($lines as $line) {
+            if (preg_match('/\A(?:Location|X-Robots-Tag|CF-Mitigated):[^\r\n]*\z/i', $line)) {
+                $headers[] = $line;
+            }
+        }
+        $headers[] = 'Content-Length: 0';
+        return $status . "\r\n" . implode("\r\n", $headers) . "\r\n\r\n";
+    }
+
+    /** Requests は応答フックを呼ぶ前にホスト名やパスを正規化する。 */
+    private static function normalizeRequestsUrl($url)
+    {
+        try {
+            if (class_exists('WpOrg\\Requests\\Iri')) {
+                $iri = new \WpOrg\Requests\Iri($url);
+                $iri->host = \WpOrg\Requests\IdnaEncoder::encode($iri->ihost);
+            } elseif (class_exists('Requests_IRI')) {
+                $iri = new \Requests_IRI($url);
+                $iri->host = \Requests_IDNAEncoder::encode($iri->ihost);
+            } else {
+                return $url;
+            }
+            return $iri->uri;
+        } catch (\Throwable $error) {
+            return $url;
+        }
+    }
 
 	/**
 	 * error

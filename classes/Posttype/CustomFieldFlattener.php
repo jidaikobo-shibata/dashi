@@ -24,6 +24,9 @@ class CustomFieldFlattener
 
             foreach ($field['fields'] as $field_key => $field_value)
             {
+                if (!empty($field['private_form_only']) || !empty($custom_fields[$field_key]['private_form_only'])) {
+                    $field_value['private_form_only'] = true;
+                }
                 $custom_fields[$field_key] = $field_value;
                 unset($custom_fields[$key]['fields'][$field_key]);
             }

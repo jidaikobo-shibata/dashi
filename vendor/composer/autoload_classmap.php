@@ -50,6 +50,8 @@ return array(
     'Dashi\\Core\\Posttype\\PosttypeVirtualRegistry' => $baseDir . '/classes/Posttype/PosttypeVirtualRegistry.php',
     'Dashi\\Core\\Posttype\\Preview' => $baseDir . '/classes/Posttype/Preview.php',
     'Dashi\\Core\\Posttype\\PublicForm' => $baseDir . '/classes/Posttype/PublicForm.php',
+    'Dashi\\Core\\Posttype\\PublicFormState' => $baseDir . '/classes/Posttype/PublicFormState.php',
+    'Dashi\\Core\\Posttype\\PublicUploadBlob' => $baseDir . '/classes/Posttype/PublicUploadBlob.php',
     'Dashi\\Core\\Posttype\\PublicUploadStore' => $baseDir . '/classes/Posttype/PublicUploadStore.php',
     'Dashi\\Core\\Posttype\\Redirect' => $baseDir . '/classes/Posttype/Redirect.php',
     'Dashi\\Core\\Posttype\\Revisions' => $baseDir . '/classes/Posttype/Revisions.php',

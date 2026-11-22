@@ -1,10 +1,14 @@
 <?php
 namespace Dashi\Core;
 
+use Dashi\Core\Posttype\Csv;
+
 if (!defined('ABSPATH')) exit;
 
 class Option
 {
+	public const ALTERNATE_CRON = 'dashi_alternate_wp_cron';
+
 	private static function getSettingPageAllowedHtml()
 	{
 		return array(
@@ -56,7 +60,7 @@ class Option
 		'dashi_sitemap_depth_of_page' => 'set depth of page od [dashi_sitemap] (0 to ignore page)',
 		'dashi_public_form_done_sendmail' => 'Send a mail when public form used.',
 		'dashi_another_done_sendmail' => 'Send a mail when Another content updated.',
-		'dashi_keep_ssl_connection' => 'Keep SSL connection except for GuzzleHttp access.',
+		'dashi_keep_ssl_connection' => 'Require HTTPS for frontend pages and public forms.',
 		'dashi_do_eliminate_utf_separation' => 'eliminate utf separation when saving post.',
 
 		'dashi_no_need_analytics' => 'No need to check Google Analytics (error suppress)',
@@ -80,6 +84,7 @@ class Option
 		'dashi_auto_update_theme' => 'Auto Update (Theme)',
 		'dashi_auto_update_plugin' => 'Auto Update (Plugin)',
 		'dashi_auto_update_language' => 'Auto Update (Language)',
+		self::ALTERNATE_CRON => 'Use WordPress alternate cron spawning',
 
 		'dashi_specify_search_index' => 'Specify search index page, when url is not come up to search result. Input URL for each line.',
 	);
@@ -106,31 +111,51 @@ class Option
 			if (!is_string($nonce) || !wp_verify_nonce($nonce, 'dashi_save_options')) return;
 
 			$posts = Input::post();
+			$text_options = [
+				'dashi_sitemap_depth_of_page',
+				'dashi_google_map_api_key',
+				'dashi_sitemap_home_string',
+				'dashi_specify_search_index',
+			];
+			foreach (array_keys(static::$opts) as $key) {
+				if (isset($posts[$key]) && !is_string($posts[$key])) return;
+			}
 
-			// checkboxes
-			foreach (array_keys(static::$opts) as $v)
-			{
-				delete_option($v);
-				if (isset($posts[$v]))
-				{
-					if (in_array($v, array(
-								'dashi_sitemap_depth_of_page',
-								'dashi_google_map_api_key',
-								'dashi_sitemap_home_string',
-								'dashi_specify_search_index'
-							)
-						)
-					)
-					{
-						update_option($v, esc_html($posts[$v]));
-					}
-					else
-					{
-						update_option($v, 1);
-					}
+			update_option(
+				Csv::POST_TYPES_OPTION,
+				Csv::filterPostTypeSelection($posts[Csv::POST_TYPES_OPTION] ?? array())
+			);
+
+			foreach (array_keys(static::$opts) as $key) {
+				if (!isset($posts[$key])) {
+					delete_option($key);
+					continue;
 				}
+
+				// 保存中も、有効なHTTPS等の設定を一時的に無効化しない。
+				$value = in_array($key, $text_options, true) ? esc_html($posts[$key]) : 1;
+				update_option($key, $value);
 			}
 		}
+	}
+
+	private static function csvPostTypeSettings()
+	{
+		$selected = Csv::filterPostTypeSelection(get_option(Csv::POST_TYPES_OPTION, array()));
+		$html = '<fieldset><legend>'
+			. esc_html__('Post types allowed for CSV export', 'dashi') . '</legend>';
+		$html .= '<p>' . esc_html__(
+			'Select the post types you want to export from the dashboard. If none are selected, CSV export is unavailable.',
+			'dashi'
+		) . '</p>';
+		foreach (Csv::getConfigurablePostTypes() as $post_type) {
+			$html .= '<p><label><input type="checkbox" name="' . esc_attr(Csv::POST_TYPES_OPTION)
+				. '[]" value="' . esc_attr($post_type->name) . '"'
+				. checked(in_array($post_type->name, $selected, true), true, false)
+				. ' /> ' . esc_html($post_type->label) . ' <code>' . esc_html($post_type->name)
+				. '</code></label></p>';
+		}
+		return $html . '</fieldset>';
 	}
 
 	/*
@@ -166,6 +191,15 @@ class Option
 			$checked = $opt ? ' checked="checked"' : '';
 				// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 				$html.= '<p><label><input type="checkbox" name="'.$k.'" value="1"'.$checked.' />'.__($v, 'dashi').'</label></p>';
+			if ($k === 'dashi_show_csv_export_dashboard') {
+				$html .= self::csvPostTypeSettings();
+			}
+			if ($k === self::ALTERNATE_CRON) {
+				$html .= '<p>' . esc_html__(
+					'Use this when WordPress cannot reach its own cron URL. A page request must reach WordPress. Constants set in wp-config.php take precedence.',
+					'dashi'
+				) . '</p>';
+			}
 		}
 
 		// Google Map

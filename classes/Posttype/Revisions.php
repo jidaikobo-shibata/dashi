@@ -56,6 +56,16 @@ class Revisions
 		}
 	}
 
+    public static function storedFieldKeys($class, array $keys)
+    {
+        $fields = $class::getFlatCustomFields();
+        return array_filter($keys, static function ($key) use ($fields) {
+            if (!is_string($key) || $key === '') return false;
+            $definition = $fields[$key] ?? $fields[str_replace('[0]', '', $key)] ?? [];
+            return ($definition['store_data'] ?? true) != false;
+        });
+    }
+
 	/**
 	 * wp_restore_post_revisionへのhook
 	 * リビジョンからの復元
@@ -69,7 +79,7 @@ class Revisions
 		$class = P::postid2class($post_id);
 		if ( ! $class) return;
 
-		foreach ($class::getCustomFieldsKeys(true) as $key)
+		foreach (self::storedFieldKeys($class, $class::getCustomFieldsKeys(true)) as $key)
 		{
 			$vals = get_post_meta($revision_id, $key);
 			if (empty($vals)) continue;
@@ -112,7 +122,7 @@ class Revisions
 		$key = substr($column, 0, -14); // remove _debug-preview
 
 		// 当該ポストタイプのカスタムフィールドのみ表示する
-		if ( ! in_array($key, $class::getCustomFieldsKeys())) return $output;
+		if ( ! in_array($key, self::storedFieldKeys($class, $class::getCustomFieldsKeys()), true)) return $output;
 
 		// 値の取得
 		$custom_fields = $class::get('custom_fields');

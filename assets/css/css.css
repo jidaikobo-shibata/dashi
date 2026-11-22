@@ -77,29 +77,6 @@ label.disabled:hover
 	font-weight: bold;
 }
 
-/* date picker */
-
-div#ui-datepicker-div.dashi_datepicker {
-	background: #fefefe;
-	padding: 5px 10px;
-	border-radius: 3px;
-	box-shadow: 0 0 3px rgba(0,0,0,.3);
-}
-.dashi_datepicker .ui-datepicker-header {
-	position: relative;
-}
-.dashi_datepicker .ui-datepicker-next {
-	position: absolute;
-	right: 0;
-}
-.dashi_datepicker .ui-datepicker-title {
-	text-align: center;
-}
-.dashi_datepicker .ui-datepicker-calendar td {
-	padding: 3px;
-	text-align: center;
-}
-
 /* description */
 
 .dashi_fields_description

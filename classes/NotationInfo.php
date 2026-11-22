@@ -42,35 +42,21 @@ trait NotationInfo
 	{
 		if (!Notation::currentUserCanViewEditorDashboardWidgets()) return;
 
-		$args = array(
-			'posts_per_page' => -1,
-			'post_type' => 'any',
-			'post_status' => 'future',
-		);
-		$future = get_posts($args);
-
-		$args = array(
-			'posts_per_page' => -1,
-			'post_type' => 'any',
-			'post_status' => 'pending',
-		);
-		$pending = get_posts($args);
-
-		$args = array(
-			'posts_per_page' => -1,
-			'post_type' => 'any',
-			'post_status' => 'draft',
-		);
-		$draft = get_posts($args);
-
-		$args = array(
-			'posts_per_page' => -1,
-			'post_type' => 'any',
-			'post_status' => 'private',
-		);
-		$private = get_posts($args);
-
-		$posts = array_merge($future, $pending, $draft, $private);
+		$posts = [];
+		foreach (['future', 'pending', 'draft', 'private'] as $status) {
+			$candidates = get_posts([
+				'posts_per_page' => -1,
+				'post_type' => 'any',
+				'post_status' => $status,
+				'suppress_filters' => false,
+			]);
+			foreach ($candidates as $post) {
+				if ($post instanceof \WP_Post && $post->post_status === $status
+					&& current_user_can('edit_post', $post->ID)) {
+					$posts[] = $post;
+				}
+			}
+		}
 
 		if ( ! $posts) return;
 

@@ -213,49 +213,47 @@ abstract class Base
      */
     public static function rebuildCustomFields($class, $post_name, $post_type)
     {
-        $dir = get_stylesheet_directory() . "/slug_custom_fields/";
-        $files = glob($dir . "*.php");
+        if (P::class2posttype($class) !== $post_type) return;
+        $fields = self::slugCustomFields($post_name);
+        if (!$fields) return;
 
-        foreach ($files as $filename)
-        {
-            $basename = basename($filename, '.php');
+        C::rememberSearchBase($class);
+        $class::set('custom_fields', array_merge($class::get('custom_fields'), $fields));
+        C::setExpectedKeys();
+    }
 
-            // セキュリティ: ファイル名のバリデーション（英数字とアンダースコアのみ許可）
-            if (!preg_match('/^[a-zA-Z0-9_]+$/', $basename)) {
-                continue;
-            }
-
-            // post_nameが一致していなければスキップ
-            if ($basename !== $post_name) {
-                continue;
-            }
-
-            // post_typeの一致チェック
-            if (P::class2posttype($class) !== $post_type) {
-                continue;
-            }
-
-            // ファイルが読み込み可能か確認
-            if (!is_readable($filename)) {
-                continue;
-            }
-
-            include_once($filename);
-
-            $slug_class_name = '\\Dashi\\Slug\\' . ucfirst($basename);
-            if (!class_exists($slug_class_name)) {
-                continue;
-            }
-
-            $slug_custom_fields = $slug_class_name::__init();
-
-            $custom_fields = $class::get('custom_fields');
-            $class::set('custom_fields', array_merge($custom_fields, $slug_custom_fields));
-
-            C::setExpectedKeys();
-
-            break;
+    public static function slugCustomFields($slug)
+    {
+        if (!is_string($slug) || !preg_match('/\A[a-zA-Z0-9_]+\z/', $slug)) return [];
+        $directory = get_stylesheet_directory() . '/slug_custom_fields';
+        if (is_dir($directory) && !is_readable($directory)) return null;
+        $file = $directory . '/' . $slug . '.php';
+        if (!file_exists($file) && !is_link($file)) return [];
+        if (!is_file($file) || !is_readable($file)) return null;
+        try {
+            include_once $file;
+            $class = '\\Dashi\\Slug\\' . ucfirst($slug);
+            if (!class_exists($class, false) || !is_callable([$class, '__init'])) return null;
+            $fields = $class::__init();
+            return is_array($fields) ? $fields : null;
+        } catch (\Throwable $error) {
+            return null;
         }
+    }
+
+    public static function customFieldSlugs()
+    {
+        $slugs = [];
+        $directory = get_stylesheet_directory() . '/slug_custom_fields';
+        if (!file_exists($directory) && !is_link($directory)) return [];
+        if (!is_dir($directory) || !is_readable($directory)) return null;
+        $files = glob($directory . '/*.php', GLOB_ERR);
+        if ($files === false) return null;
+        foreach ($files as $file) {
+            $slug = basename($file, '.php');
+            if (preg_match('/\A[a-zA-Z0-9_]+\z/', $slug)) $slugs[] = $slug;
+        }
+        return $slugs;
     }
 
 	/**

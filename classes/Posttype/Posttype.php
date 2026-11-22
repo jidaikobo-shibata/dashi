@@ -106,6 +106,14 @@ class Posttype
 
 		// save hook
 		add_action('save_post', array('\\Dashi\\Core\\Posttype\\Save', 'updateCustomFields'));
+        add_action('save_post', [Search::class, 'updatePagePartIndex'], 10, 2);
+        foreach (['added_post_meta', 'updated_post_meta', 'deleted_post_meta'] as $hook) {
+            add_action($hook, [Save::class, 'refreshSearchAfterMetaChange'], 10, 3);
+        }
+        add_filter('delete_post_metadata', [Save::class, 'captureBulkSearchDeletion'], PHP_INT_MAX, 5);
+        add_action('delete_post_meta', [Save::class, 'matchBulkSearchDeletion'], PHP_INT_MAX, 3);
+        add_action(Save::SEARCH_GENERATION_RETRY, [Save::class, 'retrySearchGeneration']);
+        add_action(Search::SAVED_INDEX_EPOCH_RETRY, [Search::class, 'retrySavedIndexEpoch']);
 		// taxonomy は registerTaxonomy() で登録する CustomFieldsCategories::saveHook() に集約する。
 		// SaveCategories クラス自体は、外部コードとの下位互換性のため残す。
 
@@ -125,11 +133,12 @@ class Posttype
 		add_action('current_screen', array('\\Dashi\\Core\\Posttype\\Help', 'hook'));
 
 		// search hook
-		if ( ! is_admin() && get_option('dashi_enrich_search_result_page'))
+		if ((!is_admin() || wp_doing_ajax()) && get_option('dashi_enrich_search_result_page'))
 		{
 			add_action('posts_request', array('\\Dashi\\Core\\Posttype\\Search', 'postsRequest'), 1, 2);
 			add_action('posts_join', array('\\Dashi\\Core\\Posttype\\Search', 'searchJoin'), 1, 2);
-			add_filter('posts_search', array('\\Dashi\\Core\\Posttype\\Search', 'searchFields'), 1, 2);
+			// コアが作った検索条件を、連携プラグインが組み替える前に置き換える。
+			add_filter('posts_search', [Search::class, 'searchFields'], PHP_INT_MIN, 2);
 			add_filter('posts_distinct', array('\\Dashi\\Core\\Posttype\\Search', 'searchDistinct'), 1, 2);
 			add_action('posts_where', array('\\Dashi\\Core\\Posttype\\Search', 'searchExclude'), 1, 2);
 			add_action('posts_orderby', array('\\Dashi\\Core\\Posttype\\Search', 'searchOrderby'), 1, 2);
@@ -138,21 +147,25 @@ class Posttype
 		// check
 		// \Dashi\Core\Posttype\Search::addPages();
 
-		// activate hook
-		register_activation_hook(
-			DASHI_FILE,
-			function ()
-			{
-				wp_schedule_event(time(), "daily", "dashi_cron_hook");
-			}
-		);
 		add_action('dashi_cron_hook', array('\\Dashi\\Core\\Posttype\\Search', 'addPages'));
+		add_filter('pre_update_option_home', [Search::class, 'guardCrawlHomeChange'], PHP_INT_MAX, 2);
+		add_action('init', [Search::class, 'trackCrawlHome']);
+		add_action(Search::CRAWL_CONTINUATION, [Search::class, 'addPages']);
+		add_action('pre_get_posts', [Search::class, 'filterPublicIndexQueries'], PHP_INT_MAX);
+		add_filter('posts_where', [Search::class, 'excludeStaleIndexes'], 10, 2);
+		add_filter('posts_request', [Search::class, 'skipSearchCountInResultQuery'], PHP_INT_MAX, 2);
+		add_filter('posts_pre_query', [Search::class, 'excludeExternalCrawlIndexes'], PHP_INT_MAX, 2);
+		add_filter('found_posts_query', [Search::class, 'keepNativeSearchCountQuery'], PHP_INT_MAX, 2);
+		add_filter('found_posts', [Search::class, 'keepNativeSearchCount'], PHP_INT_MAX, 2);
+		add_action('admin_notices', [Search::class, 'crawlNotice']);
 
 		register_deactivation_hook(
 			DASHI_FILE,
 			function ()
 			{
 				wp_clear_scheduled_hook('dashi_cron_hook');
+				wp_clear_scheduled_hook(Search::CRAWL_CONTINUATION);
+				// 未処理の非表示と完了状態は、再有効化後の巡回に引き継ぐ。
 			});
 
 		// admin assets
@@ -160,18 +173,12 @@ class Posttype
 			'wp_enqueue_scripts',
 			function ()
 			{
-					wp_enqueue_style(
-						'dashi_datetimepicker_css',
-						plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE),
-						array(),
-						'1.1'
-					);
 
 					wp_enqueue_style(
 						'dashi_css',
 						plugins_url('assets/css/css.css', DASHI_FILE),
 						array(),
-						'1.1'
+						'1.2'
 					);
 
 				if (get_option('dashi_google_map_api_key'))
@@ -187,18 +194,10 @@ class Posttype
 				}
 
 				wp_enqueue_script(
-					'dashi_js_timepicker',
-					plugins_url('assets/js/jquery-ui-timepicker-addon.js', DASHI_FILE),
-					array('jquery-ui-datepicker'),
-					'1.1',
-					true
-				);
-
-				wp_enqueue_script(
 					'dashi_js',
 					plugins_url('assets/js/js.js', DASHI_FILE),
-					array('jquery-ui-datepicker'),
-					'1.1',
+					array('jquery'),
+					'1.2',
 					true
 				);
 			}
@@ -222,34 +221,18 @@ class Posttype
 					);
 
 				wp_enqueue_script(
-					'dashi_js_timepicker',
-					plugins_url('assets/js/jquery-ui-timepicker-addon.js', DASHI_FILE),
-					array('jquery-ui-datepicker'),
-					'1.1',
-					true
-				);
-
-				wp_enqueue_script(
 					'dashi_js',
 					plugins_url('assets/js/js.js', DASHI_FILE),
-					array('jquery-ui-datepicker'),
-					'1.1',
+					array('jquery'),
+					'1.2',
 					true
 				);
-
-				// redundancy...
-					wp_enqueue_style(
-						'dashi_datetimepicker_css',
-						plugins_url('assets/css/jquery-ui-timepicker-addon.css', DASHI_FILE),
-						array(),
-						'1.1'
-					);
 
 					wp_enqueue_style(
 						'dashi_css',
 						plugins_url('assets/css/css.css', DASHI_FILE),
 						array(),
-						'1.1'
+						'1.2'
 					);
 
 				if (get_option('dashi_google_map_api_key'))
@@ -354,6 +337,12 @@ class Posttype
 		$dashi_original_id = filter_input(INPUT_GET, 'dashi_original_id') ?: $post_id;
 		$dashi_original_id = filter_input(INPUT_POST, 'dashi_original_id') ?: $dashi_original_id;
 		$dashi_original_id = get_post_meta($post_id, 'dashi_original_id', TRUE) ?: $dashi_original_id;
+        // AJAXでも画面と同じスラッグ別フィールド定義を読み込む。
+        $postalContext = array_filter([
+            'post' => absint($post_id),
+            'post_type' => sanitize_key($post_type ?? ''),
+            'dashi_original_id' => absint($dashi_original_id),
+        ]);
 		if ($dashi_original_id)
 		{
 			$original_post = get_post($dashi_original_id);
@@ -391,7 +380,12 @@ class Posttype
 		// 郵便番号確認
 		foreach ($posttypes as $posttype)
 		{
-			\Dashi\Core\Zip::addHeader($posttype::getFlatCustomFields());
+			\Dashi\Core\Zip::addHeader(
+                $posttype::getFlatCustomFields(),
+                $postalContext,
+                (bool) $posttype::get('allow_post_by_public_form'),
+                $posttype::get('post_type')
+            );
 		}
 	}
 

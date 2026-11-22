@@ -33,7 +33,7 @@ class Sitemap
 
 		// currents
 		global $post;
-		$current_page  = $post->ID;
+		$current_page = (int) ($post->ID ?? 0);
 		$_current_page = $post;
 		get_post_ancestors($_current_page);
 		$current_posttype = get_post_type();
@@ -61,7 +61,7 @@ class Sitemap
 				$url = get_post_type_archive_link($list->name);
 				$items[$posttype]['label'] = $list->label;
 				$items[$posttype]['url'] = $url;
-				$items[$posttype]['link'] = '<a href="'.$url.'">'.$list->label.'</a>';
+				$items[$posttype]['link'] = '<a href="'.esc_url($url).'">'.esc_html($list->label).'</a>';
 			}
 
 			// depth
@@ -73,49 +73,37 @@ class Sitemap
 			$items[$posttype]['list_html'] = '';
 
 			// $max_depthがゼロなのは、ポストタイプアーカイブへのリンクのみ返しておしまい
-			if ($max_depth == 0) continue;
+			if ($max_depth == 0 || !is_post_type_viewable($list)) continue;
 
 			// 記事を取得
 			$wp_list_pages_args['post_type'] = $posttype;
 			$wp_list_pages_args['depth'] = $max_depth;
 			$wp_list_pages_args['sort_column'] = 'menu_order';
-			$list_html = wp_list_pages($wp_list_pages_args);
+            if ($list->hierarchical) {
+                $items[$posttype]['list_html'] = self::listVisiblePages($wp_list_pages_args, $posttype);
+                continue;
+            }
 
-			// $list_htmlが空になるのはカスタムポストタイプのhierarchicalが
-			// falseの場合なので、最初の階層を取る。
-			if (empty($list_html))
-			{
-				$get_posts_arg = $wp_list_pages_args;
-				$get_posts_arg['numberposts'] = -1;
-				$eaches = get_posts($get_posts_arg);
-				foreach ($eaches as $each)
-				{
-					$class = 'page_item page-item-'.$each->ID;
-
-					// 祖先
-					if (
-						isset($_current_page->ancestors) &&
-						in_array($each->ID, (array) $_current_page->ancestors)
-					)
-					{
-						$class.= ' current_page_ancestor';
-					}
-
-					// 自分自身か親
-					if ($each->ID == $current_page)
-					{
-						$class.= ' current_page_item';
-					}
-					elseif ($_current_page && $post->ID == $_current_page->post_parent)
-					{
-						$class.= ' current_page_parent';
-					}
-
-					// wp_list_pages()が返すのと同じような構造を返す
-					$list_html.= '<li class="'.$class.'">';
-					$list_html.= '<a href="'.get_permalink($each->ID).'">'.$each->post_title."</a></li>\n";
-				}
-			}
+            $list_html = '';
+            $get_posts_arg = $wp_list_pages_args;
+            $get_posts_arg['numberposts'] = -1;
+            $get_posts_arg['post_status'] = 'publish';
+            $get_posts_arg['suppress_filters'] = false;
+            foreach (get_posts($get_posts_arg) as $each) {
+                if (!self::canListPost($each, $posttype)) continue;
+                $classes = 'page_item page-item-' . (int) $each->ID;
+                if (isset($_current_page->ancestors) && in_array($each->ID, (array) $_current_page->ancestors)) {
+                    $classes .= ' current_page_ancestor';
+                }
+                if ($each->ID == $current_page) {
+                    $classes .= ' current_page_item';
+                } elseif ($_current_page && $post->ID == $_current_page->post_parent) {
+                    $classes .= ' current_page_parent';
+                }
+                $list_html .= '<li class="' . esc_attr($classes) . '">';
+                $list_html .= '<a href="' . esc_url(get_permalink($each->ID)) . '">'
+                    . esc_html($each->post_title) . "</a></li>\n";
+            }
 			$items[$posttype]['list_html'] = $list_html;
 		}
 
@@ -134,11 +122,51 @@ class Sitemap
 		{
 			// 固定ページに見出しをつける
 				$home_str = get_option('dashi_sitemap_home_string') ?: __('Home', 'dashi');
-			$items['page']['link'] = '<a href="'.home_url().'">'.$home_str.'</a>';
+			$items['page']['link'] = '<a href="'.esc_url(home_url()).'">'.esc_html($home_str).'</a>';
 		}
 
 		return $items;
 	}
+
+    private static function canListPost($post, $posttype)
+    {
+        return $post instanceof \WP_Post && $post->post_type === $posttype && $post->post_status === 'publish'
+            && !post_password_required($post) && apply_filters('dashi_search_can_show_result', true, $post);
+    }
+
+    private static function listVisiblePages(array $args, $posttype)
+    {
+        // WordPressの階層描画を維持し、この一覧に渡す投稿だけを絞る。
+        $marker = new \stdClass();
+        $args['dashi_sitemap_marker'] = $marker;
+        $args['echo'] = false;
+        $args['post_status'] = 'publish';
+        $filterPages = static function ($pages, $queryArgs) use ($marker, $posttype) {
+            if (($queryArgs['dashi_sitemap_marker'] ?? null) !== $marker) return $pages;
+
+            $visible = [];
+            foreach ($pages as $post) {
+                if (!self::canListPost($post, $posttype)) continue;
+                // Walker_Page はタイトルをそのまま出力するため、共有キャッシュの投稿を変えずに対処する。
+                $page = clone $post;
+                $page->post_title = esc_html($page->post_title);
+                $visible[] = $page;
+            }
+            return $visible;
+        };
+        $queryFilters = static function ($queryArgs, $pageArgs) use ($marker) {
+            if (($pageArgs['dashi_sitemap_marker'] ?? null) === $marker) $queryArgs['suppress_filters'] = false;
+            return $queryArgs;
+        };
+        add_filter('get_pages_query_args', $queryFilters, 10, 2);
+        add_filter('get_pages', $filterPages, PHP_INT_MAX, 2);
+        try {
+            return wp_list_pages($args);
+        } finally {
+            remove_filter('get_pages_query_args', $queryFilters, 10);
+            remove_filter('get_pages', $filterPages, PHP_INT_MAX);
+        }
+    }
 
 	/**
 	 * shortcode

@@ -187,8 +187,11 @@ msgstr "言語の自動更新を有効にする"
 msgid "Specify search index page, when url is not come up to search result. Input URL for each line."
 msgstr "サイト内検索にかからないページがあるときには、一行にいちURLを入力してください。クロールの対象になります"
 
-msgid "Keep SSL connection except for GuzzleHttp access."
-msgstr "httpおよびhttpsのどちらでもアクセスできるサイトに対して、httpsのアクセスを優先するようにする"
+msgid "Require HTTPS for frontend pages and public forms."
+msgstr "公開ページと公開フォームで HTTPS を必須にする。"
+
+msgid "HTTPS is required."
+msgstr "HTTPS 接続が必要です。"
 
 #:=== form ===
 
@@ -757,3 +760,43 @@ msgstr "ファイルをもう一度アップロードしてください。"
 
 msgid "An uploaded file could not be verified or stored. Check the attachment and upload it again before publishing."
 msgstr "アップロードしたファイルの確認または保存ができませんでした。添付ファイルを確認し、必要に応じてもう一度アップロードしてください。"
+
+
+msgid "Discard draft"
+msgstr "下書きを破棄"
+
+msgid "Select an existing option for %s."
+msgstr "「%s」は既存の選択肢から選んでください。"
+
+msgid "Dashi attachments: %1$d unsubmitted (%2$s), %3$d awaiting review (%4$s), %5$s retained after approval."
+msgstr "Dashiの添付ファイル：未送信 %1$d 件（%2$s）、承認待ち %3$d 件（%4$s）、承認後の保管 %5$s"
+
+msgid "The submission result could not be verified. Please contact the site administrator before submitting again."
+msgstr "送信結果を確認できませんでした。再送信する前にサイト管理者にお問い合わせください。"
+
+msgid "Image processing is busy. Please try again shortly."
+msgstr "画像処理が混み合っています。少し待ってからもう一度お試しください。"
+
+msgid "Some Dashi checks could not be completed. Check the site address and HTTPS configuration."
+msgstr "Dashiの診断の一部を完了できませんでした。サイトアドレスとHTTPSの設定を確認してください。"
+
+msgid "Replacement drafts cannot be published directly."
+msgstr "差し替え原稿は直接公開できません。"
+
+msgid "The publication could not be verified. Please try again."
+msgstr "公開の可否を確認できませんでした。もう一度お試しください。"
+
+msgid "Use WordPress alternate cron spawning"
+msgstr "WP-Cronの代替起動を使う"
+
+msgid "Use this when WordPress cannot reach its own cron URL. A page request must reach WordPress. Constants set in wp-config.php take precedence."
+msgstr "WordPress自身がcronのURLに接続できない場合に使います。起動には、ページへのアクセスがWordPressまで届く必要があります。wp-config.phpで設定された定数が優先されます。"
+
+msgid "Dashi search crawling is overdue or could not save or schedule its continuation. Check WordPress cron and the server error log."
+msgstr "Dashiの検索巡回が予定時刻を過ぎているか、巡回を続けるための保存または予約に失敗しました。WordPressのcronとサーバーのエラーログを確認してください。"
+
+msgid "Last crawl started: %s"
+msgstr "最後に巡回を開始した時刻は %s です。"
+
+msgid "Dashi has no record of a crawl starting."
+msgstr "Dashiの巡回を開始した記録はありません。"

@@ -17,6 +17,11 @@ class CustomFieldValueResolver
         $meta_key = $key;
         $resolved = isset($value['args']['value']) ? $value['args']['value'] : '';
 
+        if ($object instanceof \WP_Post && ($value['args']['store_data'] ?? true) == false) {
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- SQL用途ではなく戻り値の配列キー名。
+            return ['value' => $resolved, 'meta_key' => preg_replace('/\[\d*?\]/', '', $key)];
+        }
+
         if (static::usesArrayValue($key, $value))
         {
             $resolved = static::resolveArrayValue($object, $key, $resolved);

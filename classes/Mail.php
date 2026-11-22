@@ -77,7 +77,8 @@ class Mail
 		$subject,
 		$message,
 		$additional_headers = '',
-		$additional_parameters = ''
+		$additional_parameters = '',
+        ?callable $beforeNativeSend = null
 	)
 	{
 //		$header = static::header();
@@ -85,14 +86,14 @@ class Mail
 		$message = static::mailFormat($message);
 
 		//sendmail
-		if ( ! apply_filters('dashi_mail', false, $to, $subject, $message, $additional_headers, $additional_parameters))
-		{
-			if ( ! mail ($to, $subject, $message, $additional_headers, $additional_parameters))
-			{
-				static::$errors[] =  __('failed to send mail for some reason. Sorry to trouble you, but by other means, please contact the site administrator' , 'dashi');
-			}
-		}
+        if ($beforeNativeSend !== null && !$beforeNativeSend()) return false;
+        if (apply_filters('dashi_mail', false, $to, $subject, $message, $additional_headers, $additional_parameters)) {
+            return true;
+        }
+        if ($beforeNativeSend !== null && !$beforeNativeSend()) return false;
+        if (mail($to, $subject, $message, $additional_headers, $additional_parameters)) return true;
 
-		return static::$errors ? false : true;
+        static::$errors[] = __('failed to send mail for some reason. Sorry to trouble you, but by other means, please contact the site administrator', 'dashi');
+        return false;
 	}
 }

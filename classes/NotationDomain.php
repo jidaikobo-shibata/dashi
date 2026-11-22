@@ -135,7 +135,7 @@ trait NotationDomain
 		{
 			add_action('wp_dashboard_setup', function ()
 			{
-				if (!self::currentUserCanViewEditorDashboardWidgets()) return;
+				if (!self::currentUserCanViewAdminNotices()) return;
 
 				wp_add_dashboard_widget (
 					'dashi_public_form_contact',
@@ -331,6 +331,9 @@ trait NotationDomain
 		$html.= '<dl>';
 		foreach ($wpcf7s as $wpcf7)
 		{
+			// メール設定パネルと同じフォーム単位の権限を確認する。
+			if (!current_user_can('wpcf7_edit_contact_form', $wpcf7->ID)) continue;
+
 			// post_meta
 			$mails = array();
 			$mails[1] = get_post_meta($wpcf7->ID, '_mail', TRUE);
@@ -368,7 +371,7 @@ trait NotationDomain
 	 */
 	public static function dashiContactList()
 	{
-		if (!self::currentUserCanViewEditorDashboardWidgets()) return;
+		if (!self::currentUserCanViewAdminNotices()) return;
 
 		$mail_item_labels = array(
 				'subject'    => __('subject', 'dashi'),

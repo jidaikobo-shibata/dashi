@@ -7,6 +7,7 @@ Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
 Version: 3.4.15
+Requires PHP: 7.1
 Author URI: http://www.jidaikobo.com/
 thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
 License: GPL2
@@ -49,6 +50,11 @@ if (!is_readable($dashi_composer_autoload))
     return;
 }
 require_once $dashi_composer_autoload;
+
+if (!defined('ALTERNATE_WP_CRON') && get_option(\Dashi\Core\Option::ALTERNATE_CRON)) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress本体が認識する定数。
+    define('ALTERNATE_WP_CRON', true);
+}
 
 // define
 define('DASHI_FILE', __FILE__);
@@ -94,6 +100,7 @@ register_activation_hook(
             foreach (array_keys(\Dashi\Core\Option::getOptions()) as $v)
             {
                 if ($v == 'dashi_google_map_api_key') continue;
+                if ($v === \Dashi\Core\Option::ALTERNATE_CRON) continue;
                 if ($v == 'dashi_server_accesslog_is_ok') continue;
                 if ($v == 'dashi_backup_is_ok') continue;
                 if ($v == 'dashi_allow_comments') continue;
@@ -134,7 +141,9 @@ register_activation_hook(
     DASHI_FILE,
     function () {
         flush_rewrite_rules();
-        wp_schedule_event(time(), 'daily', 'dashi_cron_hook');
+        if (!wp_next_scheduled('dashi_cron_hook')) {
+            wp_schedule_event(time(), 'daily', 'dashi_cron_hook');
+        }
     }
 );
 
@@ -142,35 +151,9 @@ register_deactivation_hook(
     DASHI_FILE,
     function () {
         wp_clear_scheduled_hook('dashi_public_form_gc_hook');
+        wp_clear_scheduled_hook('dashi_replacement_maintenance');
     }
 );
-
-// Keep SSL connection
-if (get_option('dashi_keep_ssl_connection'))
-{
-    add_action(
-        'template_redirect',
-	        function()
-	        {
-            if (is_ssl()) return;
-
-	            $user_agent = filter_input(INPUT_SERVER, 'HTTP_USER_AGENT', FILTER_UNSAFE_RAW);
-	            $user_agent = is_string($user_agent) ? sanitize_text_field($user_agent) : '';
-            if (strpos($user_agent, 'GuzzleHttp') !== false) return;
-
-	            $request_uri = filter_input(INPUT_SERVER, 'REQUEST_URI', FILTER_UNSAFE_RAW);
-            $request_uri = is_string($request_uri) ? wp_sanitize_redirect($request_uri) : '/';
-            if ($request_uri === '') $request_uri = '/';
-            if ($request_uri[0] !== '/') $request_uri = '/'.ltrim($request_uri, '/');
-
-            $location = home_url($request_uri, 'https');
-            if (!is_string($location) || !wp_http_validate_url($location)) return;
-
-            wp_safe_redirect($location, 301); //Moved Permanently
-            exit;
-        }
-    );
-}
 
 // add Shortcode - is_user_logged_in area
 add_shortcode(
