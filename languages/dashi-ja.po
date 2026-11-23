@@ -328,9 +328,6 @@ msgstr "Contact Form 7 のmail2の差出人のメールアドレスのホスト�
 msgid "sender of mail2 of Contact Form 7 is using wordpress@. check please:"
 msgstr "Contact Form 7 のmail2の差出人のメールアドレスにwordpress@を使っています。確認してください:"
 
-msgid "Confirmed (hide for 30 days)"
-msgstr "確認済み（30日間非表示）"
-
 msgid "You can use alphabet and underscore only when use wysiwyg."
 msgstr "wysiwygエディタを使う時にはフィールド名にはアルファベットとアンダースコアしか使えません"
 
@@ -800,3 +797,57 @@ msgstr "最後に巡回を開始した時刻は %s です。"
 
 msgid "Dashi has no record of a crawl starting."
 msgstr "Dashiの巡回を開始した記録はありません。"
+
+msgid "Search crawl"
+msgstr "検索巡回"
+
+msgid "Start search crawl now"
+msgstr "検索巡回を今すぐ開始"
+
+msgid "Submit the search crawl form to start crawling."
+msgstr "検索巡回を開始するには、管理画面のボタンを使ってください。"
+
+msgid "The first search crawl batch finished. Any remaining work and future crawls rely on WordPress cron."
+msgstr "検索巡回の最初の処理が完了しました。残りの処理と次回以降の巡回は WordPress の cron が実行します。"
+
+msgid "A search crawl is already running. Wait and check the last crawl start time."
+msgstr "検索巡回はすでに実行中です。しばらく待ってから、前回の巡回開始時刻を確認してください。"
+
+msgid "The search crawl could not complete this batch. Check the server error log and WordPress cron."
+msgstr "今回の検索巡回を完了できませんでした。サーバーのエラーログと WordPress の cron を確認してください。"
+
+msgid "The site search index update is delayed. WP-Cron may not be working properly."
+msgstr "サイト内検索のインデックス更新が遅れています。WP-Cronが正常に動作していない可能性があります。"
+
+msgid "Check the “Use WordPress alternate cron spawning” setting"
+msgstr "「WP-Cronの代替起動を使う」の設定を確認する"
+
+msgid "The site search index update is delayed. You can start the search crawl manually."
+msgstr "サイト内検索のインデックス更新が遅れています。検索巡回を手動で開始できます。"
+
+msgid "Open search crawl settings"
+msgstr "検索巡回を開く"
+
+msgid "If delays recur after a manual start, ask your site administrator to check that WP-Cron runs regularly."
+msgstr "手動で開始しても遅延が繰り返される場合は、サイトの運用担当者にWP-Cronの定期実行をご確認ください。"
+
+msgid "CSV export"
+msgstr "CSVエクスポート"
+
+msgid "Save CSV export settings"
+msgstr "CSVエクスポートの設定を保存"
+
+msgid "Post types allowed for CSV export"
+msgstr "CSVエクスポートを許可する投稿タイプ"
+
+msgid "Select the post types you want to export from the dashboard. If none are selected, CSV export is unavailable."
+msgstr "ダッシュボードからエクスポートする投稿タイプを選んでください。未選択の場合はCSVエクスポートを利用できません。"
+
+msgid "Trusted recipient domains for Contact Form 7"
+msgstr "Contact Form 7で信頼する宛先ドメイン"
+
+msgid "Enter one domain per line. Only exact domains match. Invalid entries are ignored."
+msgstr "1行に1ドメインを入力してください。完全に一致するドメインだけが対象です。不正な入力は無視されます。"
+
+msgid "Open trusted recipient domain settings"
+msgstr "信頼する宛先ドメインの設定を開く"

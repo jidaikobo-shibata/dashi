@@ -52,6 +52,7 @@ trait NotationInfo
 			]);
 			foreach ($candidates as $post) {
 				if ($post instanceof \WP_Post && $post->post_status === $status
+					&& $post->post_type !== 'crawlsearch'
 					&& current_user_can('edit_post', $post->ID)) {
 					$posts[] = $post;
 				}

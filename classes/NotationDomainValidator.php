@@ -5,6 +5,26 @@ if (!defined('ABSPATH')) exit;
 
 class NotationDomainValidator
 {
+	public const TRUSTED_RECIPIENT_DOMAINS = 'dashi_cf7_trusted_recipient_domains';
+
+	public static function parseTrustedRecipientDomains(string $input): array
+	{
+		$domains = [];
+		foreach (preg_split('/\r\n|\r|\n/', $input) as $line) {
+			$domain = strtolower(trim($line));
+			if (strlen($domain) <= 253
+				&& preg_match('/\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?\z/', $domain)) {
+				$domains[$domain] = $domain;
+			}
+		}
+		return array_values($domains);
+	}
+
+	public static function trustedRecipientDomains(): array
+	{
+		$value = get_option(self::TRUSTED_RECIPIENT_DOMAINS, '');
+		return is_string($value) ? self::parseTrustedRecipientDomains($value) : [];
+	}
 	/**
 	 * 比較用ホストを決定する（home_url 優先、HTTP_HOST フォールバック）
 	 *

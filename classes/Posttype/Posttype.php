@@ -157,7 +157,8 @@ class Posttype
 		add_filter('posts_pre_query', [Search::class, 'excludeExternalCrawlIndexes'], PHP_INT_MAX, 2);
 		add_filter('found_posts_query', [Search::class, 'keepNativeSearchCountQuery'], PHP_INT_MAX, 2);
 		add_filter('found_posts', [Search::class, 'keepNativeSearchCount'], PHP_INT_MAX, 2);
-		add_action('admin_notices', [Search::class, 'crawlNotice']);
+		add_action('admin_post_dashi_start_search_crawl', [Search::class, 'handleManualCrawl']);
+		add_action('admin_notices', [Search::class, 'crawlOverdueNotice']);
 
 		register_deactivation_hook(
 			DASHI_FILE,

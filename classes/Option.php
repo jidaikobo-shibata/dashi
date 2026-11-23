@@ -2,12 +2,14 @@
 namespace Dashi\Core;
 
 use Dashi\Core\Posttype\Csv;
+use Dashi\Core\Posttype\Search;
 
 if (!defined('ABSPATH')) exit;
 
 class Option
 {
 	public const ALTERNATE_CRON = 'dashi_alternate_wp_cron';
+	private const CSV_DASHBOARD = 'dashi_show_csv_export_dashboard';
 
 	private static function getSettingPageAllowedHtml()
 	{
@@ -46,6 +48,7 @@ class Option
 	}
 
 	private static $opts = array(
+		self::CSV_DASHBOARD => 'show csv export at dashboard.',
 		'dashi_activate_pagepart' => 'Activate page part',
 		'dashi_enrich_search_result_page' => 'Enrich search result page',
 		'dashi_ignore_checked_ontop' => 'Keep taxonomies\' order at edit page',
@@ -53,7 +56,6 @@ class Option
 		'dashi_disactivate_author_page' => 'Disactivate author page to guest users.',
 		'dashi_google_map_api_key' => 'Get API-key from <a href="https://console.developers.google.com/apis/library">Google API library</a>.<br />1. Choose Project<br />2. Click +<br />3. Input name to create Project<br />4. Click Auth in sidebar and click create<br />5. Input name<br />6. create auth information and choose API-key<br />7. Go Library and choose "Google Maps JavaScript API", "Google Maps Embed API" and "Google Maps Geocoding API" and activate it.',
 		'dashi_do_environmental_check' => 'Use dashboard environmental check.',
-		'dashi_show_csv_export_dashboard' => 'show csv export at dashboard.',
 		'dashi_show_wp_version' => 'Show always WordPress version at admin-bar.',
 		'dashi_do_eliminate_control_codes' => 'eliminate control codes when saving post.',
 		'dashi_avoid_wp_redirect_admin_locations' => 'avoid wp redirect admin location.',
@@ -103,6 +105,11 @@ class Option
 	 */
 	private static function dbio()
 	{
+		if (Input::post('dashi_csv_options_submit')) {
+			self::saveCsvSettings();
+			return;
+		}
+
 		if (Input::post('dashi_options_submit'))
 		{
 			if (!current_user_can('manage_options')) return;
@@ -117,16 +124,18 @@ class Option
 				'dashi_sitemap_home_string',
 				'dashi_specify_search_index',
 			];
-			foreach (array_keys(static::$opts) as $key) {
+			$settings = array_diff(array_keys(static::$opts), [self::CSV_DASHBOARD]);
+			foreach ($settings as $key) {
 				if (isset($posts[$key]) && !is_string($posts[$key])) return;
 			}
 
-			update_option(
-				Csv::POST_TYPES_OPTION,
-				Csv::filterPostTypeSelection($posts[Csv::POST_TYPES_OPTION] ?? array())
-			);
+			$trustedDomains = NotationDomainValidator::TRUSTED_RECIPIENT_DOMAINS;
+			if (isset($posts[$trustedDomains])) {
+				if (!is_string($posts[$trustedDomains])) return;
+				update_option($trustedDomains, implode("\n", NotationDomainValidator::parseTrustedRecipientDomains($posts[$trustedDomains])));
+			}
 
-			foreach (array_keys(static::$opts) as $key) {
+			foreach ($settings as $key) {
 				if (!isset($posts[$key])) {
 					delete_option($key);
 					continue;
@@ -136,6 +145,20 @@ class Option
 				$value = in_array($key, $text_options, true) ? esc_html($posts[$key]) : 1;
 				update_option($key, $value);
 			}
+		}
+	}
+
+	private static function saveCsvSettings()
+	{
+		if (!current_user_can('manage_options')) return;
+		$nonce = Input::post('_dashi_csv_options_nonce');
+		if (!is_string($nonce) || !wp_verify_nonce($nonce, 'dashi_save_csv_options')) return;
+
+		update_option(Csv::POST_TYPES_OPTION, Csv::filterPostTypeSelection(Input::post(Csv::POST_TYPES_OPTION) ?? []));
+		if (Input::post(self::CSV_DASHBOARD) === '1') {
+			update_option(self::CSV_DASHBOARD, 1);
+		} else {
+			delete_option(self::CSV_DASHBOARD);
 		}
 	}
 
@@ -169,7 +192,7 @@ class Option
 		$html = '';
 		$html.= '<div class="wrap">';
 		$html.= '<div id="icon-themes" class="icon32"><br /></div>';
-		$html.= '<h1>'.__('Dashi Framework', 'dashi').' '.__("Settings", 'dashi').'</h1>';
+		$html.= '<h1>' . esc_html__('Dashi Framework', 'dashi') . ' ' . esc_html__('Settings', 'dashi') . '</h1>';
 		$html.= '<div class="postbox" style="margin-top: 15px;">';
 		$html.= '<div class="inside">';
 		$html.= '<h2>'.__("Settings", 'dashi').'</h2>';
@@ -181,6 +204,7 @@ class Option
 		foreach (static::$opts as $k => $v)
 		{
 			if (in_array($k, array(
+				self::CSV_DASHBOARD,
 				'dashi_sitemap_home_string',
 				'dashi_sitemap_depth_of_page',
 				'dashi_google_map_api_key',
@@ -189,11 +213,9 @@ class Option
 			if (substr($k, 0, 17) == 'dashi_auto_update') continue;
 			$opt = get_option($k);
 			$checked = $opt ? ' checked="checked"' : '';
+			$id = $k === self::ALTERNATE_CRON ? ' id="' . esc_attr(self::ALTERNATE_CRON) . '"' : '';
 				// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
-				$html.= '<p><label><input type="checkbox" name="'.$k.'" value="1"'.$checked.' />'.__($v, 'dashi').'</label></p>';
-			if ($k === 'dashi_show_csv_export_dashboard') {
-				$html .= self::csvPostTypeSettings();
-			}
+				$html.= '<p><label><input type="checkbox" name="'.$k.'" value="1"'.$checked.$id.' />'.__($v, 'dashi').'</label></p>';
 			if ($k === self::ALTERNATE_CRON) {
 				$html .= '<p>' . esc_html__(
 					'Use this when WordPress cannot reach its own cron URL. A page request must reach WordPress. Constants set in wp-config.php take precedence.',
@@ -248,13 +270,43 @@ class Option
 		$html.= '<textarea style="width: 100%;min-height:6em" name="'.$k.'" id="'.$k.'">'.get_option($k).'</textarea>';
 		$html.= '</fieldset>';
 
+		$trustedDomains = NotationDomainValidator::TRUSTED_RECIPIENT_DOMAINS;
+		$html .= '<fieldset style="border: 1px #aaa solid;padding: 10px 15px 10px;"><legend><label for="'
+			. esc_attr($trustedDomains) . '">'
+			. esc_html__('Trusted recipient domains for Contact Form 7', 'dashi') . '</label></legend>';
+		$html .= '<p>' . esc_html__('Enter one domain per line. Only exact domains match. Invalid entries are ignored.', 'dashi') . '</p>';
+		$html .= '<textarea style="width: 100%;min-height:6em" name="' . esc_attr($trustedDomains)
+			. '" id="' . esc_attr($trustedDomains) . '">'
+			. esc_textarea(implode("\n", NotationDomainValidator::trustedRecipientDomains())) . '</textarea></fieldset>';
+
 		$html.= '<p><input type="submit" value="'.__('Submit', 'dashi').'" class="button button-primary button-large" /></p>';
 		$html.= '</form>';
 		$html.= '</div><!--/.inside-->';
 		$html.= '</div><!--/.postbox-->';
 		$html.= '</div><!--/.wrap-->';
 
-		$html.= '<div class="wrap">';
+		echo wp_kses($html, static::getSettingPageAllowedHtml());
+		echo '<div class="wrap"><section class="postbox" id="dashi-manual-crawl"><div class="inside">';
+		echo '<h2>' . esc_html__('Search crawl', 'dashi') . '</h2>';
+		Search::manualCrawlResult();
+		Search::crawlNotice();
+		Search::manualCrawlForm();
+		echo '</div></section></div>';
+
+		$html = '<div class="wrap"><div class="postbox" id="dashi-csv-export"><div class="inside">';
+		$html .= '<h2>' . esc_html__('CSV export', 'dashi') . '</h2>';
+		$html .= '<form action="#dashi-csv-export" method="post">';
+		$html .= wp_nonce_field('dashi_save_csv_options', '_dashi_csv_options_nonce', true, false);
+		$html .= '<input type="hidden" name="dashi_csv_options_submit" value="1" />';
+		$html .= '<p><label><input type="checkbox" name="' . esc_attr(self::CSV_DASHBOARD) . '" value="1"'
+			. checked((bool) get_option(self::CSV_DASHBOARD), true, false) . ' /> '
+			. esc_html__('show csv export at dashboard.', 'dashi') . '</label></p>';
+		$html .= self::csvPostTypeSettings();
+		$html .= '<p><input type="submit" value="' . esc_attr__('Save CSV export settings', 'dashi')
+			. '" class="button button-primary" /></p></form></div></div></div>';
+		echo wp_kses($html, static::getSettingPageAllowedHtml());
+
+		$html = '<div class="wrap">';
 		$html.= '<div id="icon-themes" class="icon32"><br /></div>';
 		$html.= '<div class="postbox" style="margin-top: 15px;">';
 		$html.= '<div class="inside" id="help_area">';

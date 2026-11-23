@@ -16,12 +16,6 @@ class Notation
 	 */
 	public static function forge()
 	{
-		// 「確認済み（30日間非表示）」の受付は admin-post.php でも動くよう常時登録
-		add_action(
-			'admin_post_dashi_cf7_ack_warning',
-			array('\\Dashi\\Core\\Notation', 'handleCf7WarningAcknowledge')
-		);
-
 		// ダッシュボードでのみ環境チェックを表示する
 		if ( ! is_admin()) return;
 		if ( ! get_option('dashi_do_environmental_check')) return;

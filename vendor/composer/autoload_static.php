@@ -28,7 +28,6 @@ class ComposerStaticInit09cca36ce09a8fb0dbb6c6e9ad6e43ac
         'Dashi\\Core\\Input' => __DIR__ . '/../..' . '/classes/Input.php',
         'Dashi\\Core\\Mail' => __DIR__ . '/../..' . '/classes/Mail.php',
         'Dashi\\Core\\Notation' => __DIR__ . '/../..' . '/classes/Notation.php',
-        'Dashi\\Core\\NotationCf7WarningAcknowledger' => __DIR__ . '/../..' . '/classes/NotationCf7WarningAcknowledger.php',
         'Dashi\\Core\\NotationDomain' => __DIR__ . '/../..' . '/classes/NotationDomain.php',
         'Dashi\\Core\\NotationDomainValidator' => __DIR__ . '/../..' . '/classes/NotationDomainValidator.php',
         'Dashi\\Core\\NotationHeavey' => __DIR__ . '/../..' . '/classes/NotationHeavey.php',

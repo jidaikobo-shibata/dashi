@@ -13,7 +13,6 @@ return array(
     'Dashi\\Core\\Input' => $baseDir . '/classes/Input.php',
     'Dashi\\Core\\Mail' => $baseDir . '/classes/Mail.php',
     'Dashi\\Core\\Notation' => $baseDir . '/classes/Notation.php',
-    'Dashi\\Core\\NotationCf7WarningAcknowledger' => $baseDir . '/classes/NotationCf7WarningAcknowledger.php',
     'Dashi\\Core\\NotationDomain' => $baseDir . '/classes/NotationDomain.php',
     'Dashi\\Core\\NotationDomainValidator' => $baseDir . '/classes/NotationDomainValidator.php',
     'Dashi\\Core\\NotationHeavey' => $baseDir . '/classes/NotationHeavey.php',

@@ -1,6 +1,8 @@
 <?php
 namespace Dashi\Core\Posttype;
 
+use Dashi\Core\Option;
+
 if (!defined('ABSPATH')) exit;
 
 class Search
@@ -1101,30 +1103,36 @@ REGEX;
 
     public static function addPages()
     {
-        if (self::$crawlLock !== null) return;
         if (!is_admin() && (!wp_doing_cron()
             || (!doing_action('dashi_cron_hook') && !doing_action(self::CRAWL_CONTINUATION)))) return;
+        self::runCrawl(doing_action('dashi_cron_hook'));
+    }
+
+    private static function runCrawl($daily)
+    {
+        if (self::$crawlLock !== null) return 'busy';
 
         global $wpdb;
         $lock = 'dashi_crawl_' . md5(DB_NAME . ':' . $wpdb->prefix);
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- DB接続単位の排他制御。
-        if ((int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock)) !== 1) return;
+        $acquired = $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock));
+        if ((string) $acquired !== '1') return (string) $acquired === '0' ? 'busy' : 'failed';
         self::$crawlLock = $lock;
         try {
             update_option(self::CRAWL_LAST_RUN, time(), false);
             if (get_option(self::SAVED_INDEX_EPOCH_BLOCK)) self::retrySavedIndexEpoch();
-            self::crawlBatch();
+            return self::crawlBatch($daily) ? 'processed' : 'failed';
         } finally {
             if (!self::ownsCrawlLock() && !wp_next_scheduled(self::CRAWL_CONTINUATION)) {
                 wp_schedule_single_event(time() + MINUTE_IN_SECONDS, self::CRAWL_CONTINUATION);
             }
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 取得したロックを解放する。
             self::$crawlLock = null;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- 取得したロックを解放する。
             $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
         }
     }
 
-    private static function crawlBatch()
+    private static function crawlBatch($daily = false)
     {
         $deadline = microtime(true) + self::CRAWL_BATCH_SECONDS;
         $configured = (string) get_option('dashi_specify_search_index');
@@ -1141,7 +1149,6 @@ REGEX;
         $backoff = array_intersect_key($state['refresh_backoff'] ?? [], $queue);
         // 設定が変わっても、失敗済みの非表示処理は保持する。
         $withdrawals = ($state['withdrawals'] ?? []) + (array) get_option(self::CRAWL_WITHDRAWALS, []);
-        $daily = doing_action('dashi_cron_hook');
         $started = (!$queue && (!$withdrawals || $daily || !$sameDiscovery || ($state['configured'] ?? null) !== $configured))
             || ($daily && !array_diff($queue, self::CRAWL_RETRY_JOBS));
         if (!$daily && !$queue && $sameDiscovery && !empty($state['reindex_pending']) && ($state['configured'] ?? null) === $configured) {
@@ -1233,7 +1240,7 @@ REGEX;
         }
 
         $queue = array_diff_key($queue, $withdrawals);
-        self::finishCrawlBatch([
+        return self::finishCrawlBatch([
             'configured' => $configured, 'jobs' => $queue, 'withdrawals' => $withdrawals,
             'discovery_format' => self::CRAWL_DISCOVERY_FORMAT,
             'discovery_revision' => self::crawlDiscoveryRevision($links),
@@ -1387,27 +1394,109 @@ REGEX;
             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- DB障害で管理画面用の状態も保存できない場合に記録する。
             error_log('Dashi: could not save the search crawl queue or schedule its continuation.');
         }
+        return $saved && $scheduled;
+    }
+
+    public static function handleManualCrawl()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('You are not allowed to do this action.', 'dashi'), '', ['response' => 403]);
+        }
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- HTTPメソッドを固定値との完全一致で判定する。
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            wp_die(esc_html__('Submit the search crawl form to start crawling.', 'dashi'), '', ['response' => 405]);
+        }
+        check_admin_referer('dashi_start_search_crawl');
+        $result = self::runCrawl(true);
+        set_transient('dashi_manual_crawl_' . get_current_user_id(), $result, MINUTE_IN_SECONDS);
+        wp_safe_redirect(admin_url('options-general.php?page=dashi_options#dashi-manual-crawl'), 303);
+        exit;
+    }
+
+    public static function manualCrawlForm()
+    {
+        if (!current_user_can('manage_options')) return;
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="dashi_start_search_crawl">';
+        wp_nonce_field('dashi_start_search_crawl');
+        echo '<p><button type="submit" class="button">'
+            . esc_html__('Start search crawl now', 'dashi') . '</button></p></form>';
+    }
+
+    public static function manualCrawlResult()
+    {
+        if (!current_user_can('manage_options')) return;
+        $key = 'dashi_manual_crawl_' . get_current_user_id();
+        $result = get_transient($key);
+        if (!is_string($result)) return;
+        delete_transient($key);
+        $messages = [
+            'processed' => __('The first search crawl batch finished. Any remaining work and future crawls rely on WordPress cron.', 'dashi'),
+            'busy' => __('A search crawl is already running. Wait and check the last crawl start time.', 'dashi'),
+            'failed' => __('The search crawl could not complete this batch. Check the server error log and WordPress cron.', 'dashi'),
+        ];
+        if (isset($messages[$result])) {
+            echo '<p role="status">' . esc_html($messages[$result]) . '</p>';
+        }
+    }
+
+    private static function nextCrawlTime()
+    {
+        $state = self::readCrawlState();
+        $pending = !empty($state['jobs']) || !empty($state['withdrawals']) || !empty($state['reindex_pending'])
+            || (bool) get_option(self::CRAWL_WITHDRAWALS, []);
+        return wp_next_scheduled($pending ? self::CRAWL_CONTINUATION : 'dashi_cron_hook');
+    }
+
+    public static function crawlOverdueNotice()
+    {
+        if (!current_user_can('manage_options')) return;
+        $expected = self::nextCrawlTime();
+        if (!$expected || $expected >= time() - 5 * MINUTE_IN_SECONDS) return;
+
+        if (self::canSuggestAlternateCron()) {
+            $target = Option::ALTERNATE_CRON;
+            $message = __('The site search index update is delayed. WP-Cron may not be working properly.', 'dashi');
+            $link = __('Check the “Use WordPress alternate cron spawning” setting', 'dashi');
+        } else {
+            $target = 'dashi-manual-crawl';
+            $message = __('The site search index update is delayed. You can start the search crawl manually.', 'dashi');
+            $link = __('Open search crawl settings', 'dashi');
+        }
+
+        $url = admin_url('options-general.php?page=dashi_options#' . $target);
+        echo '<div class="notice notice-warning"><p>' . esc_html($message)
+            . ' <a href="' . esc_url($url) . '">' . esc_html($link) . '</a></p></div>';
+    }
+
+    private static function canSuggestAlternateCron()
+    {
+        // 定数がある場合、出汁の設定から代替起動へ切り替える必要がないか、切り替えられない。
+        return !defined('ALTERNATE_WP_CRON') && !(defined('DISABLE_WP_CRON') && DISABLE_WP_CRON)
+            && !get_option(Option::ALTERNATE_CRON);
     }
 
     public static function crawlNotice()
     {
         if (!current_user_can('manage_options')) return;
-        $state = self::readCrawlState();
-        $pending = !empty($state['jobs']) || !empty($state['withdrawals']) || !empty($state['reindex_pending'])
-            || (bool) get_option(self::CRAWL_WITHDRAWALS, []);
-        $expected = $pending ? wp_next_scheduled(self::CRAWL_CONTINUATION) : wp_next_scheduled('dashi_cron_hook');
+        $expected = self::nextCrawlTime();
         if (!get_option(self::CRAWL_ERROR) && !get_option(self::SAVED_INDEX_EPOCH_BLOCK)
             && !get_option(self::CRAWL_HOME_BLOCK)
             && $expected && $expected >= time() - 5 * MINUTE_IN_SECONDS) return;
         $lastRun = (int) get_option(self::CRAWL_LAST_RUN);
-        echo '<div class="notice notice-warning"><p>' . esc_html__(
+        echo '<div class="notice notice-warning inline"><p>' . esc_html__(
             'Dashi search crawling is overdue or could not save or schedule its continuation. Check WordPress cron and the server error log.',
             'dashi'
         ) . '</p><p>' . esc_html($lastRun ? sprintf(
             /* translators: %s: Last crawl start time in the site's time zone. */
             __('Last crawl started: %s', 'dashi'),
             get_date_from_gmt(gmdate('Y-m-d H:i:s', $lastRun))
-        ) : __('Dashi has no record of a crawl starting.', 'dashi')) . '</p></div>';
+        ) : __('Dashi has no record of a crawl starting.', 'dashi')) . '</p>';
+        echo '<p>' . esc_html__(
+            'If delays recur after a manual start, ask your site administrator to check that WP-Cron runs regularly.',
+            'dashi'
+        ) . '</p>';
+        echo '</div>';
     }
 
     private static function crawlDiscoveryRevision(?array $links)

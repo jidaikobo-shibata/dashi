@@ -3,7 +3,7 @@
         'name' => 'jidaikobo/dashi-runtime',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '50da5f6817f8212650412ed891be910e788b4022',
+        'reference' => '35793f318c0c25ad91d037f05da81e281444d681',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'jidaikobo/dashi-runtime' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '50da5f6817f8212650412ed891be910e788b4022',
+            'reference' => '35793f318c0c25ad91d037f05da81e281444d681',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
