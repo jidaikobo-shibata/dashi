@@ -851,3 +851,18 @@ msgstr "1行に1ドメインを入力してください。完全に一致する�
 
 msgid "Open trusted recipient domain settings"
 msgstr "信頼する宛先ドメインの設定を開く"
+
+msgid "Disable author archives and the WordPress author sitemap"
+msgstr "著者アーカイブとWordPress標準の著者サイトマップを無効にする"
+
+msgid "Require login to read users through the WordPress REST API"
+msgstr "WordPress REST APIで利用者情報を取得するにはログインを必須にする"
+
+msgid "Author sitemap not found."
+msgstr "著者サイトマップはありません。"
+
+msgid "Log in to view user information."
+msgstr "利用者情報を表示するにはログインしてください。"
+
+msgid "Next search crawl scheduled for: %s"
+msgstr "次の巡回の予約時刻は %s です。"

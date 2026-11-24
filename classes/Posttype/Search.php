@@ -13,6 +13,7 @@ class Search
     private const CRAWL_WITHDRAWALS = 'dashi_crawl_withdrawals';
     private const CRAWL_ERROR = 'dashi_crawl_error';
     private const CRAWL_LAST_RUN = 'dashi_crawl_last_run';
+    private const CRAWL_NOTICE_GRACE = 30 * MINUTE_IN_SECONDS;
     private const CRAWL_BATCH_SIZE = 12;
     private const CRAWL_BATCH_SECONDS = 15;
     private const INDEX_MAX_AGE = 7 * DAY_IN_SECONDS;
@@ -1448,11 +1449,17 @@ REGEX;
         return wp_next_scheduled($pending ? self::CRAWL_CONTINUATION : 'dashi_cron_hook');
     }
 
+    private static function crawlIsOverdue($expected, $lastRun): bool
+    {
+        $cutoff = time() - self::CRAWL_NOTICE_GRACE;
+        return $expected && $expected <= $cutoff && $lastRun <= $cutoff;
+    }
+
     public static function crawlOverdueNotice()
     {
         if (!current_user_can('manage_options')) return;
         $expected = self::nextCrawlTime();
-        if (!$expected || $expected >= time() - 5 * MINUTE_IN_SECONDS) return;
+        if (!self::crawlIsOverdue($expected, (int) get_option(self::CRAWL_LAST_RUN))) return;
 
         if (self::canSuggestAlternateCron()) {
             $target = Option::ALTERNATE_CRON;
@@ -1480,10 +1487,20 @@ REGEX;
     {
         if (!current_user_can('manage_options')) return;
         $expected = self::nextCrawlTime();
+        if ($expected) {
+            printf(
+                '<p>%s</p>',
+                esc_html(sprintf(
+                    /* translators: %s: Scheduled time in the site's time zone. */
+                    __('Next search crawl scheduled for: %s', 'dashi'),
+                    get_date_from_gmt(gmdate('Y-m-d H:i:s', $expected))
+                ))
+            );
+        }
+        $lastRun = (int) get_option(self::CRAWL_LAST_RUN);
         if (!get_option(self::CRAWL_ERROR) && !get_option(self::SAVED_INDEX_EPOCH_BLOCK)
             && !get_option(self::CRAWL_HOME_BLOCK)
-            && $expected && $expected >= time() - 5 * MINUTE_IN_SECONDS) return;
-        $lastRun = (int) get_option(self::CRAWL_LAST_RUN);
+            && $expected && !self::crawlIsOverdue($expected, $lastRun)) return;
         echo '<div class="notice notice-warning inline"><p>' . esc_html__(
             'Dashi search crawling is overdue or could not save or schedule its continuation. Check WordPress cron and the server error log.',
             'dashi'

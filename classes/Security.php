@@ -8,6 +8,8 @@ if (!defined('ABSPATH')) exit;
 
 class Security
 {
+    public const HIDE_AUTHOR_ARCHIVES = 'dashi_disactivate_author_page';
+    public const RESTRICT_REST_USERS = 'dashi_restrict_public_rest_users';
     /**
      * forge
      *
@@ -17,21 +19,49 @@ class Security
     {
         add_action('template_redirect', [self::class, 'enforceHttps'], 0);
 
-        // ?author=Nを表示しない
-        if (get_option('dashi_disactivate_author_page'))
-        {
-	            add_action(
-	                'template_redirect',
-	                function () {
-	                    if(is_author())
-	                    {
-	                        wp_safe_redirect(home_url());
-	                        exit;
-	                    }
-	                }
-	            );
+        add_action('template_redirect', [self::class, 'hideAuthorArchives'], 1);
+        add_filter('wp_sitemaps_add_provider', [self::class, 'filterSitemapProvider'], 10, 2);
+        add_filter('rest_pre_dispatch', [self::class, 'restrictPublicRestUsers'], PHP_INT_MAX, 3);
+    }
+
+    public static function hideAuthorArchives()
+    {
+        if (!get_option(self::HIDE_AUTHOR_ARCHIVES)) return;
+        if (get_query_var('sitemap') === 'users') {
+            nocache_headers();
+            wp_die(esc_html__('Author sitemap not found.', 'dashi'), '', ['response' => 404]);
+        }
+        if (is_author()) {
+            wp_safe_redirect(home_url());
+            exit;
         }
     }
+
+    public static function filterSitemapProvider($provider, $name)
+    {
+        return $name === 'users' && get_option(self::HIDE_AUTHOR_ARCHIVES) ? false : $provider;
+    }
+
+    public static function restUsersRestricted(): bool
+    {
+        return (bool) get_option(self::RESTRICT_REST_USERS, true);
+    }
+
+    public static function restrictPublicRestUsers($result, $server, \WP_REST_Request $request)
+    {
+        if (is_user_logged_in() || !self::restUsersRestricted()
+            || !in_array($request->get_method(), ['GET', 'HEAD'], true)
+            || !preg_match('~\A/wp/v2/users(?:/[0-9]+)?/?\z~i', $request->get_route())) {
+            return $result;
+        }
+
+        return new \WP_Error(
+            'dashi_rest_users_login_required',
+            __('Log in to view user information.', 'dashi'),
+            ['status' => 401]
+        );
+    }
+
     public static function requiresHttps()
     {
         return get_option('dashi_keep_ssl_connection') && !is_ssl();

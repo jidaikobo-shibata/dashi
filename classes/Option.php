@@ -53,7 +53,8 @@ class Option
 		'dashi_enrich_search_result_page' => 'Enrich search result page',
 		'dashi_ignore_checked_ontop' => 'Keep taxonomies\' order at edit page',
 		'dashi_remove_host_at_upload_file' => 'Attempt to use root relative path when upload files',
-		'dashi_disactivate_author_page' => 'Disactivate author page to guest users.',
+		Security::HIDE_AUTHOR_ARCHIVES => 'Disable author archives and the WordPress author sitemap',
+		Security::RESTRICT_REST_USERS => 'Require login to read users through the WordPress REST API',
 		'dashi_google_map_api_key' => 'Get API-key from <a href="https://console.developers.google.com/apis/library">Google API library</a>.<br />1. Choose Project<br />2. Click +<br />3. Input name to create Project<br />4. Click Auth in sidebar and click create<br />5. Input name<br />6. create auth information and choose API-key<br />7. Go Library and choose "Google Maps JavaScript API", "Google Maps Embed API" and "Google Maps Geocoding API" and activate it.',
 		'dashi_do_environmental_check' => 'Use dashboard environmental check.',
 		'dashi_show_wp_version' => 'Show always WordPress version at admin-bar.',
@@ -136,6 +137,12 @@ class Option
 			}
 
 			foreach ($settings as $key) {
+				if ($key === Security::RESTRICT_REST_USERS) {
+					if (isset($posts[$key]) && in_array($posts[$key], ['0', '1'], true)) {
+						update_option($key, (int) $posts[$key]);
+					}
+					continue;
+				}
 				if (!isset($posts[$key])) {
 					delete_option($key);
 					continue;
@@ -211,7 +218,11 @@ class Option
 				'dashi_specify_search_index'
 			))) continue;
 			if (substr($k, 0, 17) == 'dashi_auto_update') continue;
-			$opt = get_option($k);
+			$opt = $k === Security::RESTRICT_REST_USERS ? Security::restUsersRestricted() : get_option($k);
+			if ($k === Security::RESTRICT_REST_USERS) {
+				// チェックを外した場合も、未設定と区別できる値を送る。
+				$html .= '<input type="hidden" name="' . esc_attr($k) . '" value="0" />';
+			}
 			$checked = $opt ? ' checked="checked"' : '';
 			$id = $k === self::ALTERNATE_CRON ? ' id="' . esc_attr(self::ALTERNATE_CRON) . '"' : '';
 				// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
