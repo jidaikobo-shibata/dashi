@@ -3,7 +3,7 @@ Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: custom field, custom post type
 Tested up to: 7.1
-Stable tag: 3.5.0
+Stable tag: 3.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.1
@@ -40,6 +40,12 @@ See the [developer documentation](https://github.com/jidaikobo-shibata/dashi/blo
 
 == Changelog ==
 
+= 3.5.1 =
+* Exclude the WordPress author sitemap when author archives are disabled in Dashi settings.
+* Require authentication to read the standard REST API user list and individual user records by default. You can turn this off in Dashi settings.
+* Allow 30 minutes before showing crawl delay notices and show the next scheduled crawl time.
+* Shorten the plugin description and move detailed notes and older changes to the developer README.
+
 = 3.5.0 =
 * Corrected the minimum PHP requirement to 7.1 to match the code.
 * Store unapproved public form attachments in the database and enforce upload limits, ownership, and expiration.
@@ -69,6 +75,9 @@ fix: show Page Parts edit links according to WordPress capabilities
 [Earlier releases](https://github.com/jidaikobo-shibata/dashi/blob/main/README.md#earlier-releases)
 
 == Upgrade Notice ==
+
+= 3.5.1 =
+Anonymous reads of standard WordPress REST API user data now require authentication by default. Review frontends or external applications that use these endpoints without authentication.
 
 = 3.5.0 =
 Requires PHP 7.1 or later. A user with publishing and replacement permissions must reopen and save existing scheduled replacements before their publication date. Review legacy pending attachments before updating.

@@ -6,7 +6,7 @@ Description: Useful classes for creating a custom post type. When you install it
 Author: Jidaikobo Inc.
 Text Domain: dashi
 Domain Path: /languages/
-Version: 3.5.0
+Version: 3.5.1
 Requires PHP: 7.1
 Author URI: http://www.jidaikobo.com/
 thx: https://github.com/trentrichardson/jQuery-Timepicker-Addon/tree/master/src
@@ -101,6 +101,8 @@ register_activation_hook(
             {
                 if ($v == 'dashi_google_map_api_key') continue;
                 if ($v === \Dashi\Core\Option::ALTERNATE_CRON) continue;
+                // 未設定時は初期値を使い、再有効化しても保存済みのオフを保持する。
+                if ($v === \Dashi\Core\Security::RESTRICT_REST_USERS) continue;
                 if ($v == 'dashi_server_accesslog_is_ok') continue;
                 if ($v == 'dashi_backup_is_ok') continue;
                 if ($v == 'dashi_allow_comments') continue;
