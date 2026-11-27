@@ -3,7 +3,7 @@ Contributors: jidaikobo
 Donate link: http://www.jidaikobo.com/donate.html
 Tags: custom field, custom post type
 Tested up to: 7.1
-Stable tag: 3.5.1
+Stable tag: 3.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.1
@@ -39,6 +39,10 @@ See the [developer documentation](https://github.com/jidaikobo-shibata/dashi/blo
 
 
 == Changelog ==
+
+= 3.5.2 =
+* Show attachment storage usage only in Dashi settings, including zero-byte values.
+* Add a Japanese translation for the legacy temporary attachment warning.
 
 = 3.5.1 =
 * Exclude the WordPress author sitemap when author archives are disabled in Dashi settings.

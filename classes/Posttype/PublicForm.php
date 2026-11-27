@@ -151,13 +151,15 @@ class PublicForm
 
     public static function storageNotice()
     {
-        if (!current_user_can('manage_options') || !in_array(get_current_screen()->id ?? '', ['dashboard', 'settings_page_dashi_options'], true)) return;
-        $usage = PublicUploadBlob::usage();
+        $screen = get_current_screen()->id ?? '';
+        if (!current_user_can('manage_options') || !in_array($screen, ['dashboard', 'settings_page_dashi_options'], true)) return;
+        // 保管状況は設定画面だけに表示し、旧形式の添付に関する警告はダッシュボードにも残す。
+        $usage = $screen === 'settings_page_dashi_options' ? PublicUploadBlob::usage() : null;
         if ($usage) {
             echo '<div class="notice notice-info"><p>' . esc_html(sprintf(
                 /* translators: 1: unsubmitted file count, 2: unsubmitted size, 3: files awaiting review, 4: size awaiting review, 5: size retained after approval. */
                 __('Dashi attachments: %1$d unsubmitted (%2$s), %3$d awaiting review (%4$s), %5$s retained after approval.', 'dashi'),
-                $usage->temporary_files, size_format($usage->temporary), $usage->pending_files, size_format($usage->pending), size_format($usage->retained)
+                $usage->temporary_files, size_format($usage->temporary) ?: '0 B', $usage->pending_files, size_format($usage->pending) ?: '0 B', size_format($usage->retained) ?: '0 B'
             )) . '</p>';
             $links = [];
             foreach (PublicUploadBlob::oldestPendingPosts() as $post_id) {

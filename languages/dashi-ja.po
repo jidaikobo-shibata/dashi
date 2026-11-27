@@ -768,6 +768,9 @@ msgstr "「%s」は既存の選択肢から選んでください。"
 msgid "Dashi attachments: %1$d unsubmitted (%2$s), %3$d awaiting review (%4$s), %5$s retained after approval."
 msgstr "Dashiの添付ファイル：未送信 %1$d 件（%2$s）、承認待ち %3$d 件（%4$s）、承認後の保管 %5$s"
 
+msgid "Dashi found legacy temporary attachments. Keep direct HTTP access to their directory blocked at the web server until those files have been reviewed."
+msgstr "Dashiが旧形式の一時添付ファイルを検出しました。ファイルの確認が済むまで、Webサーバーでそのディレクトリへの直接のHTTPアクセスを禁止してください。"
+
 msgid "The submission result could not be verified. Please contact the site administrator before submitting again."
 msgstr "送信結果を確認できませんでした。再送信する前にサイト管理者にお問い合わせください。"
 
